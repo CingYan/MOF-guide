@@ -587,6 +587,173 @@ V.grind = async () => {
     ], [{ h: '區域', v: g => g.region }, { h: '類型', v: g => g.type }], { sort: 3 });
 };
 
+/* ───────── 寵物 ─────────
+   逐等級效果來自舊版社群資料，中文名稱與道具說明來自現行資料。
+   下面這份職業建議是本站的判斷，不是遊戲內建資料，判斷依據都寫在頁面上。 */
+const PET_PICKS = [
+  {
+    who: '魔法師',
+    pick: '麻吉',
+    why: '傷害幾乎全部來自技能，「技能攻擊力 +10%」是唯一直接加在輸出上的寵物加成。',
+  },
+  {
+    who: '聖職者',
+    pick: '麻吉',
+    why: '同樣以技能為主要輸出，理由與魔法師相同。',
+  },
+  {
+    who: '劍士',
+    pick: '麻吉',
+    why: '技能為主就選麻吉。普攻為主才考慮恐龍，但恐龍的攻擊力加成兩份資料一份寫 6%、一份寫 10%，'
+       + '取低標時仍輸給麻吉的 10%，所以除非你確定自己幾乎不放技能，否則麻吉還是比較穩。',
+  },
+  {
+    who: '弓箭手',
+    pick: '麻吉',
+    why: '判斷方式與劍士相同。恐龍的數值爭議也一樣適用。',
+  },
+  {
+    who: '練等與打寶',
+    pick: '艾琳',
+    why: '掉寶率加成是所有寵物裡唯一的一份，Lv.10 已有人實機驗證。但它完全不加傷害，打王時要換回輸出寵。',
+  },
+];
+
+const PET_CAVEATS = [
+  ['惡魔金只對普攻型有意義',
+   '舊資料把它標成「技能冷卻」，但伺服器主已確認該欄位實際上是攻擊速度，影響的是普攻間隔而不是技能。'
+   + '技能型職業吃不到主要效果；它附帶的防禦加成，用寵物技能書「防禦力上升」任何寵物都拿得到。'],
+  ['G-Joe 要 Lv.28 才能孵', '蛋的說明標為高階寵物，等級不到孵不出來。'],
+  ['先買「拾取」，再想加成',
+   '五本寵物技能書與品種無關，任何寵物都吃得到，而且都只要 1000。'
+   + '「拾取」會自動撿道具和錢，是這幾本裡唯一每一秒都在生效的；加成類的等養到等級才有感。'],
+  ['數值有兩份說法的地方，頁面兩邊都列',
+   '舊版社群資料與現行道具說明對某些寵物的加成項目不一致，本站不代為二選一，差異直接標在該寵物的備註欄。'],
+];
+
+V.pets = async () => {
+  const d = await data('pets');
+  const picks = el('div', { class: 'tw' }, [el('table', {}, [
+    el('thead', {}, [el('tr', {}, [el('th', { text: '職業／用途' }), el('th', { text: '建議' }),
+                                   el('th', { text: '理由' })])]),
+    el('tbody', {}, PET_PICKS.map((p) => el('tr', {}, [
+      el('td', {}, [el('b', { text: p.who })]),
+      el('td', {}, [el('b', { class: 'pick', text: p.pick })]),
+      el('td', { class: 'wrap' }, [p.why]),
+    ]))),
+  ])]);
+
+  const caveats = el('div', { class: 'trait-grid' }, PET_CAVEATS.map(([t, x]) =>
+    el('article', { class: 'trait-card' }, [el('h3', { text: t }), el('p', { text: x })])));
+
+  const hasSource = d.pets.some(p => p.source || p.verified);
+  const list = table(d.pets, [
+    { h: '寵物', c: p => el('a', { class: 'nm', href: '#/pets/' + encodeURIComponent(p.name) }, [
+        p.eggIcon ? el('img', { class: 'ic sm', src: p.eggIcon, alt: '', loading: 'lazy' }) : null,
+        p.name]) },
+    { h: '屬性', c: p => p.attr || '' },
+    { h: 'Lv.10 效果', wrap: true, c: p => el('b', { text: p.peak || '—' }) },
+    ...(hasSource ? [
+      { h: '數值來源', c: p => p.source || '—' },
+      { h: '實機驗證', c: p => p.verified ? el('span', { class: 'tag g', text: p.verified }) : '—',
+        title: '有人實際養到這個等級並回報數值' },
+    ] : []),
+    { h: '蛋', c: p => p.eggName || '' },
+    { h: '專用飼料', wrap: true, c: p => (p.foods || []).map(f => f.name).join('、') },
+    { h: '備註', wrap: true, c: p => p.note || '' },
+  ]).node;
+
+  const skills = table(d.skills || [], [
+    { h: '技能書', c: s => el('span', { class: 'nm' }, [
+        s.icon ? el('img', { class: 'ic sm', src: s.icon, alt: '', loading: 'lazy' }) : null, s.name]) },
+    { h: '效果', c: s => el('b', { text: s.eff || s.desc || '' }) },
+    { h: '生效條件', c: s => s.lvReq > 1 ? `寵物 Lv.${s.lvReq} 以上` : '立即生效' },
+    { h: '道具說明', wrap: true, c: s => s.desc || '' },
+    { h: '價格', n: true, v: s => s.price, c: s => num(s.price) },
+  ], { sort: 2, desc: false }).node;
+
+  return frag([
+    el('h1', { text: '寵物' }),
+    el('p', { class: 'sub', text:
+      `${d.pets.length} 隻。寵物加成掛在主人身上，選錯不會壞事，但也等於白養一隻。` }),
+
+    el('h2', { text: '哪個職業該養哪一隻' }),
+    el('p', { class: 'sub', text: '本站判斷，非遊戲內資料。依據寫在下面的注意事項裡。' }),
+    picks,
+
+    el('h2', { text: '注意事項' }),
+    caveats,
+
+    el('h2', { text: `寵物一覽（${d.pets.length}）` }),
+    list,
+
+    (d.skills || []).length ? frag([
+      el('h2', { text: '寵物技能書' }),
+      el('p', { class: 'sub', text: '掛在寵物身上、效果加在主人身上，任何寵物都能吃，與品種無關。' }),
+      skills,
+    ]) : null,
+
+    d.exp ? frag([
+      el('h2', { text: '養成成本' }),
+      el('p', { class: 'sub', text:
+        `寵物靠 LOVE 升級，打越高等的怪拿越多。Lv.1 養到 Lv.10 總共要 ${num(d.exp.total)} 點。` }),
+      el('div', { class: 'two-col' }, [
+        el('div', {}, [
+          el('h3', { text: '各級所需 LOVE' }),
+          table(d.exp.levels, [
+            { h: '等級', n: true, v: l => l.lv, c: l => 'Lv.' + l.lv },
+            { h: '升下一級', n: true, v: l => l.love, c: l => l.love ? num(l.love) : '—' },
+          ], { sort: 0, desc: false }).node,
+        ]),
+        el('div', {}, [
+          el('h3', { text: '打怪取得 LOVE' }),
+          table(d.exp.gain, [
+            { h: '怪物相對等級', c: g => g.diff },
+            { h: '每隻', n: true, v: g => g.love, c: g => g.love },
+          ], { sort: 1 }).node,
+        ]),
+      ]),
+    ]) : null,
+
+    (d.unmatched || []).length ? frag([
+      el('h2', { text: '資料不齊的寵物' }),
+      el('p', { class: 'sub', text: '現行資料裡找得到專用飼料，但找不到對應的蛋，因此無法確認取得方式與加成。' }),
+      table(d.unmatched, [
+        { h: '名稱', c: u => u.name },
+        { h: '種類', c: u => u.kind || '' },
+        { h: '說明', wrap: true, c: u => u.note || '' },
+      ]).node,
+    ]) : null,
+  ]);
+};
+
+V.pet = async name => {
+  const d = await data('pets');
+  const p = d.pets.find(x => x.name === decodeURIComponent(name));
+  if (!p) return el('p', { class: 'empty', text: '找不到這隻寵物。' });
+  return frag([
+    back('#/pets', '寵物列表'),
+    hero({ name: p.name, icon: p.eggIcon, desc: p.eggDesc },
+         tags([p.attr ? [p.attr, 'a'] : null, p.peak ? [p.peak, 'g'] : null,
+               p.en && p.en !== p.name ? p.en : null])),
+    dl([['蛋', p.eggName || ''], ['蛋的價格', p.eggPrice ? num(p.eggPrice) : ''],
+        ['Lv.10 效果', p.peak || ''], ['數值來源', p.source || ''],
+        ['實機驗證到', p.verified || ''], ['原始名稱', p.kr || ''],
+        ['備註', p.note || '']]),
+    section('逐等級效果', p.levels, [
+      { h: '等級', n: true, v: l => l.lv, c: l => 'Lv.' + l.lv },
+      { h: '效果', wrap: true, c: l => l.eff || '—' },
+      ...(p.levels.some(l => 'verified' in l)
+        ? [{ h: '實機驗證', c: l => l.verified ? el('span', { class: 'tag g', text: '已驗證' }) : '' }]
+        : []),
+    ], { sort: 0, desc: false }),
+    section('專用飼料', p.foods, [
+      { h: '飼料', c: f => itemCell(f) },
+      { h: '說明', wrap: true, c: f => f.desc || '' },
+    ]),
+  ]);
+};
+
 /* ───────── wiki 補充：技能 / 徽章 / 系統 ───────── */
 V.skills = async () => {
   const w = await data('wiki');
@@ -696,8 +863,9 @@ V.home = async () => {
     ['recipes', '製作配方', `${c.recipes} 份`],
     ['quests', '任務', `${c.quests} 個`],
     ['npcs', 'NPC', `${c.npcs} 位`],
+    ['pets', '寵物', '8 隻 · 職業建議'],
     ['skills', '技能', '154 個'],
-    ['badges', '徽章', '58 枚'],
+    ['badges', '徽章', '59 枚'],
     ['system', '遊戲系統', '屬性 · 轉職 · 題庫'],
   ];
   const top = g.slice().sort((a, b) => b.eff - a.eff).slice(0, 10);
@@ -768,18 +936,19 @@ function initSearch() {
 /* ───────── 路由 ───────── */
 const NAV = [['', '首頁'], ['grind', '練功'], ['monsters', '怪物'], ['maps', '地圖'],
              ['equips', '裝備'], ['fashion', '時裝'], ['items', '道具'], ['recipes', '製作'],
-             ['quests', '任務'], ['npcs', 'NPC'], ['skills', '技能'], ['badges', '徽章'],
-             ['system', '系統']];
+             ['quests', '任務'], ['npcs', 'NPC'], ['pets', '寵物'], ['skills', '技能'],
+             ['badges', '徽章'], ['system', '系統']];
 
 const ROUTE = {
   '': V.home, grind: V.grind,
   monsters: V.monsters, maps: V.maps, equips: V.equips, fashion: V.fashion,
   items: V.items, recipes: V.recipes, quests: V.quests, npcs: V.npcs,
-  skills: V.skills, badges: V.badges, system: V.system,
+  pets: V.pets, skills: V.skills, badges: V.badges, system: V.system,
 };
 const ROUTE1 = {
   monsters: V.monster, maps: V.map, equips: V.equip, fashion: V.fashionItem,
-  items: V.item, recipes: V.recipe, quests: V.quest, npcs: V.npc, skills: V.skill,
+  items: V.item, recipes: V.recipe, quests: V.quest, npcs: V.npc,
+  pets: V.pet, skills: V.skill,
 };
 
 function drawNav(active) {

@@ -99,6 +99,8 @@ td .tag{margin-left:6px;vertical-align:middle}
 .empty{color:var(--dim);padding:24px 0}
 .rate-c{color:var(--good)} .rate-r{color:var(--warn)} .rate-v{color:var(--bad);font-weight:600}
 .matrix td span{margin-right:6px}
+td .pick{color:var(--gold)}
+.two-col{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:18px;align-items:start}
 @media(max-width:640px){
   .topbar{flex-wrap:wrap}.searchbox{max-width:none;order:3;flex-basis:100%}
   .detail{grid-template-columns:1fr;gap:2px 0}.detail dt{margin-top:8px}
