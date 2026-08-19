@@ -1,644 +1,794 @@
-/* 天空之城 Online 攻略資料庫 */
 'use strict';
+/* 天空之城 Online 攻略資料庫 —— 純靜態前端，資料按需載入 */
 
-// ---------- 中文對照 ----------
-const T = {
-  job:{Fighter:'戰士',Archer:'弓手',Mage:'法師',Cleric:'聖職'},
-  attr:{Earth:'地',Fire:'火',Water:'水',Wind:'風',Holy:'聖',Dark:'暗',Ice:'冰',
-        Lightning:'雷',Other:'無',None:'—',Animal:'動物',Demon:'惡魔',Undead:'不死',
-        Dragon:'龍',Ghost:'幽靈',Turtle:'龜',Guard:'守衛',Plant:'植物'},
-  temper:{Aggresive:'主動',Aggressive:'主動',Passive:'被動',Neutral:'中立'},
-  rarity:{Normal:'普通',Rare:'稀有'},
-  part:{Helm:'頭盔',Cloth:'衣服',Pants:'褲子',Gloves:'手套',Shoes:'鞋子'},
-  move:{Land:'地面',Flying:'飛行'},
-  hdr:{'Image':'','Skill Icon':'','Title Icon':'',
-    'Item Name':'道具名稱','Core Name':'核心名稱','Badge Name':'徽章名稱','Scroll Name':'卷軸名稱',
-    'Treasure Name':'寶箱名稱','Fashion Name':'時裝名稱','Weather Name':'天氣','Skill Name':'技能名稱',
-    'Skill List':'技能列表','Dungeon Map Name':'地城地圖','Key Name':'鑰匙','Monster List':'怪物清單',
-    'Monster':'怪物','Status':'狀態','Weapon':'武器','Job':'職業','Type':'類型','Level':'等級',
-    'Method':'取得方式','Price':'價格','Effect':'效果','Duration':'持續時間','Description':'說明',
-    'Information':'說明','Item':'產出','Material':'材料','Success Rate':'成功率','Exp':'經驗值',
-    'Enhancement Level':'強化等級','Unsealed Stone':'開封後可得','Boss/Mini-Boss':'Boss／精英怪',
-    'Treasure Box':'寶箱','Question':'題目','Answer':'答案','Skill Level':'技能等級',
-    'Level Requirement':'等級需求','Weapon/Shield Level':'武器／盾等級','Max Member':'人數上限',
-    'Rank':'名次','Bonus Exp':'經驗加成','Bonus Libi':'Libi 加成','Room Type':'房型',
-    'Required Level':'等級需求','PvP Limit':'PvP 上限','PvP Cost':'PvP 費用',
-    'Spectator Cost':'觀戰費用','Room Cost':'開房費用','Player Rank':'玩家名次','Title':'稱號',
-    'Total PvP Points':'累計 PvP 點數','Location':'地點','Sound':'音效','Health':'HP',
-    'Item Drop':'掉落物','Total Status Points':'已配點數','Need Points':'需求點數',
-    'Level Up Exp':'升級所需經驗','Skill':'技能','Skill Damage':'技能傷害','Damage':'傷害',
-    'Job Requirement':'職業需求','Skill Point Cost':'技能點數','Minimal Level':'最低等級',
-    'Job Grade':'轉職階級','Rewards':'獎勵','Rare Badge':'稀有徽章','Couple Gift Box':'情侶禮盒',
-    'Wedding Ring':'結婚戒指','1 Month Login Bonus':'一個月登入獎勵',
-    '1-4 Member Party':'1～4 人隊伍','5 Member Party':'5 人隊伍',
-    'Sword':'劍','Axe':'斧','Bow':'弓','Book':'書','Cross':'十字架','Crossbow':'弩','Dagger':'匕首',
-    'Dual Sword':'雙劍','Gun':'槍','Hammer':'錘','Long Sword':'長劍','Spear':'矛','Staff':'法杖'},
-  val:{'Normal':'普通','Rare':'稀有','None':'—','General':'通用','Active':'主動','Passive':'被動',
-    'Stun':'暈眩','Stop':'定身','Freeze':'冰凍'},
-  sk:{'Skills Type':'類型','Damage':'傷害','Attack Range':'攻擊距離','Delay Skill':'冷卻',
-      'Target':'目標','MP Requirement':'消耗 MP','Item Required':'需求武器',
-      'Need Level':'需求等級','Need Class':'需求職業','Duration':'持續時間',
-      'Effect':'效果','Range':'範圍','Cast Time':'施法時間'},
-};
-const tr=(m,v)=>(v&&m[v])||v||'';
-const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const num=s=>{const m=String(s??'').replace(/[.,](?=\d{3}\b)/g,'').match(/-?\d+(\.\d+)?/);return m?+m[0]:null};
-const dmgAvg=s=>{const m=String(s??'').match(/(\d+)\s*~\s*(\d+)/);return m?(+m[1]+ +m[2])/2:num(s)};
+/* ───────── 小工具 ───────── */
+const $ = s => document.querySelector(s);
+const view = () => $('#view');
 
-// ---------- 資料載入 ----------
-const CACHE={}, IMGMAP={}, I18N={};
-const i18n=s=>(s&&I18N[s])||s||'';
-async function load(name){
-  if(CACHE[name]) return CACHE[name];
-  const r=await fetch(`data/${name}.json`);
-  if(!r.ok) throw new Error(`載入 ${name} 失敗`);
-  return CACHE[name]=await r.json();
-}
-const imgTag=(f,cls='ico')=>{
-  const m=IMGMAP[f];
-  return m?`<img class="${cls}" src="img/${m}" alt="" loading="lazy">`:'';
-};
-
-// ---------- 排序表格元件 ----------
-function tableSort(tbl){
-  tbl.querySelectorAll('th[data-k]').forEach(th=>{
-    th.onclick=()=>{
-      const k=th.dataset.k, tb=tbl.tBodies[0];
-      const desc=th.classList.contains('s')&&!th.classList.contains('d');
-      tbl.querySelectorAll('th').forEach(x=>x.classList.remove('s','d'));
-      th.classList.add('s'); if(desc) th.classList.add('d');
-      const rows=[...tb.querySelectorAll('tr[data-v]')];
-      const groups=rows.map(r=>[r, r.nextElementSibling&&r.nextElementSibling.classList.contains('detail')?r.nextElementSibling:null]);
-      groups.sort(([a],[b])=>{
-        let x=a.dataset[k]??'', y=b.dataset[k]??'';
-        const nx=parseFloat(x), ny=parseFloat(y);
-        let c = (!isNaN(nx)&&!isNaN(ny)) ? nx-ny : String(x).localeCompare(String(y));
-        return desc?-c:c;
-      });
-      groups.forEach(([r,d])=>{tb.appendChild(r); if(d) tb.appendChild(d)});
-    };
-  });
-}
-function expandRows(tbl){
-  tbl.querySelectorAll('tr.exp').forEach(tr=>{
-    tr.onclick=e=>{
-      if(e.target.tagName==='A') return;
-      const d=tr.nextElementSibling;
-      if(!d||!d.classList.contains('detail'))return;
-      const open=d.style.display!=='none';
-      d.style.display=open?'none':'table-row';
-      tr.classList.toggle('open',!open);
-    };
-  });
-}
-
-// ---------- 視圖 ----------
-const V={};
-
-V['']=V['home']=async()=>{
-  const [w,m,s]=await Promise.all([load('weapons'),load('monsters'),load('skills')]);
-  return `
-  <h1>天空之城 Online 攻略資料庫</h1>
-  <p class="sub">Master of Fantasy · 非官方玩家攻略站</p>
-  <div class="note">
-    <b>這個站在幹嘛？</b> 原始 wiki 是印尼文、資料散在幾百個頁面、表格不能排序也不能篩選。
-    這裡把全站 ${w.length+m.length+s.length}+ 筆資料重新整理成<b>可搜尋、可篩選、可排序</b>的資料庫，
-    並加上 wiki 沒有的 <a href="#/drops">掉落物反查</a>。
-  </div>
-  <h2>四大職業</h2>
-  <div class="grid">${['Fighter','Archer','Mage','Cleric'].map(j=>`
-    <a class="card jobcard ${j}" href="#/jobs?j=${j}">
-      <h3>${T.job[j]} <small style="color:var(--tx3);font-weight:400">${j}</small></h3>
-      <p>可用武器 ${w.filter(x=>x.jobs.includes(j)).length} 把 · 技能 ${s.filter(x=>x.job===j).length} 個</p>
-    </a>`).join('')}</div>
-  <h2>資料總覽</h2>
-  <div class="grid">
-    <a class="card" href="#/weapons"><h3>⚔️ 武器 ${w.length}</h3><p>13 種類型，可依職業、稀有度、等級篩選，傷害排序</p></a>
-    <a class="card" href="#/armors"><h3>🛡️ 防具飾品 590</h3><p>各職業防具 400 件、盾 28 面、飾品 162 件</p></a>
-    <a class="card" href="#/skills"><h3>✨ 技能 ${s.length}</h3><p>四職業全技能，含 I～X 各等級數值</p></a>
-    <a class="card" href="#/monsters"><h3>👹 怪物圖鑑 ${m.length}</h3><p>等級、HP、屬性、出沒地、完整掉落表</p></a>
-    <a class="card" href="#/drops"><h3>🔍 掉落物反查</h3><p>輸入道具名，反查哪些怪會掉 —— wiki 沒有這功能</p></a>
-    <a class="card" href="#/attr"><h3>🔥 屬性相剋</h3><p>武器屬性 vs 怪物屬性完整矩陣，附「打這種怪帶什麼」反查</p></a>
-    <a class="card" href="#/systems"><h3>⚙️ 遊戲系統</h3><p>強化、製作、藥水、狀態異常、轉職考試等機制資料表</p></a>
-    <a class="card" href="#/badges"><h3>🎖️ 徽章</h3><p>58 枚，含取得條件、效果與價格，可篩普通／稀有</p></a>
-    <a class="card" href="#/pets"><h3>🐾 寵物 8</h3><p>各寵物 Lv.1～10 加成完整對照</p></a>
-    <a class="card" href="#/npcs"><h3>💬 NPC 與任務</h3><p>64 位 NPC，含任務等級、目標、獎勵</p></a>
-    <a class="card" href="#/locations"><h3>🗺️ 地點</h3><p>城鎮、地城、區域與所屬 NPC</p></a>
-  </div>`;
-};
-
-// --- 職業 ---
-V['jobs']=async(p)=>{
-  const [w,s]=await Promise.all([load('weapons'),load('skills')]);
-  const TREE={
-    Fighter:['Fighter','Knight','Berserker / Templar','Warlord / Paladin','Conqueror / Crusader'],
-    Archer:['Archer','Hunter','Ranger / Sniper','Predator / Gunner','Beast Master / Destroyer'],
-    Mage:['Mage','Wizard','Sorcerer / Warlock','Archmage / Necromancer','Magister / Lich'],
-    Cleric:['Cleric','Priest','Saint / Paladin','Holy Avenger / Bishop','Cardinal / Arc Bishop'],
-  };
-  const cur=p.j||'Fighter';
-  const ws=w.filter(x=>x.jobs.includes(cur)), ss=s.filter(x=>x.job===cur);
-  const byType={}; ws.forEach(x=>(byType[x.group]=byType[x.group]||[]).push(x));
-  return `
-  <h1>職業</h1>
-  <p class="sub">四大職業的轉職路線、可用武器與技能。轉職樹依 wiki 的 1～5 轉資料整理。</p>
-  <div class="chips" style="margin-bottom:18px">${Object.keys(T.job).map(j=>
-    `<a class="chip ${j===cur?'on':''}" href="#/jobs?j=${j}">${T.job[j]}</a>`).join('')}</div>
-  <h2>${T.job[cur]} ${cur}</h2>
-  <h3>轉職路線</h3>
-  <div class="tree">${TREE[cur].map((t,i)=>`${i?' → ':''}<b>${i+1}轉：</b>${esc(t)}`).join('<br>')}</div>
-  <h3>可用武器（${ws.length} 把）</h3>
-  <div class="chips">${Object.entries(byType).sort((a,b)=>b[1].length-a[1].length).map(([g,arr])=>
-    `<a class="chip" href="#/weapons?g=${encodeURIComponent(g)}">${esc(g)} ${arr.length}</a>`).join('')}</div>
-  <h3>技能（${ss.length} 個）</h3>
-  <div class="chips">${ss.map(x=>
-    `<a class="chip" href="#/skills?q=${encodeURIComponent(x.name)}">${esc(x.name)}</a>`).join('')}</div>`;
-};
-
-// --- 武器 ---
-V['weapons']=async(p)=>{
-  const w=await load('weapons');
-  const groups=[...new Set(w.map(x=>x.group))].sort();
-  return {html:`
-  <h1>武器資料庫</h1>
-  <p class="sub">${w.length} 把武器。點欄位標題可排序，「傷害」用平均值排。</p>
-  <div class="filters">
-    <select id="fj"><option value="">全部職業</option>${Object.entries(T.job).map(([k,v])=>`<option value="${k}">${v}</option>`).join('')}</select>
-    <select id="fg"><option value="">全部類型</option>${groups.map(g=>`<option value="${esc(g)}"${p.g===g?' selected':''}>${esc(g)}</option>`).join('')}</select>
-    <select id="fr"><option value="">全部稀有度</option><option value="Rare">稀有</option><option value="Normal">普通</option></select>
-    <input type="number" id="fmin" placeholder="等級 ≥" style="width:92px">
-    <input type="number" id="fmax" placeholder="等級 ≤" style="width:92px">
-    <select id="fa"><option value="">全部屬性</option>${[...new Set(w.map(x=>x.attr))].filter(Boolean).sort().map(a=>`<option value="${esc(a)}"${p.a===a?' selected':''}>${tr(T.attr,a)}</option>`).join('')}</select>
-    <input type="text" id="fq" placeholder="名稱關鍵字" value="${esc(p.q||'')}">
-    <span class="cnt" id="cnt"></span>
-  </div>
-  <div class="tw"><table id="tb">
-    <thead><tr>
-      <th class="hide-m"></th><th data-k="name">武器名稱</th><th data-k="group">類型</th>
-      <th data-k="rar">稀有</th><th data-k="lv" class="n">等級</th><th data-k="dmg" class="n">傷害</th>
-      <th data-k="spd" class="n hide-m">攻速</th><th data-k="rng" class="n hide-m">射程</th>
-      <th data-k="attr" class="hide-m">屬性</th><th data-k="price" class="n hide-m">價格</th><th>效果</th>
-    </tr></thead><tbody></tbody>
-  </table></div>`,
-  init(){
-    const tb=document.querySelector('#tb tbody');
-    const f=()=>{
-      const j=fj.value,g=fg.value,r=fr.value,a=fa.value,mn=+fmin.value||0,mx=+fmax.value||999,q=fq.value.toLowerCase();
-      const rows=w.filter(x=>(!j||x.jobs.includes(j))&&(!g||x.group===g)&&(!r||x.rarity===r)
-        &&(!a||x.attr===a)&&(x.lv==null||(x.lv>=mn&&x.lv<=mx))&&(!q||x.name.toLowerCase().includes(q)));
-      cnt.textContent=`${rows.length} 把`;
-      tb.innerHTML=rows.map(x=>`<tr data-v data-name="${esc(x.name)}" data-group="${esc(x.group)}"
-        data-rar="${x.rarity==='Rare'?1:0}" data-lv="${x.lv??0}" data-dmg="${dmgAvg(x.dmg)??0}"
-        data-spd="${num(x.spd)??0}" data-rng="${num(x.rng)??0}" data-attr="${esc(x.attr)}" data-price="${num(x.price)??0}">
-        <td class="hide-m"></td>
-        <td class="nm">${esc(x.name)}<span class="kr">${x.jobs.map(j=>T.job[j]).join('・')}</span></td>
-        <td>${esc(x.group)}</td>
-        <td><span class="t ${x.rarity==='Rare'?'rare':'norm'}">${tr(T.rarity,x.rarity)||'—'}</span></td>
-        <td class="n">${x.lv??'—'}</td><td class="n">${esc(x.dmg)||'—'}</td>
-        <td class="n hide-m">${esc(x.spd)||'—'}</td><td class="n hide-m">${esc(x.rng)||'—'}</td>
-        <td class="hide-m">${tr(T.attr,x.attr)||'—'}</td>
-        <td class="n hide-m">${esc(String(x.price).replace(' Libi',''))||'—'}</td>
-        <td>${esc(x.eff==='None'?'':x.eff)}${x.add&&x.add!=='None'?'<br><span style="color:var(--gold2);font-size:12px">'+esc(x.add)+'</span>':''}</td>
-      </tr>`).join('')||'<tr><td colspan="11" class="empty">沒有符合條件的武器</td></tr>';
-      tableSort(tb.closest('table'));
-    };
-    ['fj','fg','fr','fa','fmin','fmax'].forEach(i=>document.getElementById(i).onchange=f);
-    fq.oninput=f; f();
-  }};
-};
-
-// --- 防具 / 飾品 ---
-V['armors']=async()=>{
-  const [a,c]=await Promise.all([load('armors'),load('accessories')]);
-  const all=[...a,...c];
-  return {html:`
-  <h1>防具與飾品</h1>
-  <p class="sub">${a.length} 件防具（含 ${a.filter(x=>x.group==='Shield').length} 面盾）與 ${c.length} 件飾品。</p>
-  <div class="filters">
-    <select id="fj"><option value="">全部職業</option>${Object.entries(T.job).map(([k,v])=>`<option value="${k}">${v}</option>`).join('')}</select>
-    <select id="fp"><option value="">全部部位</option>${[...new Set(all.map(x=>x.part||x.group))].filter(Boolean).map(p=>`<option value="${esc(p)}">${tr(T.part,p)}</option>`).join('')}</select>
-    <input type="number" id="fmin" placeholder="等級 ≥" style="width:92px">
-    <input type="number" id="fmax" placeholder="等級 ≤" style="width:92px">
-    <input type="text" id="fq" placeholder="名稱關鍵字">
-    <span class="cnt" id="cnt"></span>
-  </div>
-  <div class="tw"><table id="tb">
-    <thead><tr><th data-k="name">名稱</th><th data-k="part">部位</th><th data-k="job" class="hide-m">職業</th>
-    <th data-k="lv" class="n">等級</th><th data-k="def" class="n">防禦</th>
-    <th data-k="price" class="n hide-m">價格</th><th>效果</th></tr></thead><tbody></tbody>
-  </table></div>`,
-  init(){
-    const tb=document.querySelector('#tb tbody');
-    const f=()=>{
-      const j=fj.value,p=fp.value,mn=+fmin.value||0,mx=+fmax.value||999,q=fq.value.toLowerCase();
-      const rows=all.filter(x=>(!j||x.jobs.includes(j))&&(!p||(x.part||x.group)===p)
-        &&(x.lv==null||(x.lv>=mn&&x.lv<=mx))&&(!q||x.name.toLowerCase().includes(q)));
-      cnt.textContent=`${rows.length} 件`;
-      tb.innerHTML=rows.map(x=>`<tr data-v data-name="${esc(x.name)}" data-part="${esc(x.part||x.group)}"
-        data-job="${esc(x.jobs.join())}" data-lv="${x.lv??0}" data-def="${x.def??0}" data-price="${num(x.price)??0}">
-        <td class="nm">${esc(x.name)}</td><td>${tr(T.part,x.part)||esc(x.group)}</td>
-        <td class="hide-m">${x.jobs.length===4?'全職業':x.jobs.map(j=>`<span class="t ${j}">${T.job[j]}</span>`).join(' ')}</td>
-        <td class="n">${x.lv??'—'}</td><td class="n">${x.def??'—'}</td>
-        <td class="n hide-m">${esc(String(x.price).replace(' Libi',''))||'—'}</td>
-        <td>${esc(x.eff==='None'?'':x.eff)}</td></tr>`).join('')||'<tr><td colspan="7" class="empty">沒有符合條件的裝備</td></tr>';
-      tableSort(tb.closest('table'));
-    };
-    ['fj','fp','fmin','fmax'].forEach(i=>document.getElementById(i).onchange=f);
-    fq.oninput=f; f();
-  }};
-};
-
-// --- 技能 ---
-V['skills']=async(p)=>{
-  const s=await load('skills');
-  return {html:`
-  <h1>技能資料庫</h1>
-  <p class="sub">${s.length} 個技能。點任一列展開該技能 I～X 各等級的完整數值。</p>
-  <div class="filters">
-    <div class="chips" id="cj">
-      <button class="chip on" data-j="">全部</button>
-      ${Object.entries(T.job).map(([k,v])=>`<button class="chip" data-j="${k}">${v}</button>`).join('')}
-    </div>
-    <select id="ft"><option value="">主動＋被動</option><option value="Active">主動</option><option value="Passive">被動</option></select>
-    <input type="text" id="fq" placeholder="技能名稱" value="${esc(p.q||'')}">
-    <span class="cnt" id="cnt"></span>
-  </div>
-  <div class="tw"><table id="tb">
-    <thead><tr><th data-k="name">技能</th><th data-k="job">職業</th><th data-k="type">類型</th>
-    <th data-k="lv" class="n">最低等級</th><th data-k="ranks" class="n hide-m">階級數</th><th class="hide-m">說明（原文）</th></tr></thead>
-    <tbody></tbody></table></div>`,
-  init(){
-    let job='';
-    const tb=document.querySelector('#tb tbody');
-    const f=()=>{
-      const t=ft.value,q=fq.value.toLowerCase();
-      const rows=s.filter(x=>(!job||x.job===job)&&(!t||x.type===t)&&(!q||x.name.toLowerCase().includes(q)));
-      cnt.textContent=`${rows.length} 個`;
-      tb.innerHTML=rows.map(x=>{
-        const lv=x.levels.length?num(x.levels[0].f['Need Level']):null;
-        const det=x.levels.map(L=>`<div class="lvb"><b>${esc(L.name)}</b><dl>${
-          Object.entries(L.f).filter(([k])=>k!=='Need Class').map(([k,v])=>
-            `<dt>${esc(tr(T.sk,k))}</dt><dd>${esc(String(v).replace(' Detik',' 秒'))}</dd>`).join('')}</dl></div>`).join('');
-        return `<tr data-v class="exp" data-name="${esc(x.name)}" data-job="${esc(x.job)}" data-type="${esc(x.type)}"
-          data-lv="${lv??0}" data-ranks="${x.levels.length}">
-          <td class="nm">${esc(x.name)}<span class="kr">${esc(x.kr)}</span></td>
-          <td><span class="t ${x.job}">${T.job[x.job]||'—'}</span></td>
-          <td>${x.type==='Active'?'主動':'被動'}</td>
-          <td class="n">${lv??'—'}</td><td class="n hide-m">${x.levels.length}</td>
-          <td class="hide-m" style="color:var(--tx3);font-size:12px">${esc(i18n(x.desc).slice(0,60))}</td></tr>
-        <tr class="detail" style="display:none"><td colspan="6">
-          ${x.desc?`<p style="color:var(--tx2);margin-bottom:10px;font-size:13px">${esc(i18n(x.desc))}</p>`:''}
-          <div class="lv">${det||'<span style="color:var(--tx3)">此技能沒有分級數值</span>'}</div></td></tr>`;
-      }).join('')||'<tr><td colspan="6" class="empty">找不到技能</td></tr>';
-      tableSort(tb.closest('table')); expandRows(tb.closest('table'));
-    };
-    cj.onclick=e=>{if(!e.target.dataset.j&&e.target.dataset.j!=='')return;
-      [...cj.children].forEach(c=>c.classList.remove('on'));e.target.classList.add('on');job=e.target.dataset.j;f()};
-    ft.onchange=f; fq.oninput=f; f();
-  }};
-};
-
-// --- 怪物 ---
-V['monsters']=async(p)=>{
-  const m=await load('monsters');
-  const regions=[...new Set(m.flatMap(x=>x.regions))].sort();
-  return {html:`
-  <h1>怪物圖鑑</h1>
-  <p class="sub">${m.length} 隻怪物。點任一列展開掉落物清單。部分怪物 wiki 未記錄 HP，顯示為「—」。</p>
-  <div class="filters">
-    <select id="fr"><option value="">全部地區</option>${regions.map(r=>`<option value="${esc(r)}">${esc(r)}</option>`).join('')}</select>
-    <select id="fa"><option value="">全部屬性</option>${[...new Set(m.map(x=>x.attr))].filter(Boolean).sort().map(a=>`<option value="${esc(a)}">${tr(T.attr,a)}</option>`).join('')}</select>
-    <select id="ft"><option value="">全部性格</option><option value="Aggresive">主動攻擊</option><option value="Passive">被動</option><option value="Neutral">中立</option></select>
-    <select id="fb"><option value="">全部</option><option value="1">只看 Boss</option></select>
-    <input type="number" id="fmin" placeholder="等級 ≥" style="width:92px">
-    <input type="number" id="fmax" placeholder="等級 ≤" style="width:92px">
-    <input type="text" id="fq" placeholder="名稱關鍵字" value="${esc(p.q||'')}">
-    <span class="cnt" id="cnt"></span>
-  </div>
-  <div class="tw"><table id="tb">
-    <thead><tr><th></th><th data-k="name">怪物</th><th data-k="lv" class="n">等級</th>
-    <th data-k="hp" class="n">HP</th><th data-k="temper">性格</th><th data-k="attr" class="hide-m">屬性</th>
-    <th data-k="move" class="hide-m">移動</th><th data-k="loc">出沒地</th><th data-k="drops" class="n hide-m">掉落</th></tr></thead>
-    <tbody></tbody></table></div>`,
-  init(){
-    const tb=document.querySelector('#tb tbody');
-    const f=()=>{
-      const r=fr.value,a=fa.value,t=ft.value,b=fb.value,mn=+fmin.value||0,mx=+fmax.value||999,q=fq.value.toLowerCase();
-      const rows=m.filter(x=>(!r||x.regions.includes(r))&&(!a||x.attr===a)&&(!t||x.temper===t)
-        &&(!b||x.boss)&&(x.level==null||(x.level>=mn&&x.level<=mx))&&(!q||x.name.toLowerCase().includes(q)));
-      cnt.textContent=`${rows.length} 隻`;
-      tb.innerHTML=rows.map(x=>`
-        <tr data-v class="exp" data-name="${esc(x.name)}" data-lv="${x.level??0}" data-hp="${x.hp??0}"
-          data-temper="${esc(x.temper)}" data-attr="${esc(x.attr)}" data-move="${esc(x.move)}"
-          data-loc="${esc(x.loc)}" data-drops="${x.drops.length}">
-          <td>${imgTag(x.img)}</td>
-          <td class="nm">${esc(x.name)}${x.boss?' <span class="t boss">BOSS</span>':x.mini?' <span class="t mini">精英</span>':''}<span class="kr">${esc(x.kr)}</span></td>
-          <td class="n">${x.level??'—'}</td><td class="n">${x.hp??'—'}</td>
-          <td><span class="t ${x.temper==='Aggresive'?'ag':x.temper==='Neutral'?'ne':'pa'}">${tr(T.temper,x.temper)||'—'}</span></td>
-          <td class="hide-m">${tr(T.attr,x.attr)||'—'}</td><td class="hide-m">${tr(T.move,x.move)||'—'}</td>
-          <td>${esc(x.loc)||'—'}</td><td class="n hide-m">${x.drops.length||'—'}</td></tr>
-        <tr class="detail" style="display:none"><td colspan="9">
-          ${x.desc?`<p style="color:var(--tx2);font-size:13px;margin-bottom:10px">${esc(i18n(x.desc))}</p>`:''}
-          ${x.drops.length?`<div class="dl">${x.drops.map(d=>
-            `<a class="${d.rarity==='Rare'?'r':''}" href="#/drops?q=${encodeURIComponent(d.name)}">${esc(d.name)}${d.rarity==='Rare'?' ★':''}</a>`).join('')}</div>`
-            :'<span style="color:var(--tx3)">wiki 未記錄掉落物</span>'}</td></tr>`).join('')
-        ||'<tr><td colspan="9" class="empty">沒有符合條件的怪物</td></tr>';
-      tableSort(tb.closest('table')); expandRows(tb.closest('table'));
-    };
-    ['fr','fa','ft','fb','fmin','fmax'].forEach(i=>document.getElementById(i).onchange=f);
-    fq.oninput=f; f();
-  }};
-};
-
-// --- 掉落物反查 ---
-V['drops']=async(p)=>{
-  const di=await load('drop_index');
-  const keys=Object.keys(di);
-  return {html:`
-  <h1>掉落物反查</h1>
-  <p class="sub">輸入道具名稱，反查哪些怪物會掉。收錄 ${keys.length} 種道具、來自 ${new Set(Object.values(di).flat().map(x=>x.mon)).size} 隻怪物。這是原始 wiki 沒有的功能。</p>
-  <div class="filters">
-    <input type="text" id="fq" placeholder="例：Core、Cross、Herbs…" value="${esc(p.q||'')}" style="min-width:260px">
-    <select id="fr"><option value="">全部稀有度</option><option value="Rare">只看稀有</option><option value="Common">只看普通</option></select>
-    <span class="cnt" id="cnt"></span>
-  </div>
-  <div id="out"></div>`,
-  init(){
-    const f=()=>{
-      const q=fq.value.trim().toLowerCase(), r=fr.value;
-      if(!q){out.innerHTML='<div class="empty">在上方輸入道具名稱開始查詢<br><span style="font-size:12px">試試 Core、Cross、Stone</span></div>';cnt.textContent='';return}
-      let ks=keys.filter(k=>k.toLowerCase().includes(q));
-      const res=ks.map(k=>[k,di[k].filter(x=>!r||x.rarity===r)]).filter(([,v])=>v.length).slice(0,120);
-      cnt.textContent=`${res.length} 種道具`;
-      out.innerHTML=res.length?res.map(([k,v])=>`
-        <h3>${esc(k)} <span style="color:var(--tx3);font-weight:400;font-size:12px">${v.length} 個來源</span></h3>
-        <div class="tw"><table><thead><tr><th>怪物</th><th class="n">等級</th><th>出沒地</th><th>稀有度</th></tr></thead>
-        <tbody>${v.sort((a,b)=>(a.lv??0)-(b.lv??0)).map(x=>`<tr>
-          <td class="nm"><a href="#/monsters?q=${encodeURIComponent(x.mon)}">${esc(x.mon)}</a></td>
-          <td class="n">${x.lv??'—'}</td><td>${esc(x.loc)||'—'}</td>
-          <td><span class="t ${x.rarity==='Rare'?'rare':'norm'}">${x.rarity==='Rare'?'稀有':'普通'}</span></td>
-        </tr>`).join('')}</tbody></table></div>`).join('')
-        :'<div class="empty">查無此道具</div>';
-    };
-    fq.oninput=f; fr.onchange=f; f(); fq.focus();
-  }};
-};
-
-// --- 寵物 ---
-V['pets']=async()=>{
-  const p=await load('pets');
-  return `<h1>寵物</h1>
-  <p class="sub">共 ${p.length} 隻。寵物由商城購買（Ghost 為初始寵），從蛋開始養到 Lv.10 才有滿加成。
-  另有 5 種技能書（HP/MP 回復、自動拾取、命中光環、防禦光環）與品種無關，任何寵物最多同時掛 4 個。</p>
-  <div class="tw"><table><thead><tr><th>寵物</th><th>屬性</th><th>Lv.1</th><th>Lv.5</th><th>Lv.10（滿級）</th></tr></thead>
-  <tbody>${p.map(x=>{
-    const g=n=>{const e=x.eff.find(y=>y.lv===n);return e?esc(String(e.e).replace(/\s*Detik/g,' 秒')):'—'};
-    return `<tr><td class="nm">${imgTag(x.img)}${esc(x.name)}<span class="kr">${esc(x.kr)}</span>${x.desc?`<span class="kr" style="color:var(--tx2)">${esc(i18n(x.desc))}</span>`:''}</td>
-    <td>${tr(T.attr,x.attr)||'—'}</td><td>${g(1)}</td><td>${g(5)}</td>
-    <td style="color:var(--gold2);font-weight:600">${g(10)}</td></tr>`}).join('')}</tbody></table></div>
-  <div class="note"><b>選寵建議：</b>輸出向看 <b>Penguin</b>（+10% 技能攻擊）或 <b>Dino</b>（+10% 傷害）；
-  補職與需要高頻施法的看 <b>Devil Jean</b>（技能延遲 -0.1 秒、+5% 防禦），因為延遲縮減對治療也生效。
-  <b>Tinkerbell</b>（+28% 掉寶率）是打寶用。<b>Ghost</b> 無任何效果且不能使用寵物技能。</div>`;
-};
-
-// --- NPC ---
-V['npcs']=async()=>{
-  const n=await load('npcs');
-  const withQ=n.filter(x=>x.quests.length);
-  return {html:`<h1>NPC 與任務</h1>
-  <p class="sub">${n.length} 位 NPC，其中 ${withQ.length} 位有任務（共 ${n.reduce((s,x)=>s+x.quests.length,0)} 個）。點有任務的 NPC 展開。</p>
-  <div class="filters">
-    <select id="fq2"><option value="">全部 NPC</option><option value="1">只看有任務的</option></select>
-    <input type="text" id="fq" placeholder="NPC 或地點">
-    <span class="cnt" id="cnt"></span>
-  </div>
-  <div class="tw"><table id="tb"><thead><tr><th></th><th data-k="name">NPC</th><th data-k="loc">所在地</th>
-  <th class="hide-m">職務</th><th data-k="qn" class="n">任務數</th></tr></thead><tbody></tbody></table></div>`,
-  init(){
-    const tb=document.querySelector('#tb tbody');
-    const f=()=>{
-      const only=fq2.value,q=fq.value.toLowerCase();
-      const rows=n.filter(x=>(!only||x.quests.length)&&(!q||x.name.toLowerCase().includes(q)||(x.loc||'').toLowerCase().includes(q)));
-      cnt.textContent=`${rows.length} 位`;
-      tb.innerHTML=rows.map(x=>`
-        <tr data-v class="${x.quests.length?'exp':''}" data-name="${esc(x.name)}" data-loc="${esc(x.loc)}" data-qn="${x.quests.length}">
-          <td>${imgTag(x.img)}</td>
-          <td class="nm">${esc(x.name)}<span class="kr">${esc(x.kr)}</span></td>
-          <td>${esc(x.loc)||'—'}</td><td class="hide-m" style="color:var(--tx2);font-size:12px">${esc(i18n(x.job).slice(0,40))}</td>
-          <td class="n">${x.quests.length||'—'}</td></tr>
-        ${x.quests.length?`<tr class="detail" style="display:none"><td colspan="5">
-          <div class="tw"><table><thead><tr><th>任務</th><th class="n">等級</th><th>目標</th><th>獎勵</th></tr></thead>
-          <tbody>${x.quests.map(qq=>`<tr><td class="nm">${esc(qq.name)}</td><td class="n">${qq.lv??'—'}</td>
-          <td style="font-size:12px;color:var(--tx2)">${esc(i18n(qq.mission))}</td>
-          <td style="font-size:12px">${esc(i18n(qq.reward))}</td></tr>`).join('')}</tbody></table></div></td></tr>`:''}`).join('')
-        ||'<tr><td colspan="5" class="empty">查無 NPC</td></tr>';
-      tableSort(tb.closest('table')); expandRows(tb.closest('table'));
-    };
-    fq2.onchange=f; fq.oninput=f; f();
-  }};
-};
-
-// --- 地點 ---
-V['locations']=async()=>{
-  const l=await load('locations');
-  return `<h1>地點</h1><p class="sub">${l.length} 個城鎮、地城與區域。</p>
-  <div class="grid">${l.map(x=>`<div class="card"><h3>${esc(x.name)}</h3>
-    ${x.kr?`<p style="color:var(--tx3);font-size:11px">${esc(x.kr)}</p>`:''}
-    <p style="margin-top:6px">${esc(i18n(x.desc).slice(0,140))}…</p>
-    <div class="chips" style="margin-top:10px">${x.regions.slice(0,3).map(r=>
-      `<a class="chip" href="#/monsters?q=&r=${encodeURIComponent(r)}" style="font-size:11px">${esc(r)}</a>`).join('')}</div>
-  </div>`).join('')}</div>`;
-};
-
-
-// --- 屬性相剋 ---
-V['attr']=async()=>{
-  const {matrix,monAttrs}=await load('systems');
-  const w=await load('weapons');
-  const WA=Object.keys(matrix);
-  const cellOf=(wa,ma)=>{
-    const m=matrix[wa];
-    if(m.up.includes(ma)) return ['up','▲ 加成','#4caf72'];
-    if(m.down.includes(ma)) return ['down','▼ 減傷','#e05c4a'];
-    return ['-','—','var(--tx3)'];
-  };
-  const best={};
-  monAttrs.forEach(ma=>{
-    best[ma]={good:WA.filter(wa=>matrix[wa].up.includes(ma)),
-              bad:WA.filter(wa=>matrix[wa].down.includes(ma))};
-  });
-  return `
-  <h1>屬性相剋</h1>
-  <p class="sub">武器屬性會影響對不同屬性怪物的傷害。直排是<b>武器屬性</b>，橫排是<b>怪物屬性</b>。</p>
-  <div class="tw"><table>
-    <thead><tr><th>武器 ＼ 怪物</th>${monAttrs.map(a=>`<th style="text-align:center">${tr(T.attr,a)}<br><span style="font-weight:400;color:var(--tx3);font-size:10px">${a}</span></th>`).join('')}</tr></thead>
-    <tbody>${WA.map(wa=>`<tr>
-      <td class="nm">${tr(T.attr,wa)||wa}<span class="kr">${wa}</span></td>
-      ${monAttrs.map(ma=>{const [,txt,col]=cellOf(wa,ma);
-        return `<td style="text-align:center;color:${col};font-weight:600;font-size:12px">${txt}</td>`}).join('')}
-    </tr>`).join('')}</tbody>
-  </table></div>
-  <div class="note"><b>Earth（地）沒有任何相剋關係</b>——對所有屬性怪物都是原傷害。
-  wiki 的 Attribute 頁只列出上述加成／減傷，沒有給實際百分比數字。</div>
-  <h2>反查：我要打這種怪，該帶什麼屬性？</h2>
-  <div class="grid">${monAttrs.map(ma=>`
-    <div class="card"><h3>對付 ${tr(T.attr,ma)} <small style="color:var(--tx3);font-weight:400">${ma}</small></h3>
-      <p style="color:#6fd497">✔ 帶：${best[ma].good.length?best[ma].good.map(x=>tr(T.attr,x)).join('、'):'無加成屬性'}</p>
-      <p style="color:#ff8f7d">✘ 避開：${best[ma].bad.length?best[ma].bad.map(x=>tr(T.attr,x)).join('、'):'無'}</p>
-      <div class="chips" style="margin-top:8px">${best[ma].good.map(x=>{
-        const n=w.filter(y=>y.attr===x).length;
-        return n?`<a class="chip" style="font-size:11px" href="#/weapons?a=${x}">${tr(T.attr,x)}武器 ${n}</a>`:''}).join('')}</div>
-    </div>`).join('')}</div>`;
-};
-
-// --- 遊戲系統 ---
-V['systems']=async(p)=>{
-  const {systems}=await load('systems');
-  const cur=p.s||systems.find(s=>s.tables.length).id;
-  const s=systems.find(x=>x.id===cur)||systems[0];
-  const R={};
-  const zhH=h=>{
-    if(T.hdr[h]!==undefined) return T.hdr[h];
-    const m=h.match(/^(\d+) Player$/); if(m) return m[1]+' 人';
-    return h;
-  };
-  const isImg=h=>/^(image|skill icon|title icon)$/i.test(h);
-  const tbl=(t,ti)=>`<div class="tw"><table data-t="${ti}"><thead><tr>${
-    t.headers.map(h=>isImg(h)?'<th></th>':`<th>${esc(zhH(h))}</th>`).join('')}</tr></thead>
-    <tbody>${t.rows.map(r=>`<tr>${t.headers.map((h,i)=>
-      isImg(h)?`<td>${imgTag(r.img)}</td>`
-      :`<td${i<2?' class="nm"':''}>${esc(i18n(tr(T.val,r.c[i]||'')))}</td>`).join('')}</tr>`).join('')}
-    </tbody></table></div>`;
-  return {html:`
-  <h1>遊戲系統</h1>
-  <p class="sub">強化、製作、藥水、狀態異常、轉職考試等機制與道具表。說明文字為 wiki 原文（印尼文），表格數值已整理。</p>
-  <div class="chips" style="margin-bottom:18px">${systems.map(x=>
-    `<a class="chip ${x.id===cur?'on':''}" href="#/systems?s=${encodeURIComponent(x.id)}">${esc(x.zh)}${x.tables.length?'':' ·'}</a>`).join('')}</div>
-  <h2>${esc(s.zh)} <span style="color:var(--tx3);font-size:13px;font-weight:400">${esc(s.id)}</span></h2>
-  ${s.intro?`<div class="note">${esc(i18n(s.intro))}</div>`:''}
-  ${s.tables.some(t=>t.rows.length>20)?'<div class="filters"><input type="text" id="tq" placeholder="在本頁表格中搜尋…" style="min-width:240px"><span class="cnt" id="tcnt"></span></div>':''}
-  ${s.tables.length?s.tables.map((t,i)=>`${s.tables.length>1?`<h3>${esc(zhH(t.headers.find(h=>!isImg(h))||''))}表（${t.rows.length} 列）</h3>`:''}${tbl(t,i)}`).join('')
-    :'<div class="empty">這個頁面在 wiki 上只有文字說明，沒有資料表</div>'}`,
-  init(){
-    const q=document.getElementById('tq'); if(!q) return;
-    const all=[...document.querySelectorAll('table[data-t] tbody tr')];
-    q.oninput=()=>{
-      const v=q.value.trim().toLowerCase(); let n=0;
-      all.forEach(tr=>{const hit=!v||tr.textContent.toLowerCase().includes(v);
-        tr.style.display=hit?'':'none'; if(hit)n++});
-      tcnt.textContent=v?`${n} 列符合`:'';
-    };
-  }};
-};
-
-
-// --- 徽章 ---
-V['badges']=async(p)=>{
-  const acc=await load('accessories');
-  const b=acc.filter(x=>x.group==='Badge');
-  const rare=b.filter(x=>x.type==='Rare').length;
-  return {html:`
-  <h1>徽章 Badge</h1>
-  <p class="sub">共 ${b.length} 枚（普通 ${b.length-rare}、稀有 ${rare}）。徽章由 NPC <b>Rinoa</b> 與 <b>Lusia</b> 販售，
-  達成條件後才買得到；<b>稀有徽章</b>則是達成條件後自動取得。可從快捷欄直接使用。</p>
-  <div class="filters">
-    <div class="chips" id="ct">
-      <button class="chip on" data-t="">全部</button>
-      <button class="chip" data-t="Normal">普通</button>
-      <button class="chip" data-t="Rare">稀有</button>
-    </div>
-    <input type="text" id="fq" placeholder="徽章名稱或效果" value="${esc(p.q||'')}">
-    <span class="cnt" id="cnt"></span>
-  </div>
-  <div class="tw"><table id="tb">
-    <thead><tr><th data-k="name">徽章</th><th data-k="type">類型</th>
-    <th data-k="lv" class="n">等級</th><th>效果</th><th>取得方式</th>
-    <th data-k="price" class="n hide-m">價格</th></tr></thead><tbody></tbody></table></div>
-  <div class="note"><b>資料說明：</b>「取得方式」與等級條件原文為印尼文，站上顯示的是譯文；
-  若某條沒有譯文會保留原文。效果與價格為 wiki 原始數值。</div>`,
-  init(){
-    let ty='';
-    const tb=document.querySelector('#tb tbody');
-    const f=()=>{
-      const q=fq.value.toLowerCase();
-      const rows=b.filter(x=>(!ty||x.type===ty)&&(!q||x.name.toLowerCase().includes(q)||(x.eff||'').toLowerCase().includes(q)));
-      cnt.textContent=`${rows.length} 枚`;
-      tb.innerHTML=rows.map(x=>`<tr data-v data-name="${esc(x.name)}" data-type="${esc(x.type)}"
-        data-lv="${x.lv??0}" data-price="${num(x.price)??0}">
-        <td class="nm">${esc(x.name)}</td>
-        <td><span class="t ${x.type==='Rare'?'rare':'norm'}">${tr(T.val,x.type)||'—'}</span></td>
-        <td class="n">${esc(i18n(x.lvtext)||x.lv||'—')}</td>
-        <td>${esc(x.eff)||'—'}</td>
-        <td style="font-size:12.5px;color:var(--tx2)">${esc(i18n(x.method))||'—'}</td>
-        <td class="n hide-m">${esc(String(x.price).replace(' Libi',''))||'—'}</td>
-      </tr>`).join('')||'<tr><td colspan="6" class="empty">查無徽章</td></tr>';
-      tableSort(tb.closest('table'));
-    };
-    ct.onclick=e=>{if(e.target.dataset.t===undefined)return;
-      [...ct.children].forEach(c=>c.classList.remove('on'));e.target.classList.add('on');ty=e.target.dataset.t;f()};
-    fq.oninput=f; f();
-  }};
-};
-
-// ---------- 路由 ----------
-const NAV=[['','首頁'],['jobs','職業'],['skills','技能'],['weapons','武器'],['armors','防具飾品'],
-           ['monsters','怪物圖鑑'],['drops','掉落反查'],['attr','屬性相剋'],['systems','遊戲系統'],
-           ['badges','徽章'],['pets','寵物'],['npcs','NPC 任務'],['locations','地點']];
-
-function parseHash(){
-  const h=location.hash.replace(/^#\/?/,'');
-  const [path,qs]=h.split('?');
-  const p={}; new URLSearchParams(qs||'').forEach((v,k)=>p[k]=v);
-  return [path||'',p];
-}
-async function route(){
-  const [path,p]=parseHash();
-  document.getElementById('nav').innerHTML=NAV.map(([h,t])=>
-    `<a href="#/${h}" class="${h===path?'on':''}">${t}</a>`).join('');
-  const app=document.getElementById('app');
-  app.innerHTML='<div class="empty">載入中…</div>';
-  const fn=V[path]||V[''];
-  try{
-    const r=await fn(p);
-    if(typeof r==='string'){app.innerHTML=r}
-    else{app.innerHTML=r.html; r.init&&r.init()}
-  }catch(e){
-    app.innerHTML=`<div class="empty">載入失敗：${esc(e.message)}</div>`;
+function el(tag, attrs, kids) {
+  const n = document.createElement(tag);
+  for (const k in attrs || {}) {
+    const v = attrs[k];
+    if (v === null || v === undefined || v === false) continue;
+    if (k === 'class') n.className = v;
+    else if (k === 'text') n.textContent = v;
+    else if (k === 'html') n.innerHTML = v;
+    else n.setAttribute(k, v);
   }
-  window.scrollTo(0,0);
+  for (const c of [].concat(kids || [])) {
+    if (c === null || c === undefined || c === false) continue;
+    n.appendChild(typeof c === 'object' ? c : document.createTextNode(String(c)));
+  }
+  return n;
+}
+const frag = kids => { const f = document.createDocumentFragment(); for (const k of kids) if (k) f.appendChild(k); return f; };
+const num = n => (n === null || n === undefined || n === '') ? '' : Number(n).toLocaleString('en-US');
+
+function rate(r) {
+  if (!r && r !== 0) return '';
+  const p = r * 100;
+  return (p >= 10 ? p.toFixed(0) : p >= 1 ? p.toFixed(1) : p.toFixed(2)) + '%';
+}
+const rateClass = t => t === 'veryrare' ? 'rate-v' : t === 'rare' ? 'rate-r' : 'rate-c';
+
+/* ───────── 名詞對照 ───────── */
+const T = {
+  element: { MONSTER_ETC: '一般', MONSTER_FIRE: '火', MONSTER_ICE: '冰',
+             MONSTER_LIGHTNING: '雷', BEAST: '動物', DEMON: '惡魔', DRAGON: '龍', UNDEAD: '不死' },
+  cls: { FIG: '劍士', ARC: '弓箭手', MAG: '魔法師', CLA: '聖職者', CLE: '聖職者', ALL: '全職業' },
+  gender: { ALL: '不限', MALE: '男性', FEMALE: '女性' },
+  tier: { common: '普通', rare: '稀有', veryrare: '極稀有' },
+  stat: { addStr: '力量', addSta: '體力', addDex: '敏捷', addInt: '智力',
+          atkPct: '攻擊力', skillAtkPct: '技能攻擊力', defPct: '防禦力', def: '防禦',
+          avoid: '迴避', hit: '命中', critical: '爆擊', hpRegen: 'HP 回復', mpRegen: 'MP 回復',
+          maxHpPct: '最大 HP', maxMpPct: '最大 MP', magicResist: '魔法抗性',
+          atkBeast: '對動物攻擊', atkDemon: '對惡魔攻擊', atkUndead: '對不死攻擊',
+          atkMonster: '對怪物攻擊', defBeast: '對動物防禦', defDemon: '對惡魔防禦',
+          defUndead: '對不死防禦', defMonster: '對怪物防禦' },
+  pctStat: new Set(['atkPct', 'skillAtkPct', 'defPct', 'maxHpPct', 'maxMpPct',
+                    'atkBeast', 'atkDemon', 'atkUndead', 'atkMonster',
+                    'defBeast', 'defDemon', 'defUndead', 'defMonster']),
+};
+const clsName = c => T.cls[c] || c;
+
+function aiLabel(ai, aggressive) {
+  const bits = [aggressive ? '主動攻擊' : '被動'];
+  if (ai.includes('RACE')) bits.push('同族支援');
+  if (ai.includes('REINFORCE')) bits.push('呼叫援軍');
+  if (ai.includes('R_AWAY')) bits.push('會逃跑');
+  return bits.join('、');
 }
 
-// ---------- 全站搜尋 ----------
-const KIND={m:['怪物','#/monsters'],s:['技能','#/skills'],w:['武器','#/weapons'],
-  a:['防具','#/armors'],c:['飾品','#/armors'],p:['寵物','#/pets'],
-  n:['NPC','#/npcs'],l:['地點','#/locations'],d:['掉落物','#/drops'],y:['道具／系統','#/systems']};
-async function initSearch(){
-  const idx=await load('index');
-  const q=document.getElementById('q'), box=document.getElementById('sres');
-  const run=()=>{
-    const v=q.value.trim().toLowerCase();
-    if(v.length<2){box.classList.remove('on');return}
-    const hit=idx.filter(([,n,k])=>n.toLowerCase().includes(v)||(k||'').includes(v)).slice(0,40);
-    if(!hit.length){box.innerHTML='<b>查無結果</b>';box.classList.add('on');return}
-    const g={}; hit.forEach(h=>(g[h[0]]=g[h[0]]||[]).push(h));
-    box.innerHTML=Object.entries(g).map(([k,arr])=>
-      `<b>${KIND[k][0]}（${arr.length}）</b>`+arr.map(([,n,kr,meta])=>
-        `<a href="${KIND[k][1]}?q=${encodeURIComponent(n)}">
-          <span>${esc(n)}${kr?` <span style="color:var(--tx3);font-size:11px">${esc(kr)}</span>`:''}</span>
-          <span>${esc(meta)}</span></a>`).join('')).join('');
-    box.classList.add('on');
+/* 道具效果：{effectType, sustainTime, values:{hp:100}} 這種結構 */
+const EFFECT = { hp: '回復 HP', mp: '回復 MP', hpPct: '回復 HP', mpPct: '回復 MP',
+                 maxHpPct: '最大 HP', hit: '命中', avoid: '迴避', critical: '爆擊',
+                 addStr: '力量', addSta: '體力', addDex: '敏捷', addInt: '智力' };
+const PCT_EFFECT = new Set(['hpPct', 'mpPct', 'maxHpPct']);
+function effectText(e) {
+  if (!e || typeof e !== 'object') return e || '';
+  const parts = Object.entries(e.values || {})
+    .filter(([, v]) => v)
+    .map(([k, v]) => `${EFFECT[k] || k} +${v}${PCT_EFFECT.has(k) ? '%' : ''}`);
+  if (e.effectType === 'SUSTAIN' && e.sustainTime) parts.push(`持續 ${e.sustainTime} 秒`);
+  return parts.join('、');
+}
+
+function statText(stats) {
+  const out = [];
+  for (const k in stats || {}) {
+    const v = stats[k];
+    if (!v) continue;
+    out.push((T.stat[k] || k) + ' +' + v + (T.pctStat.has(k) ? '%' : ''));
+  }
+  return out;
+}
+
+/* ───────── 資料存取 ───────── */
+const cache = {};
+async function data(name) {
+  if (!cache[name]) {
+    cache[name] = fetch('data/' + name + '.json').then(r => {
+      if (!r.ok) throw new Error(name);
+      return r.json();
+    });
+  }
+  return cache[name];
+}
+const byId = (list, id) => list.find(x => x.id === id);
+
+/* 掉落／獎勵／材料只給 id + 名稱，得自行判斷屬於哪個域 */
+const KIND = { m: 'monsters', p: 'maps', e: 'equips', f: 'fashion',
+               i: 'items', r: 'recipes', q: 'quests', n: 'npcs' };
+let idx = null, idMap = null;
+async function index() {
+  if (!idx) {
+    idx = await data('index');
+    idMap = new Map();
+    for (const row of idx) {
+      const [k, id, name] = row;
+      if (!idMap.has(id)) idMap.set(id, []);
+      idMap.get(id).push([k, name]);
+    }
+  }
+  return idx;
+}
+const ITEMISH = ['i', 'e', 'f'];
+function itemHref(id, name) {
+  const cands = (idMap && idMap.get(id)) || [];
+  let hit = cands.find(c => ITEMISH.includes(c[0]) && c[1] === name)
+         || cands.find(c => ITEMISH.includes(c[0]));
+  return hit ? '#/' + KIND[hit[0]] + '/' + id : null;
+}
+
+/* 名稱 + 圖示，能連就連 */
+function itemCell(o, kind) {
+  const href = kind ? '#/' + kind + '/' + o.id : itemHref(o.id, o.name);
+  const inner = [o.icon ? el('img', { class: 'ic sm', src: o.icon, alt: '', loading: 'lazy' }) : null, o.name];
+  return href ? el('a', { class: 'nm', href }, inner) : el('span', { class: 'nm' }, inner);
+}
+
+/* ───────── 可排序 / 可篩選表格 ───────── */
+const PAGE = 150;
+
+function table(rows, cols, opts) {
+  opts = opts || {};
+  let sortKey = opts.sort || null, desc = opts.desc !== false, shown = PAGE;
+
+  const tb = el('tbody');
+  const thead = el('tr', {}, cols.map((c, i) => {
+    const th = el('th', { text: c.h, title: c.title || '' });
+    th.onclick = () => {
+      if (sortKey === i) desc = !desc; else { sortKey = i; desc = !!c.n; }
+      draw();
+    };
+    return th;
+  }));
+  const wrap = el('div', { class: 'tw' }, [el('table', {}, [el('thead', {}, [thead]), tb])]);
+  const more = el('button', { class: 'more' });
+  more.onclick = () => { shown += PAGE * 3; draw(true); };
+
+  function draw(keep) {
+    if (!keep) shown = PAGE;
+    let list = rows;
+    if (sortKey !== null) {
+      const c = cols[sortKey];
+      const key = c.v || (r => c.c(r));
+      list = rows.slice().sort((a, b) => {
+        const x = key(a), y = key(b);
+        const r = c.n ? (Number(x) || 0) - (Number(y) || 0) : String(x).localeCompare(String(y), 'zh-Hant');
+        return desc ? -r : r;
+      });
+    }
+    [...thead.children].forEach((th, i) => {
+      th.className = i === sortKey ? (desc ? 's d' : 's') : '';
+    });
+    tb.textContent = '';
+    const f = document.createDocumentFragment();
+    for (const r of list.slice(0, shown)) {
+      f.appendChild(el('tr', {}, cols.map(c => {
+        return el('td', { class: (c.n ? 'n' : '') + (c.wrap ? ' wrap' : '') }, [cell(c.c(r))]);
+      })));
+    }
+    tb.appendChild(f);
+    more.hidden = list.length <= shown;
+    more.textContent = `顯示更多（還有 ${num(list.length - shown)} 筆）`;
+  }
+  draw();
+  return { node: frag([wrap, more]), redraw: draw };
+}
+
+/* 篩選列：每個欄位一個下拉，加一個關鍵字框 */
+function listPage(title, sub, rows, cols, filters, opts) {
+  const st = {};
+  const bar = el('div', { class: 'filters' });
+  const count = el('span', { class: 'count' });
+
+  const kw = el('input', { type: 'search', placeholder: '篩選名稱⋯' });
+  kw.oninput = () => { st.__kw = kw.value.trim(); apply(); };
+  bar.appendChild(kw);
+
+  for (const f of filters || []) {
+    const vals = [...new Set(rows.map(f.v).filter(v => v !== '' && v !== null && v !== undefined))];
+    if (vals.length < 2) continue;
+    vals.sort(f.n ? (a, b) => a - b : (a, b) => String(a).localeCompare(String(b), 'zh-Hant'));
+    const sel = el('select', {}, [el('option', { value: '', text: f.h })]
+      .concat(vals.map(v => el('option', { value: String(v), text: (f.label ? f.label(v) : v) }))));
+    sel.onchange = () => { st[f.h] = sel.value; apply(); };
+    bar.appendChild(sel);
+  }
+  bar.appendChild(count);
+
+  const host = el('div');
+  let t = null;
+  function apply() {
+    let out = rows;
+    if (st.__kw) {
+      const q = st.__kw.toLowerCase();
+      out = out.filter(r => String(r.name || '').toLowerCase().includes(q));
+    }
+    for (const f of filters || []) {
+      const v = st[f.h];
+      if (v) out = out.filter(r => String(f.v(r)) === v);
+    }
+    count.textContent = `${num(out.length)} 筆`;
+    host.textContent = '';
+    t = table(out, cols, opts);
+    host.appendChild(t.node);
+  }
+  apply();
+  return frag([el('h1', { text: title }), sub ? el('p', { class: 'sub', text: sub }) : null, bar, host]);
+}
+
+/* ───────── 明細頁共用零件 ───────── */
+const isNode = v => v && typeof v === 'object' && typeof v.nodeType === 'number';
+const cell = v => isNode(v) ? v : String(v ?? '');
+
+const dl = pairs => el('dl', { class: 'detail' },
+  pairs.filter(p => p && p[1] !== '' && p[1] !== null && p[1] !== undefined)
+       .flatMap(([k, v]) => [el('dt', { text: k }), el('dd', {}, [cell(v)])]));
+
+function section(title, rows, cols, opts) {
+  if (!rows || !rows.length) return null;
+  return frag([el('h2', { text: `${title}（${rows.length}）` }), table(rows, cols, opts).node]);
+}
+const back = (href, text) => el('a', { class: 'back', href, text: '← ' + text });
+const tags = list => el('div', { class: 'tags' }, list.filter(Boolean).map(t =>
+  typeof t === 'string' ? el('span', { class: 'tag', text: t }) : el('span', { class: 'tag ' + t[1], text: t[0] })));
+
+/* 圖示 + 名稱 + 描述的頁首 */
+function hero(o, extra) {
+  return el('div', { class: 'hero' }, [
+    o.icon ? el('img', { src: o.icon, alt: '' }) : null,
+    el('div', {}, [el('h1', { text: o.name }), extra || null,
+                   o.desc ? el('p', { class: 'desc', text: o.desc }) : null]),
+  ]);
+}
+
+/* 掉落 / 販售 / 獎勵這類「誰有這個東西」的共用欄位 */
+const dropCols = [
+  { h: '道具', c: d => itemCell(d) },
+  { h: '機率', n: true, v: d => d.rate, c: d => el('span', { class: rateClass(d.rateTier), text: rate(d.rate) }) },
+  { h: '數量', c: d => d.min ? (d.min === d.max ? d.min : `${d.min}–${d.max}`) : '' },
+];
+const fromMonCols = [
+  { h: '怪物', c: m => itemCell(m, 'monsters') },
+  { h: '等級', n: true, v: m => m.level, c: m => m.level ?? '' },
+  { h: '機率', n: true, v: m => m.rate, c: m => el('span', { class: rateClass(m.rateTier), text: rate(m.rate) }) },
+];
+
+/* ───────── 各域頁面 ───────── */
+const V = {};
+
+V.monsters = async () => {
+  const rows = await data('monsters');
+  return listPage('怪物', `${rows.length} 種。點名稱看掉落與出沒地圖。`, rows, [
+    { h: '名稱', c: m => itemCell(m, 'monsters') },
+    { h: '等級', n: true, v: m => m.level, c: m => m.level },
+    { h: 'HP', n: true, v: m => m.hp, c: m => num(m.hp) },
+    { h: '經驗', n: true, v: m => m.exp, c: m => num(m.exp) },
+    { h: '攻擊', n: true, v: m => m.maxAtk, c: m => `${m.minAtk}–${m.maxAtk}` },
+    { h: '防禦', n: true, v: m => m.def, c: m => m.def },
+    { h: '屬性', c: m => T.element[m.element] || m.element },
+    { h: '行為', c: m => m.aggressive ? '主動' : '被動' },
+    { h: '掉落', n: true, v: m => m.drops.length, c: m => m.drops.length },
+  ], [
+    { h: '屬性', v: m => T.element[m.element] || m.element },
+    { h: '行為', v: m => m.aggressive ? '主動' : '被動' },
+    { h: 'BOSS', v: m => m.bossRank ? 'BOSS' : '' },
+  ], { sort: 1, desc: false });
+};
+
+V.monster = async id => {
+  const [ms, maps] = await Promise.all([data('monsters'), data('maps')]);
+  const m = byId(ms, id);
+  if (!m) return el('p', { class: 'empty', text: '找不到這隻怪物。' });
+  const here = maps.filter(p => p.monsters.some(x => x.id === id));
+  return frag([
+    back('#/monsters', '怪物列表'),
+    hero(Object.assign({ icon: null }, m, { icon: (maps.flatMap(p => p.monsters).find(x => x.id === id) || {}).icon }),
+         tags([m.bossRank ? ['BOSS', 'r'] : null, [T.element[m.element] || m.element, 'a'],
+               m.aggressive ? ['主動攻擊', 'r'] : '被動', m.isRare ? ['稀有', 'g'] : null])),
+    dl([['等級', m.level], ['HP', num(m.hp)], ['經驗', num(m.exp)],
+        ['攻擊力', `${m.minAtk}–${m.maxAtk}`], ['防禦力', m.def],
+        ['命中', m.hit], ['迴避', m.avoid], ['爆擊', m.critical],
+        ['移動速度', m.moveSpeed], ['攻擊速度', m.attackSpeed],
+        ['行為', aiLabel(m.ai, m.aggressive)],
+        ['掉錢', m.money && m.money.amount ? `${num(m.money.amount)}（${rate(m.money.rate)}）` : ''],
+        ['每點 HP 換經驗', (m.exp / m.hp).toFixed(2)]]),
+    section('掉落物', m.drops, dropCols, { sort: 1 }),
+    section('出沒地圖', here, [
+      { h: '地圖', c: p => itemCell(p, 'maps') },
+      { h: '區域', c: p => p.region },
+      { h: '類型', c: p => p.capsLabel },
+      { h: '需求等級', n: true, v: p => p.levelReq, c: p => p.levelReq || '—' },
+    ]),
+  ]);
+};
+
+V.maps = async () => {
+  const rows = await data('maps');
+  return listPage('地圖', `${rows.length} 張。`, rows, [
+    { h: '名稱', c: p => itemCell(p, 'maps') },
+    { h: '區域', c: p => p.region },
+    { h: '類型', c: p => p.capsLabel },
+    { h: '需求等級', n: true, v: p => p.levelReq, c: p => p.levelReq || '—' },
+    { h: '怪物種類', n: true, v: p => p.monsters.length, c: p => p.monsters.length || '' },
+    { h: 'NPC', n: true, v: p => p.npcs.length, c: p => p.npcs.length || '' },
+  ], [{ h: '區域', v: p => p.region }, { h: '類型', v: p => p.capsLabel }], { sort: 3, desc: false });
+};
+
+V.map = async id => {
+  const [maps, ms] = await Promise.all([data('maps'), data('monsters')]);
+  const p = byId(maps, id);
+  if (!p) return el('p', { class: 'empty', text: '找不到這張地圖。' });
+  const full = p.monsters.map(x => Object.assign({}, byId(ms, x.id) || {}, x));
+  return frag([
+    back('#/maps', '地圖列表'),
+    el('h1', { text: p.name }),
+    tags([[p.region, 'a'], p.capsLabel, p.levelReq ? `需求等級 ${p.levelReq}` : null]),
+    p.minimap ? el('p', {}, [el('img', { src: p.minimap, alt: p.name + ' 小地圖',
+        style: 'max-width:100%;border:1px solid var(--line);border-radius:8px;background:var(--bg2)' })]) : null,
+    section('出沒怪物', full, [
+      { h: '怪物', c: m => itemCell(m, 'monsters') },
+      { h: '等級', n: true, v: m => m.level, c: m => m.level },
+      { h: 'HP', n: true, v: m => m.hp, c: m => num(m.hp) },
+      { h: '經驗', n: true, v: m => m.exp, c: m => num(m.exp) },
+      { h: '屬性', c: m => T.element[m.element] || '' },
+    ], { sort: 1, desc: false }),
+    section('駐點 NPC', p.npcs, [
+      { h: 'NPC', c: n => itemCell(n, 'npcs') },
+      { h: '職務', c: n => n.job || '' },
+    ]),
+    section('地圖掉落', p.fieldDrops, dropCols, { sort: 1 }),
+  ]);
+};
+
+/* 裝備 / 時裝 / 道具共用一套明細 */
+function gearDetail(kind, listName, backLabel) {
+  return async id => {
+    const rows = await data(listName);
+    const o = byId(rows, id);
+    if (!o) return el('p', { class: 'empty', text: '找不到這個項目。' });
+    const st = statText(o.stats);
+    return frag([
+      back('#/' + kind, backLabel),
+      hero(o, tags([o.slotGroup ? [o.slotGroup, 'a'] : (o.category ? [o.category, 'a'] : null),
+                    o.levelReq ? `需求等級 ${o.levelReq}` : null,
+                    o.gender && o.gender !== 'ALL' ? T.gender[o.gender] : null,
+                    o.tradable === false ? ['不可交易', 'r'] : null,
+                    ...(o.classes || []).map(c => [clsName(c), 'g'])])),
+      dl([['價格', o.price ? num(o.price) : ''],
+          ['需求等級', o.levelReq || ''],
+          ['可用職業', (o.classes || []).length ? o.classes.map(clsName).join('、') : (o.classes ? '全職業' : '')],
+          ['需求能力', o.reqStats ? statText(Object.fromEntries(
+              Object.entries(o.reqStats).map(([k, v]) => ['add' + k[0].toUpperCase() + k.slice(1), v]))).join('、') : ''],
+          ['攻擊力', o.attack ? `${o.attack.min}–${o.attack.max}` : ''],
+          ['附加能力', st.length ? st.join('、') : ''],
+          ['分類', o.category || ''],
+          ['使用期限', o.useTerm ? o.useTerm + ' 天' : ''],
+          ['最大堆疊', o.maxStack > 1 ? o.maxStack : ''],
+          ['效果', effectText(o.effects)]]),
+      section('怪物掉落', o.droppedBy, fromMonCols, { sort: 2 }),
+      section('地圖掉落', o.mapDrops, [
+        { h: '地圖', c: d => itemCell(d, 'maps') },
+        { h: '機率', n: true, v: d => d.rate, c: d => rate(d.rate) },
+      ], { sort: 1 }),
+      section('NPC 販售', o.soldBy, [
+        { h: 'NPC', c: n => itemCell(n, 'npcs') },
+        { h: '價格', n: true, v: n => n.price, c: n => num(n.price) },
+      ]),
+      section('任務獎勵', o.questRewards, [
+        { h: '任務', c: q => itemCell(q, 'quests') },
+        { h: '數量', c: q => q.count || '' },
+        { h: '職業', c: q => clsName(q.classGroup) },
+      ]),
+      section('可製作', o.recipes, [{ h: '配方', c: r => itemCell(r, 'recipes') }]),
+      section('作為材料', o.usedInRecipes, [{ h: '配方', c: r => itemCell(r, 'recipes') }]),
+      section('任務需要', o.questsNeeding, [{ h: '任務', c: q => itemCell(q, 'quests') }]),
+    ]);
   };
-  q.oninput=run;
-  q.onfocus=()=>{if(q.value.trim().length>=2)run()};
-  box.onclick=e=>{if(e.target.closest('a')){box.classList.remove('on');q.value=''}};
-  document.addEventListener('click',e=>{if(!e.target.closest('.search'))box.classList.remove('on')});
 }
 
-// ---------- 啟動 ----------
-(async()=>{
-  try{ Object.assign(IMGMAP, await (await fetch('data/imgmap.json')).json()) }catch(e){}
-  try{ Object.assign(I18N, await (await fetch('data/i18n.json')).json()) }catch(e){}
-  window.addEventListener('hashchange',route);
-  await route();
-  initSearch();
-})();
+const gearCols = extra => [
+  { h: '名稱', c: o => itemCell(o) },
+  { h: '部位', c: o => o.slotGroup || o.category || '' },
+  { h: '等級', n: true, v: o => o.levelReq, c: o => o.levelReq || '' },
+  ...extra,
+  { h: '價格', n: true, v: o => o.price, c: o => num(o.price) },
+];
+
+V.equips = async () => {
+  const rows = await data('equips');
+  return listPage('戰鬥裝備', `${num(rows.length)} 件。可按部位、職業、等級篩選。`, rows,
+    gearCols([
+      { h: '攻擊', n: true, v: o => o.attack ? o.attack.max : 0, c: o => o.attack ? `${o.attack.min}–${o.attack.max}` : '' },
+      { h: '附加能力', wrap: true, c: o => statText(o.stats).join('、') },
+      { h: '職業', c: o => (o.classes || []).map(clsName).join('、') || '全職業' },
+    ]),
+    [{ h: '部位', v: o => o.slotGroup },
+     { h: '職業', v: o => (o.classes || []).map(clsName).join('、') || '全職業' }],
+    { sort: 2, desc: false });
+};
+V.equip = gearDetail('equips', 'equips', '裝備列表');
+
+V.fashion = async () => {
+  const rows = await data('fashion');
+  return listPage('時裝', `${num(rows.length)} 件。`, rows,
+    gearCols([{ h: '性別', c: o => T.gender[o.gender] || '' },
+              { h: '期限', c: o => o.useTerm ? o.useTerm + ' 天' : '永久' }]),
+    [{ h: '部位', v: o => o.slotGroup }, { h: '性別', v: o => T.gender[o.gender] || '' }],
+    { sort: 2, desc: false });
+};
+V.fashionItem = gearDetail('fashion', 'fashion', '時裝列表');
+
+V.items = async () => {
+  const rows = await data('items');
+  return listPage('道具', `${num(rows.length)} 種。`, rows, [
+    { h: '名稱', c: o => itemCell(o) },
+    { h: '分類', c: o => o.category },
+    { h: '說明', wrap: true, c: o => (o.desc || '').split('\n')[0] },
+    { h: '價格', n: true, v: o => o.price, c: o => num(o.price) },
+    { h: '堆疊', n: true, v: o => o.maxStack, c: o => o.maxStack > 1 ? o.maxStack : '' },
+  ], [{ h: '分類', v: o => o.category }], { sort: 1, desc: false });
+};
+V.item = gearDetail('items', 'items', '道具列表');
+
+V.recipes = async () => {
+  const rows = await data('recipes');
+  return listPage('製作配方', `${rows.length} 份。`, rows, [
+    { h: '配方', c: r => itemCell(r, 'recipes') },
+    { h: '產物', c: r => itemCell(r.result) },
+    { h: '分類', c: r => r.resultCategory || '' },
+    { h: '成功率', n: true, v: r => r.successRate, c: r => rate(r.successRate) },
+    { h: '材料', wrap: true, c: r => r.ingredients.map(i => i.name + (i.count > 1 ? '×' + i.count : '')).join('、') },
+  ], [{ h: '分類', v: r => r.resultCategory }], { sort: 3 });
+};
+
+V.recipe = async id => {
+  const rows = await data('recipes');
+  const r = rows.find(x => x.id === id);
+  if (!r) return el('p', { class: 'empty', text: '找不到這份配方。' });
+  return frag([
+    back('#/recipes', '配方列表'),
+    hero(r),
+    dl([['產物', itemCell(r.result)], ['分類', r.resultCategory || ''],
+        ['成功率', rate(r.successRate)], ['製作經驗', r.expBonus || ''],
+        ['配方書', r.book ? itemCell(r.book) : '']]),
+    section('所需材料', r.ingredients, [
+      { h: '材料', c: i => itemCell(i) },
+      { h: '數量', n: true, v: i => i.count, c: i => i.count },
+    ]),
+    section('可製作的 NPC', r.npcs, [{ h: 'NPC', c: n => itemCell(n, 'npcs') }]),
+    section('配方掉落來源', r.recipeItemDroppedBy, fromMonCols, { sort: 2 }),
+  ]);
+};
+
+V.quests = async () => {
+  const rows = await data('quests');
+  return listPage('任務', `${rows.length} 個。獎勵為原始數值，不套倍率。`, rows, [
+    { h: '任務', c: q => itemCell(q, 'quests') },
+    { h: '等級', n: true, v: q => q.levelReq, c: q => q.levelReq || '' },
+    { h: '類型', c: q => q.typeLabel || '' },
+    { h: '職業', c: q => clsName(q.classReq) },
+    { h: '區域', c: q => (q.regions || []).join('、') },
+    { h: '經驗', n: true, v: q => q.rewards.exp, c: q => num(q.rewards.exp) },
+    { h: '金錢', n: true, v: q => q.rewards.gold, c: q => num(q.rewards.gold) },
+  ], [{ h: '類型', v: q => q.typeLabel }, { h: '職業', v: q => clsName(q.classReq) },
+      { h: '區域', v: q => (q.regions || [])[0] || '' }], { sort: 1, desc: false });
+};
+
+V.quest = async id => {
+  const rows = await data('quests');
+  const q = byId(rows, id);
+  if (!q) return el('p', { class: 'empty', text: '找不到這個任務。' });
+  const objectives = [
+    ...q.hunt.map(h => ({ k: '討伐', t: itemCell(h.target, 'monsters'), n: h.count })),
+    ...q.collect.map(c => ({ k: '蒐集', t: itemCell(c.target), n: c.count })),
+    ...q.delivery.map(d => ({
+      k: '遞送',
+      t: el('span', { class: 'nm' }, [itemCell(d.item), ' → ',
+            d.to ? itemCell(d.to, 'npcs') : '', d.from ? `（來自 ${d.from.name}）` : '']),
+    })),
+    ...q.indun.map(d => ({
+      k: '地城',
+      t: el('span', { class: 'nm' }, [d.dungeon,
+            d.entryItem ? el('span', { class: 'nm' }, ['｜入場道具 ', itemCell(d.entryItem)]) : '']),
+    })),
+  ];
+  return frag([
+    back('#/quests', '任務列表'),
+    el('h1', { text: q.name }),
+    tags([q.typeLabel ? [q.typeLabel, 'a'] : null, q.levelReq ? `等級 ${q.levelReq}` : null,
+          q.classReq !== 'ALL' ? [clsName(q.classReq), 'g'] : null,
+          q.fameReq ? `名聲 ${q.fameReq}` : null,
+          q.timeLimit ? ['限時', 'r'] : null,
+          q.permanentGiveup ? ['放棄後不可再接', 'r'] : null]),
+    q.desc ? el('p', { class: 'desc', text: q.desc }) : null,
+    section('任務目標', objectives,
+      [{ h: '種類', c: o => o.k },
+       { h: '內容', wrap: true, c: o => o.t },
+       { h: '數量', n: true, v: o => o.n || 0, c: o => o.n || '' }]),
+    section('相關 NPC', q.npcs, [
+      { h: 'NPC', c: n => itemCell(n, 'npcs') },
+      { h: '所在地', c: n => (n.maps || []).map(m => m.name).join('、') },
+    ]),
+    section('前置任務', q.prereq, [{ h: '任務', c: p => itemCell(p, 'quests') }]),
+    el('h2', { text: '任務獎勵' }),
+    dl([['經驗', num(q.rewards.exp)], ['金錢', num(q.rewards.gold)],
+        ['專長點數', q.rewards.specialtyPt || ''],
+        ['修練點數', (q.rewards.lessonPt || []).some(Boolean) ? q.rewards.lessonPt.join(' / ') : '']]),
+    section('獎勵道具', q.rewards.items, [
+      { h: '道具', c: i => itemCell(i) },
+      { h: '數量', c: i => i.count || '' },
+      { h: '職業', c: i => clsName(i.classGroup) },
+    ]),
+  ]);
+};
+
+V.npcs = async () => {
+  const rows = await data('npcs');
+  return listPage('NPC', `${rows.length} 位。`, rows, [
+    { h: '名稱', c: n => itemCell(n, 'npcs') },
+    { h: '職務', c: n => n.job || '' },
+    { h: '區域', c: n => n.region || '' },
+    { h: '所在地', c: n => (n.maps || []).map(m => m.name).join('、') },
+    { h: '功能', c: n => (n.roleLabels || []).join('、') },
+  ], [{ h: '區域', v: n => n.region }, { h: '功能', v: n => (n.roleLabels || [])[0] || '' }]);
+};
+
+V.npc = async id => {
+  const [rows, quests] = await Promise.all([data('npcs'), data('quests')]);
+  const n = byId(rows, id);
+  if (!n) return el('p', { class: 'empty', text: '找不到這位 NPC。' });
+  const qs = quests.filter(q => q.npcs.some(x => x.id === id));
+  return frag([
+    back('#/npcs', 'NPC 列表'),
+    hero(n, tags([n.region ? [n.region, 'a'] : null, n.job || null,
+                  ...(n.roleLabels || []).map(r => [r, 'g'])])),
+    section('所在地', n.maps, [
+      { h: '地圖', c: m => itemCell(m, 'maps') },
+      { h: '座標', c: m => (m.x || m.y) ? `${m.x}, ${m.y}` : '' },
+    ]),
+    section('販售商品', n.sells, [
+      { h: '商品', c: s => itemCell(s) },
+      { h: '價格', n: true, v: s => s.price, c: s => num(s.price) },
+    ], { sort: 1, desc: false }),
+    section('相關任務', qs, [
+      { h: '任務', c: q => itemCell(q, 'quests') },
+      { h: '等級', n: true, v: q => q.levelReq, c: q => q.levelReq || '' },
+      { h: '類型', c: q => q.typeLabel || '' },
+    ], { sort: 1, desc: false }),
+  ]);
+};
+
+/* ───────── 練功效率（本站自行計算） ───────── */
+V.grind = async () => {
+  const rows = await data('grind');
+  return listPage('練功地圖排行',
+    `依「每點 HP 能換到多少經驗」排序 —— 數字越高，打死一隻的效益越好。共 ${rows.length} 張有怪地圖。`,
+    rows, [
+      { h: '地圖', c: g => itemCell(g, 'maps') },
+      { h: '區域', c: g => g.region },
+      { h: '平均等級', n: true, v: g => g.avgLv, c: g => g.avgLv },
+      { h: '效率', n: true, v: g => g.eff, c: g => el('b', { text: g.eff.toFixed(2) }),
+        title: '平均經驗 ÷ 平均 HP' },
+      { h: '平均經驗', n: true, v: g => g.exp, c: g => num(g.exp) },
+      { h: '平均 HP', n: true, v: g => g.hp, c: g => num(g.hp) },
+      { h: '平均掉錢', n: true, v: g => g.money, c: g => num(g.money) },
+      { h: '主動怪', n: true, v: g => g.aggressive, c: g => g.aggressive ? g.aggressive + ' 種' : '' },
+      { h: '怪物種類', n: true, v: g => g.kinds, c: g => g.kinds },
+    ], [{ h: '區域', v: g => g.region }, { h: '類型', v: g => g.type }], { sort: 3 });
+};
+
+/* ───────── wiki 補充：技能 / 徽章 / 系統 ───────── */
+V.skills = async () => {
+  const w = await data('wiki');
+  const rows = w.skills.map((s, i) => Object.assign({ _i: i }, s));
+  return listPage('技能', `${rows.length} 個。點名稱看各等級數值。`, rows, [
+    { h: '名稱', c: s => el('a', { href: '#/skills/' + s._i, text: s.name }) },
+    { h: '職業', c: s => s.job || '—' },
+    { h: '類型', c: s => s.type || '' },
+    { h: '等級數', n: true, v: s => s.levels.length, c: s => s.levels.length },
+    { h: '說明', wrap: true, c: s => s.desc || '' },
+  ], [{ h: '職業', v: s => s.job || '—' }, { h: '類型', v: s => s.type }]);
+};
+
+V.skill = async i => {
+  const w = await data('wiki');
+  const s = w.skills[Number(i)];
+  if (!s) return el('p', { class: 'empty', text: '找不到這個技能。' });
+  const keys = [...new Set(s.levels.flatMap(l => Object.keys(l.f)))];
+  return frag([
+    back('#/skills', '技能列表'),
+    el('h1', { text: s.name }),
+    tags([s.job ? [s.job, 'a'] : null, s.type ? [s.type, 'g'] : null]),
+    s.desc ? el('p', { class: 'desc', text: s.desc }) : null,
+    section('各等級數值', s.levels,
+      [{ h: '階級', c: l => l.name }].concat(keys.map(k => ({ h: k, c: l => l.f[k] ?? '' })))),
+  ]);
+};
+
+V.badges = async () => {
+  const w = await data('wiki');
+  return listPage('徽章', `${w.badges.length} 枚。徽章是額外的飾品欄位，效果多半是經驗或機率加成。`,
+    w.badges, [
+      { h: '名稱', c: b => b.name },
+      { h: '稀有度', c: b => b.rarity || '' },
+      { h: '等級', n: true, v: b => b.lv, c: b => b.lvtext || b.lv || '' },
+      { h: '效果', wrap: true, c: b => b.eff || '' },
+      { h: '取得方式', wrap: true, c: b => b.method || '' },
+      { h: '價格', c: b => b.price || '' },
+      { h: '職業', c: b => (b.jobs || []).join('、') },
+    ], [{ h: '稀有度', v: b => b.rarity }], { sort: 2, desc: false });
+};
+
+V.system = async () => {
+  const w = await data('wiki');
+  const kv = (title, obj) => frag([el('h3', { text: title }), el('dl', { class: 'detail' },
+    Object.entries(obj).flatMap(([k, v]) =>
+      [el('dt', { text: k }), el('dd', { text: Array.isArray(v) ? v.join(' → ') : v })]))]);
+  const rawTable = t => el('div', { class: 'tw' }, [el('table', {}, [
+    el('thead', {}, [el('tr', {}, t.headers.map(h => el('th', { text: h })))]),
+    el('tbody', {}, t.rows.map(r => el('tr', {}, r.c.map(c => el('td', { class: 'wrap', text: c }))))),
+  ])]);
+
+  return frag([
+    el('h1', { text: '遊戲系統' }),
+    el('p', { class: 'sub', text: '轉職、屬性相剋、強化石與轉職考試題庫。' }),
+
+    el('h2', { text: '屬性相剋' }),
+    el('p', { class: 'sub', text: '「剋制」代表用該屬性攻擊會加成，「被抵抗」代表傷害會被削減。' }),
+    el('div', { class: 'tw' }, [el('table', { class: 'matrix' }, [
+      el('thead', {}, [el('tr', {}, [el('th', { text: '攻擊屬性' }), el('th', { text: '剋制' }), el('th', { text: '被抵抗' })])]),
+      el('tbody', {}, Object.entries(w.matrix).map(([k, v]) => el('tr', {}, [
+        el('td', {}, [el('b', { text: k })]),
+        el('td', { class: 'wrap' }, [v.up.length ? v.up.join('、') : '—']),
+        el('td', { class: 'wrap' }, [v.down.length ? v.down.join('、') : '—']),
+      ]))),
+    ])]),
+    el('p', { class: 'sub', text: '怪物屬性：' + w.monAttrs.join('、') }),
+
+    el('h2', { text: '轉職路線' }),
+    kv('職業進階', w.jobTree),
+    kv('可用武器', w.jobWeapons),
+
+    el('h2', { text: '強化石' }),
+    frag(w.stones.map(rawTable)),
+
+    el('h2', { text: `轉職考試題庫（${w.exam.rows.length}）` }),
+    rawTable(w.exam),
+  ]);
+};
+
+/* ───────── 首頁 ───────── */
+V.home = async () => {
+  const [meta, g] = await Promise.all([data('meta'), data('grind')]);
+  const c = meta.counts;
+  const cards = [
+    ['grind', '練功地圖', `${meta.grind} 張排行`],
+    ['monsters', '怪物', `${c.monsters} 種 · 完整掉落`],
+    ['maps', '地圖', `${c.maps} 張`],
+    ['equips', '戰鬥裝備', `${num(c.equips)} 件`],
+    ['fashion', '時裝', `${num(c.fashion)} 件`],
+    ['items', '道具', `${num(c.items)} 種`],
+    ['recipes', '製作配方', `${c.recipes} 份`],
+    ['quests', '任務', `${c.quests} 個`],
+    ['npcs', 'NPC', `${c.npcs} 位`],
+    ['skills', '技能', '154 個'],
+    ['badges', '徽章', '58 枚'],
+    ['system', '遊戲系統', '屬性 · 轉職 · 題庫'],
+  ];
+  const top = g.slice().sort((a, b) => b.eff - a.eff).slice(0, 10);
+  return frag([
+    el('h1', { text: '天空之城 Online 攻略資料庫' }),
+    el('p', { class: 'sub', text: `全站 ${num(meta.searchIndex)} 筆資料可直接搜尋，離線也能查。` }),
+    el('div', { class: 'cards' }, cards.map(([h, t, s]) =>
+      el('a', { class: 'card', href: '#/' + h }, [el('b', { text: t }), el('small', { text: s })]))),
+    el('h2', { text: '練功效率前 10' }),
+    table(top, [
+      { h: '地圖', c: x => itemCell(x, 'maps') },
+      { h: '區域', c: x => x.region },
+      { h: '平均等級', n: true, v: x => x.avgLv, c: x => x.avgLv },
+      { h: '效率', n: true, v: x => x.eff, c: x => el('b', { text: x.eff.toFixed(2) }) },
+    ]).node,
+    el('p', { class: 'sub' }, [el('a', { href: '#/grind', text: '看完整排行 →' })]),
+  ]);
+};
+
+/* ───────── 全站搜尋 ───────── */
+const KLABEL = { m: '怪物', p: '地圖', e: '裝備', f: '時裝', i: '道具', r: '配方', q: '任務', n: 'NPC' };
+const DETAIL = { m: 'monsters', p: 'maps', e: 'equips', f: 'fashion', i: 'items', r: 'recipes', q: 'quests', n: 'npcs' };
+
+function initSearch() {
+  const input = $('#q'), box = $('#suggest');
+  let hits = [], cur = -1;
+
+  const close = () => { box.hidden = true; cur = -1; };
+  const go = () => {
+    if (cur >= 0 && hits[cur]) { location.hash = hits[cur].href; input.blur(); close(); }
+  };
+
+  input.addEventListener('input', async () => {
+    const q = input.value.trim().toLowerCase();
+    if (q.length < 1) return close();
+    const list = await index();
+    hits = [];
+    for (const [k, id, name, hint] of list) {
+      const p = name.toLowerCase().indexOf(q);
+      if (p < 0) continue;
+      hits.push({ k, name, hint, href: '#/' + DETAIL[k] + '/' + id, rank: p });
+      if (hits.length > 400) break;
+    }
+    hits.sort((a, b) => a.rank - b.rank || a.name.length - b.name.length);
+    hits = hits.slice(0, 30);
+    box.textContent = '';
+    if (!hits.length) { box.appendChild(el('a', { class: 'k', text: '找不到符合的項目' })); box.hidden = false; return; }
+    hits.forEach((h, i) => box.appendChild(el('a', { href: h.href }, [
+      el('span', { class: 'k', text: KLABEL[h.k] }), h.name, el('span', { class: 'h', text: h.hint }),
+    ])));
+    cur = -1; box.hidden = false;
+  });
+
+  input.addEventListener('keydown', e => {
+    if (box.hidden) return;
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      cur = (cur + (e.key === 'ArrowDown' ? 1 : -1) + hits.length) % hits.length;
+      [...box.children].forEach((c, i) => c.classList.toggle('on', i === cur));
+      box.children[cur] && box.children[cur].scrollIntoView({ block: 'nearest' });
+    } else if (e.key === 'Enter') { e.preventDefault(); if (cur < 0) cur = 0; go(); }
+    else if (e.key === 'Escape') close();
+  });
+  document.addEventListener('click', e => { if (!e.target.closest('.searchbox')) close(); });
+  box.addEventListener('click', () => setTimeout(close, 0));
+}
+
+/* ───────── 路由 ───────── */
+const NAV = [['', '首頁'], ['grind', '練功'], ['monsters', '怪物'], ['maps', '地圖'],
+             ['equips', '裝備'], ['fashion', '時裝'], ['items', '道具'], ['recipes', '製作'],
+             ['quests', '任務'], ['npcs', 'NPC'], ['skills', '技能'], ['badges', '徽章'],
+             ['system', '系統']];
+
+const ROUTE = {
+  '': V.home, grind: V.grind,
+  monsters: V.monsters, maps: V.maps, equips: V.equips, fashion: V.fashion,
+  items: V.items, recipes: V.recipes, quests: V.quests, npcs: V.npcs,
+  skills: V.skills, badges: V.badges, system: V.system,
+};
+const ROUTE1 = {
+  monsters: V.monster, maps: V.map, equips: V.equip, fashion: V.fashionItem,
+  items: V.item, recipes: V.recipe, quests: V.quest, npcs: V.npc, skills: V.skill,
+};
+
+function drawNav(active) {
+  $('#nav').textContent = '';
+  for (const [h, t] of NAV) {
+    $('#nav').appendChild(el('a', { href: '#/' + h, text: t, class: h === active ? 'on' : '' }));
+  }
+}
+
+async function route() {
+  const parts = location.hash.replace(/^#\/?/, '').split('/').filter(Boolean);
+  const [sec, id] = parts;
+  drawNav(sec || '');
+  view().textContent = '';
+  view().appendChild(el('p', { class: 'loading', text: '載入中⋯' }));
+  try {
+    await index();
+    const fn = id ? ROUTE1[sec] : ROUTE[sec || ''];
+    if (!fn) throw new Error('404');
+    const node = await fn(id);
+    view().textContent = '';
+    view().appendChild(node);
+  } catch (err) {
+    view().textContent = '';
+    view().appendChild(el('p', { class: 'empty', text: '這個頁面不存在，或資料載入失敗。' }));
+    view().appendChild(el('p', {}, [el('a', { href: '#/', text: '← 回首頁' })]));
+  }
+  window.scrollTo(0, 0);
+}
+
+window.addEventListener('hashchange', route);
+data('meta').then(m => { $('#stamp').textContent = '資料更新：' + m.updated; }).catch(() => {});
+initSearch();
+route();

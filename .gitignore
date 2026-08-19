@@ -2,3 +2,4 @@ __pycache__/
 *.pyc
 .DS_Store
 i18n/src_*.json
+private/

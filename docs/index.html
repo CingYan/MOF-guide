@@ -1,28 +1,25 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>天空之城 Online 攻略資料庫</title>
-<meta name="description" content="天空之城 Online（Master of Fantasy）非官方攻略資料庫：武器、防具、技能、怪物圖鑑、掉落物反查、寵物、NPC 任務。">
+<meta name="description" content="天空之城 Online（Master of Fantasy）繁體中文攻略資料庫：怪物、掉落、地圖、裝備、任務、製作、技能與練功效率排行。">
 <link rel="stylesheet" href="style.css">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>🏰</text></svg>">
 </head>
 <body>
-<header>
-  <div class="hwrap">
-    <a href="#/" class="logo">天空之城 Online<small>MASTER OF FANTASY</small></a>
-    <div class="search">
-      <input type="text" id="q" placeholder="搜尋武器、怪物、技能、掉落物…" autocomplete="off">
-      <div class="sres" id="sres"></div>
-    </div>
+<header class="topbar">
+  <a class="brand" href="#/">天空之城 <span>攻略資料庫</span></a>
+  <div class="searchbox">
+    <input id="q" type="search" placeholder="搜尋怪物、道具、裝備、任務、NPC⋯" autocomplete="off">
+    <div id="suggest" class="suggest" hidden></div>
   </div>
 </header>
-<nav><div id="nav"></div></nav>
-<main id="app"><div class="empty">載入中…</div></main>
-<footer>
-  資料來源：<a href="https://master-of-fantasy.fandom.com" target="_blank" rel="noopener">Master of Fantasy Wiki</a>（CC-BY-SA，社群維護，原文為印尼文）<br>
-  非官方粉絲攻略站 · 數值可能與你所在伺服器版本有落差，請以遊戲內為準
+<nav id="nav" class="nav"></nav>
+<main id="view" class="view"><p class="loading">載入中⋯</p></main>
+<footer class="foot">
+  <p>資料由玩家社群整理，僅供遊戲內參考。經驗、掉寶、金錢為 3 倍設定下的數值；任務獎勵為原始值。</p>
+  <p id="stamp"></p>
 </footer>
 <script src="app.js"></script>
 </body>

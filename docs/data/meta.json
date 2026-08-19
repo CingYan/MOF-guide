@@ -1,0 +1,20 @@
+{
+ "counts": {
+  "monsters": 296,
+  "maps": 461,
+  "equips": 3681,
+  "fashion": 2679,
+  "items": 2470,
+  "recipes": 517,
+  "quests": 704,
+  "npcs": 186
+ },
+ "grind": 262,
+ "searchIndex": 10994,
+ "rates": {
+  "exp": 3,
+  "drop": 3,
+  "money": 3
+ },
+ "updated": "2026-08"
+}
