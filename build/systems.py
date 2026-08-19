@@ -2,15 +2,12 @@
 """抽出遊戲系統/道具頁，並手工建立屬性相剋矩陣"""
 import json, re, os, sys
 sys.path.insert(0,'build')
+from wikitext import clean as _wt_clean
 raw = json.load(open('data/raw.json'))
 
 def clean(s):
-    s = re.sub(r'\[\[File:([^\]\|]+)[^\]]*\]\]', '', s or '')
-    s = re.sub(r'\[\[([^\|\]]*)\|([^\]]*)\]\]', r'\2', s)
-    s = re.sub(r'\[\[([^\]]*)\]\]', r'\1', s)
-    s = re.sub(r"'''?", '', s); s = re.sub(r'<br\s*/?>', ' / ', s)
-    s = re.sub(r'<[^>]+>', '', s); s = re.sub(r'\{\{[^}]*\}\}', '', s)
-    return s.strip()
+    return _wt_clean(s)
+
 
 def cell(ls):
     c = ls[1:]
@@ -51,12 +48,26 @@ PAGES = {
  'Wedding':'結婚','Exam':'轉職考試','Quest':'任務系統','Weather':'天氣',
  'Candy':'糖果','Chocolate':'巧克力','Job':'職業系統','Player Character':'角色',
 }
+def merge_same_schema(tbls):
+    """把表頭完全相同的表合併成一張（wiki 常把同一份資料依武器/地城拆成十幾張表，
+    合併後才好搜尋與排序）。"""
+    out, seen = [], {}
+    for t in tbls:
+        key = tuple(t['headers'])
+        if key in seen:
+            seen[key]['rows'].extend(t['rows'])
+        else:
+            seen[key] = {'headers': t['headers'], 'rows': list(t['rows'])}
+            out.append(seen[key])
+    return out
+
 systems = []
 for page, zh in PAGES.items():
     if page not in raw: continue
     t = raw[page]['text']
     intro = clean(re.split(r'\n==', t)[0])
-    systems.append({'id': page, 'zh': zh, 'intro': intro[:700], 'tables': tables(t)})
+    systems.append({'id': page, 'zh': zh, 'intro': intro[:700],
+                    'tables': merge_same_schema(tables(t))})
 
 # ---- 屬性相剋矩陣（來源：Attribute 頁 "Attribute Bonus" 散文，手工結構化）----
 MATRIX = {

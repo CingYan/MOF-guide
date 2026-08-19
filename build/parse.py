@@ -1,20 +1,15 @@
 # -*- coding: utf-8 -*-
 """把 MoF wiki 原始 wikitext 解析成結構化 JSON"""
-import json, re, os, collections
+import json, re, os, collections, sys
+sys.path.insert(0, 'build')
+from wikitext import clean as _wt_clean
 
 RAW = json.load(open('data/raw.json'))
 
 # ---------- 通用工具 ----------
 def clean(s):
-    if s is None: return ''
-    s = re.sub(r'\[\[File:[^\]]*\]\]', '', s)
-    s = re.sub(r'\[\[([^\|\]]*)\|([^\]]*)\]\]', r'\2', s)
-    s = re.sub(r'\[\[([^\]]*)\]\]', r'\1', s)
-    s = re.sub(r"'''?", '', s)
-    s = re.sub(r'<br\s*/?>', ' / ', s)
-    s = re.sub(r'<[^>]+>', '', s)
-    s = re.sub(r'\{\{[^}]*\}\}', '', s)
-    return s.strip()
+    return _wt_clean(s)
+
 
 def first_image(text):
     m = re.search(r'\|image\s*=\s*File:([^\n\|\}]+)', text)
@@ -181,7 +176,8 @@ for title, p in RAW.items():
                 'dmg': idx('damage'), 'spd': idx('attack speed','speed'),
                 'rng': idx('range'), 'attr': idx('attribute'), 'price': idx('price'),
                 'eff': idx('effect'), 'add': idx('additional'), 'def': idx('defense'),
-                'part': idx('body part','part'),
+                'part': idx('body part','part'), 'type': idx('type'),
+                'method': idx('method','how to get','obtain'),
             }
             for r in t['rows']:
                 if len(r) <= i_name or not r[i_name]: continue
@@ -191,7 +187,11 @@ for title, p in RAW.items():
                         'rarity': g('rarity'), 'lv': lvnum(g('lv')), 'dmg': g('dmg'),
                         'spd': g('spd'), 'rng': g('rng'), 'attr': g('attr'),
                         'price': g('price'), 'eff': g('eff'), 'add': g('add'),
-                        'def': lvnum(g('def')), 'part': g('part')}
+                        'def': lvnum(g('def')), 'part': g('part'),
+                        'type': g('type'), 'method': g('method'),
+                        'lvtext': g('lv')}
+                if not item['rarity'] and item['type'] in ('Normal','Rare'):
+                    item['rarity'] = item['type']
                 if item['add'] and item['add'] == item['eff']: item['add'] = ''
                 (weapons if kind=='weapon' else armors if kind=='armor' else accessories).append(item)
         continue

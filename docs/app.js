@@ -11,6 +11,30 @@ const T = {
   rarity:{Normal:'普通',Rare:'稀有'},
   part:{Helm:'頭盔',Cloth:'衣服',Pants:'褲子',Gloves:'手套',Shoes:'鞋子'},
   move:{Land:'地面',Flying:'飛行'},
+  hdr:{'Image':'','Skill Icon':'','Title Icon':'',
+    'Item Name':'道具名稱','Core Name':'核心名稱','Badge Name':'徽章名稱','Scroll Name':'卷軸名稱',
+    'Treasure Name':'寶箱名稱','Fashion Name':'時裝名稱','Weather Name':'天氣','Skill Name':'技能名稱',
+    'Skill List':'技能列表','Dungeon Map Name':'地城地圖','Key Name':'鑰匙','Monster List':'怪物清單',
+    'Monster':'怪物','Status':'狀態','Weapon':'武器','Job':'職業','Type':'類型','Level':'等級',
+    'Method':'取得方式','Price':'價格','Effect':'效果','Duration':'持續時間','Description':'說明',
+    'Information':'說明','Item':'產出','Material':'材料','Success Rate':'成功率','Exp':'經驗值',
+    'Enhancement Level':'強化等級','Unsealed Stone':'開封後可得','Boss/Mini-Boss':'Boss／精英怪',
+    'Treasure Box':'寶箱','Question':'題目','Answer':'答案','Skill Level':'技能等級',
+    'Level Requirement':'等級需求','Weapon/Shield Level':'武器／盾等級','Max Member':'人數上限',
+    'Rank':'名次','Bonus Exp':'經驗加成','Bonus Libi':'Libi 加成','Room Type':'房型',
+    'Required Level':'等級需求','PvP Limit':'PvP 上限','PvP Cost':'PvP 費用',
+    'Spectator Cost':'觀戰費用','Room Cost':'開房費用','Player Rank':'玩家名次','Title':'稱號',
+    'Total PvP Points':'累計 PvP 點數','Location':'地點','Sound':'音效','Health':'HP',
+    'Item Drop':'掉落物','Total Status Points':'已配點數','Need Points':'需求點數',
+    'Level Up Exp':'升級所需經驗','Skill':'技能','Skill Damage':'技能傷害','Damage':'傷害',
+    'Job Requirement':'職業需求','Skill Point Cost':'技能點數','Minimal Level':'最低等級',
+    'Job Grade':'轉職階級','Rewards':'獎勵','Rare Badge':'稀有徽章','Couple Gift Box':'情侶禮盒',
+    'Wedding Ring':'結婚戒指','1 Month Login Bonus':'一個月登入獎勵',
+    '1-4 Member Party':'1～4 人隊伍','5 Member Party':'5 人隊伍',
+    'Sword':'劍','Axe':'斧','Bow':'弓','Book':'書','Cross':'十字架','Crossbow':'弩','Dagger':'匕首',
+    'Dual Sword':'雙劍','Gun':'槍','Hammer':'錘','Long Sword':'長劍','Spear':'矛','Staff':'法杖'},
+  val:{'Normal':'普通','Rare':'稀有','None':'—','General':'通用','Active':'主動','Passive':'被動',
+    'Stun':'暈眩','Stop':'定身','Freeze':'冰凍'},
   sk:{'Skills Type':'類型','Damage':'傷害','Attack Range':'攻擊距離','Delay Skill':'冷卻',
       'Target':'目標','MP Requirement':'消耗 MP','Item Required':'需求武器',
       'Need Level':'需求等級','Need Class':'需求職業','Duration':'持續時間',
@@ -22,7 +46,8 @@ const num=s=>{const m=String(s??'').replace(/[.,](?=\d{3}\b)/g,'').match(/-?\d+(
 const dmgAvg=s=>{const m=String(s??'').match(/(\d+)\s*~\s*(\d+)/);return m?(+m[1]+ +m[2])/2:num(s)};
 
 // ---------- 資料載入 ----------
-const CACHE={}, IMGMAP={};
+const CACHE={}, IMGMAP={}, I18N={};
+const i18n=s=>(s&&I18N[s])||s||'';
 async function load(name){
   if(CACHE[name]) return CACHE[name];
   const r=await fetch(`data/${name}.json`);
@@ -95,6 +120,7 @@ V['']=V['home']=async()=>{
     <a class="card" href="#/drops"><h3>🔍 掉落物反查</h3><p>輸入道具名，反查哪些怪會掉 —— wiki 沒有這功能</p></a>
     <a class="card" href="#/attr"><h3>🔥 屬性相剋</h3><p>武器屬性 vs 怪物屬性完整矩陣，附「打這種怪帶什麼」反查</p></a>
     <a class="card" href="#/systems"><h3>⚙️ 遊戲系統</h3><p>強化、製作、藥水、狀態異常、轉職考試等機制資料表</p></a>
+    <a class="card" href="#/badges"><h3>🎖️ 徽章</h3><p>58 枚，含取得條件、效果與價格，可篩普通／稀有</p></a>
     <a class="card" href="#/pets"><h3>🐾 寵物 8</h3><p>各寵物 Lv.1～10 加成完整對照</p></a>
     <a class="card" href="#/npcs"><h3>💬 NPC 與任務</h3><p>64 位 NPC，含任務等級、目標、獎勵</p></a>
     <a class="card" href="#/locations"><h3>🗺️ 地點</h3><p>城鎮、地城、區域與所屬 NPC</p></a>
@@ -259,9 +285,9 @@ V['skills']=async(p)=>{
           <td><span class="t ${x.job}">${T.job[x.job]||'—'}</span></td>
           <td>${x.type==='Active'?'主動':'被動'}</td>
           <td class="n">${lv??'—'}</td><td class="n hide-m">${x.levels.length}</td>
-          <td class="hide-m" style="color:var(--tx3);font-size:12px">${esc((x.desc||'').slice(0,60))}</td></tr>
+          <td class="hide-m" style="color:var(--tx3);font-size:12px">${esc(i18n(x.desc).slice(0,60))}</td></tr>
         <tr class="detail" style="display:none"><td colspan="6">
-          ${x.desc?`<p style="color:var(--tx2);margin-bottom:10px;font-size:13px">${esc(x.desc)}</p>`:''}
+          ${x.desc?`<p style="color:var(--tx2);margin-bottom:10px;font-size:13px">${esc(i18n(x.desc))}</p>`:''}
           <div class="lv">${det||'<span style="color:var(--tx3)">此技能沒有分級數值</span>'}</div></td></tr>`;
       }).join('')||'<tr><td colspan="6" class="empty">找不到技能</td></tr>';
       tableSort(tb.closest('table')); expandRows(tb.closest('table'));
@@ -312,7 +338,7 @@ V['monsters']=async(p)=>{
           <td class="hide-m">${tr(T.attr,x.attr)||'—'}</td><td class="hide-m">${tr(T.move,x.move)||'—'}</td>
           <td>${esc(x.loc)||'—'}</td><td class="n hide-m">${x.drops.length||'—'}</td></tr>
         <tr class="detail" style="display:none"><td colspan="9">
-          ${x.desc?`<p style="color:var(--tx2);font-size:13px;margin-bottom:10px">${esc(x.desc)}</p>`:''}
+          ${x.desc?`<p style="color:var(--tx2);font-size:13px;margin-bottom:10px">${esc(i18n(x.desc))}</p>`:''}
           ${x.drops.length?`<div class="dl">${x.drops.map(d=>
             `<a class="${d.rarity==='Rare'?'r':''}" href="#/drops?q=${encodeURIComponent(d.name)}">${esc(d.name)}${d.rarity==='Rare'?' ★':''}</a>`).join('')}</div>`
             :'<span style="color:var(--tx3)">wiki 未記錄掉落物</span>'}</td></tr>`).join('')
@@ -367,7 +393,7 @@ V['pets']=async()=>{
   <div class="tw"><table><thead><tr><th>寵物</th><th>屬性</th><th>Lv.1</th><th>Lv.5</th><th>Lv.10（滿級）</th></tr></thead>
   <tbody>${p.map(x=>{
     const g=n=>{const e=x.eff.find(y=>y.lv===n);return e?esc(String(e.e).replace(/\s*Detik/g,' 秒')):'—'};
-    return `<tr><td class="nm">${imgTag(x.img)}${esc(x.name)}<span class="kr">${esc(x.kr)}</span></td>
+    return `<tr><td class="nm">${imgTag(x.img)}${esc(x.name)}<span class="kr">${esc(x.kr)}</span>${x.desc?`<span class="kr" style="color:var(--tx2)">${esc(i18n(x.desc))}</span>`:''}</td>
     <td>${tr(T.attr,x.attr)||'—'}</td><td>${g(1)}</td><td>${g(5)}</td>
     <td style="color:var(--gold2);font-weight:600">${g(10)}</td></tr>`}).join('')}</tbody></table></div>
   <div class="note"><b>選寵建議：</b>輸出向看 <b>Penguin</b>（+10% 技能攻擊）或 <b>Dino</b>（+10% 傷害）；
@@ -398,13 +424,13 @@ V['npcs']=async()=>{
         <tr data-v class="${x.quests.length?'exp':''}" data-name="${esc(x.name)}" data-loc="${esc(x.loc)}" data-qn="${x.quests.length}">
           <td>${imgTag(x.img)}</td>
           <td class="nm">${esc(x.name)}<span class="kr">${esc(x.kr)}</span></td>
-          <td>${esc(x.loc)||'—'}</td><td class="hide-m" style="color:var(--tx2);font-size:12px">${esc((x.job||'').slice(0,40))}</td>
+          <td>${esc(x.loc)||'—'}</td><td class="hide-m" style="color:var(--tx2);font-size:12px">${esc(i18n(x.job).slice(0,40))}</td>
           <td class="n">${x.quests.length||'—'}</td></tr>
         ${x.quests.length?`<tr class="detail" style="display:none"><td colspan="5">
           <div class="tw"><table><thead><tr><th>任務</th><th class="n">等級</th><th>目標</th><th>獎勵</th></tr></thead>
           <tbody>${x.quests.map(qq=>`<tr><td class="nm">${esc(qq.name)}</td><td class="n">${qq.lv??'—'}</td>
-          <td style="font-size:12px;color:var(--tx2)">${esc(qq.mission)}</td>
-          <td style="font-size:12px">${esc(qq.reward)}</td></tr>`).join('')}</tbody></table></div></td></tr>`:''}`).join('')
+          <td style="font-size:12px;color:var(--tx2)">${esc(i18n(qq.mission))}</td>
+          <td style="font-size:12px">${esc(i18n(qq.reward))}</td></tr>`).join('')}</tbody></table></div></td></tr>`:''}`).join('')
         ||'<tr><td colspan="5" class="empty">查無 NPC</td></tr>';
       tableSort(tb.closest('table')); expandRows(tb.closest('table'));
     };
@@ -418,7 +444,7 @@ V['locations']=async()=>{
   return `<h1>地點</h1><p class="sub">${l.length} 個城鎮、地城與區域。</p>
   <div class="grid">${l.map(x=>`<div class="card"><h3>${esc(x.name)}</h3>
     ${x.kr?`<p style="color:var(--tx3);font-size:11px">${esc(x.kr)}</p>`:''}
-    <p style="margin-top:6px">${esc((x.desc||'').slice(0,140))}…</p>
+    <p style="margin-top:6px">${esc(i18n(x.desc).slice(0,140))}…</p>
     <div class="chips" style="margin-top:10px">${x.regions.slice(0,3).map(r=>
       `<a class="chip" href="#/monsters?q=&r=${encodeURIComponent(r)}" style="font-size:11px">${esc(r)}</a>`).join('')}</div>
   </div>`).join('')}</div>`;
@@ -470,27 +496,94 @@ V['systems']=async(p)=>{
   const {systems}=await load('systems');
   const cur=p.s||systems.find(s=>s.tables.length).id;
   const s=systems.find(x=>x.id===cur)||systems[0];
-  const tbl=t=>`<div class="tw"><table><thead><tr>${
-    t.headers.map(h=>h.toLowerCase()==='image'?'<th></th>':`<th>${esc(h)}</th>`).join('')}</tr></thead>
+  const R={};
+  const zhH=h=>{
+    if(T.hdr[h]!==undefined) return T.hdr[h];
+    const m=h.match(/^(\d+) Player$/); if(m) return m[1]+' 人';
+    return h;
+  };
+  const isImg=h=>/^(image|skill icon|title icon)$/i.test(h);
+  const tbl=(t,ti)=>`<div class="tw"><table data-t="${ti}"><thead><tr>${
+    t.headers.map(h=>isImg(h)?'<th></th>':`<th>${esc(zhH(h))}</th>`).join('')}</tr></thead>
     <tbody>${t.rows.map(r=>`<tr>${t.headers.map((h,i)=>
-      h.toLowerCase()==='image'?`<td>${imgTag(r.img)}</td>`
-      :`<td${i===0||i===1?' class="nm"':''}>${esc(r.c[i]||'')}</td>`).join('')}</tr>`).join('')}
+      isImg(h)?`<td>${imgTag(r.img)}</td>`
+      :`<td${i<2?' class="nm"':''}>${esc(i18n(tr(T.val,r.c[i]||'')))}</td>`).join('')}</tr>`).join('')}
     </tbody></table></div>`;
-  return `
+  return {html:`
   <h1>遊戲系統</h1>
   <p class="sub">強化、製作、藥水、狀態異常、轉職考試等機制與道具表。說明文字為 wiki 原文（印尼文），表格數值已整理。</p>
   <div class="chips" style="margin-bottom:18px">${systems.map(x=>
     `<a class="chip ${x.id===cur?'on':''}" href="#/systems?s=${encodeURIComponent(x.id)}">${esc(x.zh)}${x.tables.length?'':' ·'}</a>`).join('')}</div>
   <h2>${esc(s.zh)} <span style="color:var(--tx3);font-size:13px;font-weight:400">${esc(s.id)}</span></h2>
-  ${s.intro?`<div class="note">${esc(s.intro)}</div>`:''}
-  ${s.tables.length?s.tables.map((t,i)=>`${s.tables.length>1?`<h3>表 ${i+1}（${t.rows.length} 列）</h3>`:''}${tbl(t)}`).join('')
-    :'<div class="empty">這個頁面在 wiki 上只有文字說明，沒有資料表</div>'}`;
+  ${s.intro?`<div class="note">${esc(i18n(s.intro))}</div>`:''}
+  ${s.tables.some(t=>t.rows.length>20)?'<div class="filters"><input type="text" id="tq" placeholder="在本頁表格中搜尋…" style="min-width:240px"><span class="cnt" id="tcnt"></span></div>':''}
+  ${s.tables.length?s.tables.map((t,i)=>`${s.tables.length>1?`<h3>${esc(zhH(t.headers.find(h=>!isImg(h))||''))}表（${t.rows.length} 列）</h3>`:''}${tbl(t,i)}`).join('')
+    :'<div class="empty">這個頁面在 wiki 上只有文字說明，沒有資料表</div>'}`,
+  init(){
+    const q=document.getElementById('tq'); if(!q) return;
+    const all=[...document.querySelectorAll('table[data-t] tbody tr')];
+    q.oninput=()=>{
+      const v=q.value.trim().toLowerCase(); let n=0;
+      all.forEach(tr=>{const hit=!v||tr.textContent.toLowerCase().includes(v);
+        tr.style.display=hit?'':'none'; if(hit)n++});
+      tcnt.textContent=v?`${n} 列符合`:'';
+    };
+  }};
+};
+
+
+// --- 徽章 ---
+V['badges']=async(p)=>{
+  const acc=await load('accessories');
+  const b=acc.filter(x=>x.group==='Badge');
+  const rare=b.filter(x=>x.type==='Rare').length;
+  return {html:`
+  <h1>徽章 Badge</h1>
+  <p class="sub">共 ${b.length} 枚（普通 ${b.length-rare}、稀有 ${rare}）。徽章由 NPC <b>Rinoa</b> 與 <b>Lusia</b> 販售，
+  達成條件後才買得到；<b>稀有徽章</b>則是達成條件後自動取得。可從快捷欄直接使用。</p>
+  <div class="filters">
+    <div class="chips" id="ct">
+      <button class="chip on" data-t="">全部</button>
+      <button class="chip" data-t="Normal">普通</button>
+      <button class="chip" data-t="Rare">稀有</button>
+    </div>
+    <input type="text" id="fq" placeholder="徽章名稱或效果" value="${esc(p.q||'')}">
+    <span class="cnt" id="cnt"></span>
+  </div>
+  <div class="tw"><table id="tb">
+    <thead><tr><th data-k="name">徽章</th><th data-k="type">類型</th>
+    <th data-k="lv" class="n">等級</th><th>效果</th><th>取得方式</th>
+    <th data-k="price" class="n hide-m">價格</th></tr></thead><tbody></tbody></table></div>
+  <div class="note"><b>資料說明：</b>「取得方式」與等級條件原文為印尼文，站上顯示的是譯文；
+  若某條沒有譯文會保留原文。效果與價格為 wiki 原始數值。</div>`,
+  init(){
+    let ty='';
+    const tb=document.querySelector('#tb tbody');
+    const f=()=>{
+      const q=fq.value.toLowerCase();
+      const rows=b.filter(x=>(!ty||x.type===ty)&&(!q||x.name.toLowerCase().includes(q)||(x.eff||'').toLowerCase().includes(q)));
+      cnt.textContent=`${rows.length} 枚`;
+      tb.innerHTML=rows.map(x=>`<tr data-v data-name="${esc(x.name)}" data-type="${esc(x.type)}"
+        data-lv="${x.lv??0}" data-price="${num(x.price)??0}">
+        <td class="nm">${esc(x.name)}</td>
+        <td><span class="t ${x.type==='Rare'?'rare':'norm'}">${tr(T.val,x.type)||'—'}</span></td>
+        <td class="n">${esc(i18n(x.lvtext)||x.lv||'—')}</td>
+        <td>${esc(x.eff)||'—'}</td>
+        <td style="font-size:12.5px;color:var(--tx2)">${esc(i18n(x.method))||'—'}</td>
+        <td class="n hide-m">${esc(String(x.price).replace(' Libi',''))||'—'}</td>
+      </tr>`).join('')||'<tr><td colspan="6" class="empty">查無徽章</td></tr>';
+      tableSort(tb.closest('table'));
+    };
+    ct.onclick=e=>{if(e.target.dataset.t===undefined)return;
+      [...ct.children].forEach(c=>c.classList.remove('on'));e.target.classList.add('on');ty=e.target.dataset.t;f()};
+    fq.oninput=f; f();
+  }};
 };
 
 // ---------- 路由 ----------
 const NAV=[['','首頁'],['jobs','職業'],['skills','技能'],['weapons','武器'],['armors','防具飾品'],
            ['monsters','怪物圖鑑'],['drops','掉落反查'],['attr','屬性相剋'],['systems','遊戲系統'],
-           ['pets','寵物'],['npcs','NPC 任務'],['locations','地點']];
+           ['badges','徽章'],['pets','寵物'],['npcs','NPC 任務'],['locations','地點']];
 
 function parseHash(){
   const h=location.hash.replace(/^#\/?/,'');
@@ -544,6 +637,7 @@ async function initSearch(){
 // ---------- 啟動 ----------
 (async()=>{
   try{ Object.assign(IMGMAP, await (await fetch('data/imgmap.json')).json()) }catch(e){}
+  try{ Object.assign(I18N, await (await fetch('data/i18n.json')).json()) }catch(e){}
   window.addEventListener('hashchange',route);
   await route();
   initSearch();
