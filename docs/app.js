@@ -139,13 +139,19 @@ function table(rows, cols, opts) {
     const th = el('th', { text: c.h, title: c.title || '' });
     th.onclick = () => {
       if (sortKey === i) desc = !desc; else { sortKey = i; desc = !!c.n; }
-      draw();
+      draw(true);
     };
     return th;
   }));
   const wrap = el('div', { class: 'tw' }, [el('table', {}, [el('thead', {}, [thead]), tb])]);
   const more = el('button', { class: 'more' });
-  more.onclick = () => { shown += PAGE * 3; draw(true); };
+  more.onclick = () => {
+    const at = tb.children.length;
+    shown += PAGE * 3;
+    draw(true);
+    const first = tb.children[at];
+    if (first && first.scrollIntoView) first.scrollIntoView({ block: 'start' });
+  };
 
   function draw(keep) {
     if (!keep) shown = PAGE;
@@ -170,8 +176,9 @@ function table(rows, cols, opts) {
       })));
     }
     tb.appendChild(f);
+    const now = Math.min(shown, list.length);
     more.hidden = list.length <= shown;
-    more.textContent = `顯示更多（還有 ${num(list.length - shown)} 筆）`;
+    more.textContent = `顯示更多　已顯示 ${num(now)} / 共 ${num(list.length)} 筆`;
   }
   draw();
   return { node: frag([wrap, more]), redraw: draw };
@@ -608,18 +615,33 @@ V.skill = async i => {
   ]);
 };
 
+/* 名稱來源：中文玩家資料 > 由頭目名推得 > 我方暫譯 > 未譯 */
+const NAMED = { zh: '', boss: '', tr: '暫譯', en: '未譯' };
+
 V.badges = async () => {
   const w = await data('wiki');
-  return listPage('徽章', `${w.badges.length} 枚。徽章是額外的飾品欄位，效果多半是經驗或機率加成。`,
-    w.badges, [
-      { h: '名稱', c: b => b.name },
+  const rows = w.badges.map(b => Object.assign({ _src: NAMED[b.named] || '' }, b));
+  return listPage('徽章',
+    `${rows.length} 枚。徽章佔一個額外的飾品欄位，效果多半是經驗、機率或費用加成。` +
+    `取得方式多為隨機，社群實測的說法附在最後一欄。`,
+    rows, [
+      { h: '名稱', wrap: true, c: b => el('span', {}, [
+          el('b', { text: b.name }),
+          b._src ? el('span', { class: 'tag', text: b._src }) : null,
+          b.en && b.en !== b.name ? el('small', { class: 'sub', text: ' ' + b.en }) : null]) },
       { h: '稀有度', c: b => b.rarity || '' },
-      { h: '等級', n: true, v: b => b.lv, c: b => b.lvtext || b.lv || '' },
-      { h: '效果', wrap: true, c: b => b.eff || '' },
+      { h: '等級', n: true, v: b => b.lv || 0, c: b => b.lvtext || b.lv || '' },
+      { h: '效果', wrap: true, c: b => el('span', {}, [
+          b.eff || '',
+          b.alt ? el('small', { class: 'sub', text: '（' + b.alt + '）' }) : null]) },
       { h: '取得方式', wrap: true, c: b => b.method || '' },
+      { h: '說明', wrap: true, c: b => el('span', {}, [
+          b.flavor ? el('small', { class: 'sub', text: b.flavor }) : null,
+          b.note || '']) },
       { h: '價格', c: b => b.price || '' },
-      { h: '職業', c: b => (b.jobs || []).join('、') },
-    ], [{ h: '稀有度', v: b => b.rarity }], { sort: 2, desc: false });
+    ],
+    [{ h: '稀有度', v: b => b.rarity }, { h: '名稱來源', v: b => b._src || '已確認' }],
+    { sort: 2, desc: false });
 };
 
 V.system = async () => {

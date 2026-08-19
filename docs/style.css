@@ -63,7 +63,9 @@ th.s.d::after{content:" ▼"}
 tbody tr:hover{background:var(--bg2)}
 tbody tr:last-child td{border-bottom:0}
 td.n{text-align:right;font-variant-numeric:tabular-nums}
-td.wrap{white-space:normal;min-width:220px}
+td.wrap{white-space:normal;min-width:200px;max-width:340px}
+td small.sub{display:block;margin:2px 0 0;font-size:12px;line-height:1.5}
+td .tag{margin-left:6px;vertical-align:middle}
 .more{display:block;width:100%;margin-top:10px;padding:9px;border-radius:8px;
   border:1px solid var(--line);background:var(--bg2);color:var(--fg);cursor:pointer;font-size:14px}
 .more:hover{background:var(--bg3)}
