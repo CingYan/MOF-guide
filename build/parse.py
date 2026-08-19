@@ -29,7 +29,8 @@ def infobox(text):
         t = re.search(r'\|Row %d title\s*=\s*(.*?)(?=\n\|Row|\n\||\}\})' % n, text, re.S)
         i = re.search(r'\|Row %d info\s*=\s*(.*?)(?=\n\|Row|\n\||\}\})' % n, text, re.S)
         if t and i:
-            k, v = clean(t.group(1)), clean(i.group(1))
+            k = clean(re.split(r'\|(?:Box title|imagewidth|image)\s*=', t.group(1))[0])
+            v = clean(re.split(r'\|(?:Box title|imagewidth|image)\s*=', i.group(1))[0])
             if k: out[k] = v
     return out
 
@@ -198,8 +199,15 @@ for title, p in RAW.items():
     # === 寵物 ===
     if 'Pet' in cats:
         eff = []
-        for m in re.finditer(r'\n\|\s*\|?\s*(\d+)\s*\n\|\s*\|?\s*([^\n|]+)', text):
-            eff.append({'lv': int(m.group(1)), 'e': clean(m.group(2))})
+        for t in tbls:
+            h = [x.lower() for x in t['headers']]
+            if any('level' in x for x in h) and any('effect' in x for x in h):
+                li = next(i for i, x in enumerate(h) if 'level' in x)
+                ei = next(i for i, x in enumerate(h) if 'effect' in x)
+                for r in t['rows']:
+                    if len(r) > max(li, ei) and lvnum(r[li]) is not None:
+                        eff.append({'lv': lvnum(r[li]), 'e': r[ei]})
+        eff.sort(key=lambda x: x['lv'])
         pets.append({'name': title, 'img': img, 'kr': korean(text),
                      'attr': ib.get('Attribute',''), 'food': ib.get('Pet Food',''),
                      'desc': desc_section(text,'Pet Description'), 'eff': eff})
@@ -251,11 +259,11 @@ data = {
     'drop_index': {k: v for k, v in sorted(drop_index.items())},
     'misc': misc,
 }
-os.makedirs('site/data', exist_ok=True)
-json.dump(data, open('site/data/mof.json','w'), ensure_ascii=False, separators=(',',':'))
+os.makedirs('docs/data', exist_ok=True)
+json.dump(data, open('docs/data/mof.json','w'), ensure_ascii=False, separators=(',',':'))
 
 for k in ['monsters','skills','weapons','armors','accessories','pets','npcs','locations']:
     print(f"{k:14s} {len(data[k]):5d}")
 print(f"{'掉落物種類':14s} {len(drop_index):5d}")
 print(f"{'未分類':14s} {len(misc):5d}")
-print("大小:", round(os.path.getsize('site/data/mof.json')/1024, 1), "KB")
+print("大小:", round(os.path.getsize('docs/data/mof.json')/1024, 1), "KB")

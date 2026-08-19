@@ -366,7 +366,7 @@ V['pets']=async()=>{
   另有 5 種技能書（HP/MP 回復、自動拾取、命中光環、防禦光環）與品種無關，任何寵物最多同時掛 4 個。</p>
   <div class="tw"><table><thead><tr><th>寵物</th><th>屬性</th><th>Lv.1</th><th>Lv.5</th><th>Lv.10（滿級）</th></tr></thead>
   <tbody>${p.map(x=>{
-    const g=n=>{const e=x.eff.find(y=>y.lv===n);return e?esc(e.e):'—'};
+    const g=n=>{const e=x.eff.find(y=>y.lv===n);return e?esc(String(e.e).replace(/\s*Detik/g,' 秒')):'—'};
     return `<tr><td class="nm">${imgTag(x.img)}${esc(x.name)}<span class="kr">${esc(x.kr)}</span></td>
     <td>${tr(T.attr,x.attr)||'—'}</td><td>${g(1)}</td><td>${g(5)}</td>
     <td style="color:var(--gold2);font-weight:600">${g(10)}</td></tr>`}).join('')}</tbody></table></div>

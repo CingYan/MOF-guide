@@ -50,16 +50,19 @@ docs/
   data/*.json  結構化資料（按區塊分檔）
   img/         1,310 張圖示（本機化，不 hotlink）
 build/
+  fetch.py     抓取 wiki 全站條目
   parse.py     wikitext → 結構化 JSON
   systems.py   系統／道具頁 + 屬性矩陣
+  split.py     切分區檔 + 全站搜尋索引
 ```
 
 ## 重建資料
 
 ```bash
 python3 build/fetch.py    # 重抓 wiki（會覆寫 data/raw.json）
-python3 build/parse.py    # 解析主資料
-python3 build/systems.py  # 解析系統頁
+python3 build/parse.py    # 解析主資料 -> docs/data/mof.json
+python3 build/systems.py  # 解析系統頁 + 屬性矩陣
+python3 build/split.py    # 切分區檔 + 建搜尋索引
 ```
 
 ## 本機預覽

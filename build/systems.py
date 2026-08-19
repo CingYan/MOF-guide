@@ -70,7 +70,7 @@ MATRIX = {
 MON_ATTRS = ['Fire','Ice','Lightning','Other','Animal','Undead','Demon','Dragon']
 
 json.dump({'systems': systems, 'matrix': MATRIX, 'monAttrs': MON_ATTRS},
-          open('site/data/systems.json','w'), ensure_ascii=False, separators=(',',':'))
-print("系統頁:", len(systems), "|", round(os.path.getsize('site/data/systems.json')/1024,1), "KB")
+          open('docs/data/systems.json','w'), ensure_ascii=False, separators=(',',':'))
+print("系統頁:", len(systems), "|", round(os.path.getsize('docs/data/systems.json')/1024,1), "KB")
 for s in systems:
     if s['tables']: print(f"  {s['zh']:12s} {len(s['tables'])} 表 / {sum(len(t['rows']) for t in s['tables'])} 列")
