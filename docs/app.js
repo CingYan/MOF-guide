@@ -521,6 +521,110 @@ V.items = async () => {
 };
 V.item = gearDetail('items', 'items', '道具列表');
 
+/* ───────── 製作材料遞迴展開 ─────────
+   直接從 recipes.json 即時算，不預先展開存檔：
+   完整展開 517 筆會產生 4 MB，而原始配方只有 403 KB，
+   而且即時算才能讓「份數」改一個數字就整份重算。 */
+
+/* 同一個中間材料常有多張配方（鐵塊有 16 張、鋼鐵塊 7 張）。
+   往下展開時取「單次產出最多」那張當代表 —— 那通常也是玩家實際會用的批量配方。 */
+function craftIndex(recipes) {
+  const best = new Map();
+  for (const r of recipes) {
+    if (!r.ingredients || !r.ingredients.length) continue;
+    const key = r.result.name;
+    const cur = best.get(key);
+    if (!cur || (r.result.count || 1) > (cur.result.count || 1)) best.set(key, r);
+  }
+  return best;
+}
+
+/* 關鍵：同一材料會被多個父節點需要，必須等它「所有」父節點都算完、需求收齊，
+   才可以往下展開。分層展開是錯的 —— 同一材料若同時出現在第 1 層與第 2 層，
+   會被展開兩次而灌水（實測 517 筆有 390 筆對不上）。
+   正解是拓樸排序：先把依賴圖建出來，保證每個材料只在收齊需求後處理一次。 */
+function craftTotals(root, qty, index) {
+  const rootName = root.result.name;
+
+  // 先走一遍收集所有會用到的材料，以及「誰需要誰」
+  // 有一種「拿舊的換新的」升級配方（製作法-狼齒：狼牙 + 材料 → 狼牙）。
+  // 那把舊的確實要自己準備，所以要當成材料計入，但不能再往下展開，否則會無限遞迴。
+  const selfUse = new Map();
+  const children = new Map();      // 材料 → 它的下層材料集合
+  const parents = new Map();       // 材料 → 有幾個上層材料需要它
+  const stack = [rootName];
+  const visited = new Set([rootName]);
+  children.set(rootName, new Set());
+  parents.set(rootName, 0);
+
+  while (stack.length) {
+    const name = stack.pop();
+    const rec = name === rootName ? root : index.get(name);
+    if (!rec) continue;
+    for (const g of rec.ingredients) {
+      if (g.name === name) { selfUse.set(name, g.count); continue; }
+      children.get(name).add(g.name);
+      parents.set(g.name, (parents.get(g.name) || 0) + 1);
+      if (!visited.has(g.name)) {
+        visited.add(g.name);
+        children.set(g.name, new Set());
+        stack.push(g.name);
+      }
+    }
+  }
+
+  // 需求量：從頂層往下推，但只在某材料的上層全部處理完之後才推它
+  const need = new Map([[rootName, qty]]);
+  const ready = [rootName];
+  const done = new Set();
+  const crafted = new Map();
+
+  while (ready.length) {
+    const name = ready.shift();
+    if (done.has(name)) continue;
+    done.add(name);
+    const rec = name === rootName ? root : index.get(name);
+    if (!rec) continue;                                    // 葉節點，不再往下
+    const total = need.get(name) || 0;
+    const y = rec.result.count || 1;
+    const crafts = Math.ceil(total / y);
+    crafted.set(name, { yield: y, crafts, icon: rec.result.icon, id: rec.result.id });
+    for (const g of rec.ingredients) {
+      if (g.name === name) continue;                       // 升級配方的舊件，最後單獨計
+      need.set(g.name, (need.get(g.name) || 0) + g.count * crafts);
+      parents.set(g.name, parents.get(g.name) - 1);
+      if (parents.get(g.name) === 0) ready.push(g.name);   // 這個材料的需求收齊了
+    }
+  }
+
+  // 有環的話會有材料永遠等不到 0，補做一輪避免整段漏掉
+  for (const name of visited) {
+    if (!done.has(name) && index.has(name)) {
+      const rec = index.get(name);
+      const total = need.get(name) || 0;
+      const y = rec.result.count || 1;
+      crafted.set(name, { yield: y, crafts: Math.ceil(total / y),
+                          icon: rec.result.icon, id: rec.result.id });
+    }
+  }
+
+  const intermediates = [], leaves = [];
+  for (const [name, n] of selfUse) {
+    const c = crafted.get(name);
+    leaves.push({ name, count: n * (c ? c.crafts : 1), upgrade: true });
+  }
+  for (const [name, count] of need) {
+    if (name === rootName) continue;
+    const c = crafted.get(name);
+    if (c) intermediates.push({ name, needed: count, yield: c.yield, crafts: c.crafts,
+                                icon: c.icon, id: c.id });
+    else leaves.push({ name, count });
+  }
+  intermediates.sort((a, b) => b.needed - a.needed);
+  leaves.sort((a, b) => b.count - a.count);
+  return { intermediates, leaves };
+}
+
 V.recipes = async () => {
   const rows = await data('recipes');
   return listPage('製作配方', `${rows.length} 份。`, rows, [
@@ -542,14 +646,64 @@ V.recipe = async id => {
     dl([['產物', itemCell(r.result)], ['分類', r.resultCategory || ''],
         ['成功率', rate(r.successRate)], ['製作經驗', r.expBonus || ''],
         ['配方書', r.book ? itemCell(r.book) : '']]),
-    section('所需材料', r.ingredients, [
+    section('直接材料', r.ingredients, [
       { h: '材料', c: i => itemCell(i) },
       { h: '數量', n: true, v: i => i.count, c: i => i.count },
     ]),
+    craftPlan(r, rows),
     section('可製作的 NPC', r.npcs, [{ h: 'NPC', c: n => itemCell(n, 'npcs') }]),
     section('配方掉落來源', r.recipeItemDroppedBy, fromMonCols, { sort: 2 }),
   ]);
 };
+
+/* 展開到底的材料清單：中間物要做幾次、最底層要準備多少 */
+function craftPlan(root, recipes) {
+  if (!root.ingredients || !root.ingredients.length) return null;
+  const index = craftIndex(recipes);
+  const host = el('div');
+  const qtyInput = el('input', { type: 'number', class: 'num-input', value: '1', min: '1' });
+  const summary = el('span', { class: 'count' });
+
+  function draw() {
+    const qty = Math.max(1, Number(qtyInput.value) || 1);
+    const { intermediates, leaves } = craftTotals(root, qty, index);
+    host.textContent = '';
+    summary.textContent = `中間物 ${intermediates.length} 種 · 底層材料 ${leaves.length} 種`;
+
+    if (intermediates.length) {
+      host.appendChild(el('h3', { text: '要自己先做的（中間材料）' }));
+      host.appendChild(table(intermediates, [
+        { h: '材料', c: m => itemCell(m) },
+        { h: '總共需要', n: true, v: m => m.needed, c: m => num(m.needed) },
+        { h: '單次產出', n: true, v: m => m.yield, c: m => m.yield },
+        { h: '要製作', n: true, v: m => m.crafts, c: m => el('b', { text: num(m.crafts) + ' 次' }) },
+      ]).node);
+    }
+
+    host.appendChild(el('h3', { text: '最後要去打或去買的（底層材料）' }));
+    host.appendChild(table(leaves, [
+      { h: '材料', c: m => el('span', { class: 'nm' }, [
+          itemCell(m), m.upgrade ? el('span', { class: 'tag r', text: '升級用舊件' }) : null]) },
+      { h: '需要數量', n: true, v: m => m.count, c: m => el('b', { text: num(m.count) }) },
+    ]).node);
+    host.appendChild(el('p', { class: 'sub', text:
+      '點材料名稱可以看它由哪些怪物掉落、哪些 NPC 販售。' }));
+  }
+
+  qtyInput.oninput = draw;
+  draw();
+
+  return frag([
+    el('h2', { text: '完整材料展開' }),
+    el('p', { class: 'sub', text:
+      '把所有中間材料一路拆到最底層。同一種材料被多個地方需要時會先加總，'
+      + '再依「單次產出數」換算要製作幾次 —— 所以總量通常比逐項相乘來得少。' }),
+    el('div', { class: 'filters' }, [
+      el('span', { class: 'range-filter' }, ['要做幾個', qtyInput]), summary,
+    ]),
+    host,
+  ]);
+}
 
 V.quests = async () => {
   const rows = await data('quests');
