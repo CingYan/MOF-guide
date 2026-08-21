@@ -25,18 +25,18 @@
     return { html: await res.text(), finalUrl: res.url };
   }
 
-  /* 分類清單在首頁左側，連結長成 G1.php?bsn=11434&parent=N */
-  console.log('讀取分類清單⋯');
-  const home = await get(`https://forum.gamer.com.tw/G1.php?bsn=${BSN}`);
-  const cats = [...new Set(
-    [...parse(home.html).querySelectorAll('a[href*="G1.php"][href*="parent="]')]
+  /* 子資料夾只會出現在它自己的父頁裡，首頁看不到
+     （例如「職業心得」底下的 ●戰士系列／●聖職者系列，再底下還有 聖職者Q&A）。
+     所以分類要用廣度優先一路挖到底，不能只讀首頁那一層。 */
+  function foldersIn(doc) {
+    return [...doc.querySelectorAll('a[href*="G1.php"][href*="parent="]')]
       .map(a => {
         const m = a.getAttribute('href').match(/parent=(\d+)/);
-        return m ? JSON.stringify({ id: m[1], name: a.textContent.trim() }) : null;
+        const name = a.textContent.trim();
+        return m && name ? { id: m[1], name } : null;
       })
-      .filter(Boolean)
-  )].map(JSON.parse);
-  console.log(`找到 ${cats.length} 個分類`);
+      .filter(Boolean);
+  }
 
   /* 文章列的欄位順序：序號 / 標題連結 / 作者帳號 / 作者暱稱 / 日期 */
   function rowsOf(doc) {
@@ -70,17 +70,44 @@
   const out = { bsn: BSN, exportedAt: new Date().toISOString(), categories: [], failed: [] };
   let done = 0;
 
-  for (const c of cats) {
-    let list = [];
+  const seen = new Set();
+  const queue = [{ id: '0', name: '根目錄' }];
+
+  while (queue.length) {
+    const c = queue.shift();
+    if (seen.has(c.id)) continue;
+    seen.add(c.id);
+
+    let doc, list = [];
     try {
       const page = await get(`https://forum.gamer.com.tw/G1.php?bsn=${BSN}&parent=${c.id}`);
-      list = rowsOf(parse(page.html));
+      doc = parse(page.html);
+      list = rowsOf(doc);
+
+      // 這一頁裡新出現的資料夾排進佇列，繼續往下挖
+      for (const f of foldersIn(doc)) {
+        if (!seen.has(f.id) && !queue.some(q => q.id === f.id)) queue.push(f);
+      }
+
+      // 文章多的分類會分頁，把後續頁的文章一併收進來
+      const pages = [...new Set([...doc.querySelectorAll('a[href*="G1.php"][href*="page="]')]
+        .map(a => a.getAttribute('href')))];
+      for (const href of pages) {
+        try {
+          const more = await get(new URL(href, location.href).href);
+          list = list.concat(rowsOf(parse(more.html)));
+        } catch (e) {
+          out.failed.push({ url: href, reason: String(e.message) });
+        }
+      }
+      // 同一篇可能在分頁之間重複出現，用網址去重
+      list = [...new Map(list.map(a => [a.url, a])).values()];
     } catch (e) {
       out.failed.push({ url: `parent=${c.id}`, reason: String(e.message) });
       console.warn('分類讀取失敗', c.name, e.message);
       continue;
     }
-    console.log(`【${c.name}】${list.length} 篇`);
+    console.log(`【${c.name}】${list.length} 篇　（待掃分類還剩 ${queue.length}）`);
 
     const articles = [];
     for (const a of list) {
@@ -104,7 +131,7 @@
   }
 
   const empty = out.categories.flatMap(c => c.articles).filter(a => !a.text).length;
-  console.log(`完成：${out.categories.length} 分類 / ${done} 篇 / 失敗 ${out.failed.length} / 空內文 ${empty}`);
+  console.log(`完成：${out.categories.length} 分類（含子資料夾）/ ${done} 篇 / 失敗 ${out.failed.length} / 空內文 ${empty}`);
 
   const blob = new Blob([JSON.stringify(out, null, 1)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
