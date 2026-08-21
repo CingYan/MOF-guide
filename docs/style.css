@@ -100,6 +100,14 @@ td .tag{margin-left:6px;vertical-align:middle}
 .rate-c{color:var(--good)} .rate-r{color:var(--warn)} .rate-v{color:var(--bad);font-weight:600}
 .matrix td span{margin-right:6px}
 td .pick{color:var(--gold)}
+.range-filter{display:inline-flex;align-items:center;gap:5px;padding:0 4px;
+  color:var(--dim);font-size:13px}
+.num-input{width:62px;padding:6px 7px;border-radius:6px;border:1px solid var(--line);
+  background:var(--bg2);color:var(--fg);font-size:13px}
+.num-input:focus{outline:none;border-color:var(--accent)}
+.tags.inline{display:inline-flex;flex-wrap:wrap;gap:4px;margin:0}
+.tags.inline .tag{font-size:11px;padding:1px 6px}
+.muted{color:var(--dim)}
 .two-col{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:18px;align-items:start}
 @media(max-width:640px){
   .topbar{flex-wrap:wrap}.searchbox{max-width:none;order:3;flex-basis:100%}

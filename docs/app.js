@@ -194,10 +194,28 @@ function listPage(title, sub, rows, cols, filters, opts) {
   kw.oninput = () => { st.__kw = kw.value.trim(); apply(); };
   bar.appendChild(kw);
 
+  /* 三種篩選器：
+     { h, v }                    值完全相符
+     { h, opts, match(row, v) }  自訂條件 —— 例如「這件裝備劍士能不能用」
+     { h, range }                數值區間，產生上下限兩個輸入格 */
   for (const f of filters || []) {
-    const vals = [...new Set(rows.map(f.v).filter(v => v !== '' && v !== null && v !== undefined))];
+    if (f.range) {
+      const nums = rows.map(f.range).filter(n => typeof n === 'number' && !isNaN(n));
+      if (!nums.length) continue;
+      const lo = Math.min(...nums), hi = Math.max(...nums);
+      const mk = (which, ph) => {
+        const inp = el('input', { type: 'number', class: 'num-input', placeholder: ph,
+                                  min: lo, max: hi });
+        inp.oninput = () => { st[f.h + which] = inp.value === '' ? null : Number(inp.value); apply(); };
+        return inp;
+      };
+      bar.appendChild(el('span', { class: 'range-filter' },
+        [f.h, mk('_min', String(lo)), '–', mk('_max', String(hi))]));
+      continue;
+    }
+    const vals = f.opts || [...new Set(rows.map(f.v).filter(v => v !== '' && v !== null && v !== undefined))];
     if (vals.length < 2) continue;
-    vals.sort(f.n ? (a, b) => a - b : (a, b) => String(a).localeCompare(String(b), 'zh-Hant'));
+    if (!f.opts) vals.sort(f.n ? (a, b) => a - b : (a, b) => String(a).localeCompare(String(b), 'zh-Hant'));
     const sel = el('select', {}, [el('option', { value: '', text: f.h })]
       .concat(vals.map(v => el('option', { value: String(v), text: (f.label ? f.label(v) : v) }))));
     sel.onchange = () => { st[f.h] = sel.value; apply(); };
@@ -214,8 +232,15 @@ function listPage(title, sub, rows, cols, filters, opts) {
       out = out.filter(r => String(r.name || '').toLowerCase().includes(q));
     }
     for (const f of filters || []) {
+      if (f.range) {
+        const lo = st[f.h + '_min'], hi = st[f.h + '_max'];
+        if (lo !== null && lo !== undefined) out = out.filter(r => (f.range(r) ?? -Infinity) >= lo);
+        if (hi !== null && hi !== undefined) out = out.filter(r => (f.range(r) ?? Infinity) <= hi);
+        continue;
+      }
       const v = st[f.h];
-      if (v) out = out.filter(r => String(f.v(r)) === v);
+      if (!v) continue;
+      out = f.match ? out.filter(r => f.match(r, v)) : out.filter(r => String(f.v(r)) === v);
     }
     count.textContent = `${num(out.length)} 筆`;
     host.textContent = '';
@@ -279,6 +304,7 @@ V.monsters = async () => {
     { h: '行為', c: m => m.aggressive ? '主動' : '被動' },
     { h: '掉落', n: true, v: m => m.drops.length, c: m => m.drops.length },
   ], [
+    { h: '等級', range: m => m.level },
     { h: '屬性', v: m => T.element[m.element] || m.element },
     { h: '行為', v: m => m.aggressive ? '主動' : '被動' },
     { h: 'BOSS', v: m => m.bossRank ? 'BOSS' : '' },
@@ -313,15 +339,32 @@ V.monster = async id => {
 };
 
 V.maps = async () => {
-  const rows = await data('maps');
-  return listPage('地圖', `${rows.length} 張。`, rows, [
+  const [rows, ms] = await Promise.all([data('maps'), data('monsters')]);
+  const lv = Object.fromEntries(ms.map(m => [m.id, m.level]));
+  // 地圖自己的 levelReq 有 390/461 是 0，拿來篩幾乎沒有作用；
+  // 真正能判斷「這張圖適不適合我現在打」的是圖裡怪物的等級。
+  const rng = rows.map(p => {
+    const ls = p.monsters.map(x => lv[x.id]).filter(n => typeof n === 'number');
+    return Object.assign({ _lo: ls.length ? Math.min(...ls) : null,
+                           _hi: ls.length ? Math.max(...ls) : null }, p);
+  });
+  return listPage('地圖',
+    `${rows.length} 張，含 198 張副本。等級篩的是圖裡怪物的等級 —— 打得動才有意義。`, rng, [
     { h: '名稱', c: p => itemCell(p, 'maps') },
     { h: '區域', c: p => p.region },
     { h: '類型', c: p => p.capsLabel },
-    { h: '需求等級', n: true, v: p => p.levelReq, c: p => p.levelReq || '—' },
+    { h: '怪物等級', n: true, v: p => p._lo ?? 999,
+      c: p => p._lo === null ? el('span', { class: 'muted', text: '無怪物資料' })
+                             : (p._lo === p._hi ? `Lv.${p._lo}` : `Lv.${p._lo}–${p._hi}`) },
     { h: '怪物種類', n: true, v: p => p.monsters.length, c: p => p.monsters.length || '' },
+    { h: '需求等級', n: true, v: p => p.levelReq, c: p => p.levelReq || '—' },
     { h: 'NPC', n: true, v: p => p.npcs.length, c: p => p.npcs.length || '' },
-  ], [{ h: '區域', v: p => p.region }, { h: '類型', v: p => p.capsLabel }], { sort: 3, desc: false });
+  ], [
+    { h: '怪物等級', range: p => p._lo },
+    { h: '區域', v: p => p.region },
+    { h: '類型', v: p => p.capsLabel },
+    { h: '有無怪物', v: p => p.monsters.length ? '有怪物' : '無怪物資料' },
+  ], { sort: 3, desc: false });
 };
 
 V.map = async id => {
@@ -349,6 +392,29 @@ V.map = async id => {
     section('地圖掉落', p.fieldDrops, dropCols, { sort: 1 }),
   ]);
 };
+
+/* 一件東西可以同時是掉落物、材料、任務品。原始資料的 category 只有一個值，
+   表達不了多重身分，所以用途改由既有關聯欄位推導 —— 這樣永遠跟資料同步。 */
+const ROLES = [
+  ['怪物掉落', o => (o.droppedBy || []).length],
+  ['地圖掉落', o => (o.mapDrops || []).length],
+  ['製作材料', o => (o.usedInRecipes || []).length],
+  ['製作產出', o => (o.recipes || []).length],
+  ['任務需要', o => (o.questsNeeding || []).length],
+  ['任務獎勵', o => (o.questRewards || []).length],
+  ['商店販售', o => (o.soldBy || []).length],
+];
+const rolesOf = o => ROLES.filter(([, f]) => f(o)).map(([n]) => n);
+
+/* 選項只列這批資料裡真的有的用途 —— 裝備不會被當製作材料，
+   那個選項出現在裝備頁只會讓人點下去看到 0 筆。 */
+const roleFilter = rows => ({
+  h: '用途',
+  opts: ROLES.map(([n]) => n).filter(n => rows.some(o => rolesOf(o).includes(n))),
+  match: (o, v) => rolesOf(o).includes(v),
+});
+const roleCell = o => el('span', { class: 'tags inline' },
+  rolesOf(o).map(r => el('span', { class: 'tag', text: r })));
 
 /* 裝備 / 時裝 / 道具共用一套明細 */
 function gearDetail(kind, listName, backLabel) {
@@ -404,16 +470,30 @@ const gearCols = extra => [
   { h: '價格', n: true, v: o => o.price, c: o => num(o.price) },
 ];
 
+/* 選劍士要看到所有劍士穿得下的：只限劍士的、劍士與別的職業共用的、以及不限職業的。
+   原本把 classes 併成字串比對，於是「劍士」和「劍士、聖職者」變成兩個選項，共用裝備就被濾掉了。 */
+const CLASS_OPTS = ['劍士', '弓箭手', '魔法師', '聖職者'];
+const classFilter = {
+  h: '職業',
+  opts: CLASS_OPTS,
+  match: (o, v) => {
+    const cs = (o.classes || []).map(clsName);
+    return cs.length === 0 || cs.includes(v);
+  },
+};
+
 V.equips = async () => {
   const rows = await data('equips');
-  return listPage('戰鬥裝備', `${num(rows.length)} 件。可按部位、職業、等級篩選。`, rows,
+  return listPage('戰鬥裝備',
+    `${num(rows.length)} 件。選職業會一併列出該職業能用的共用裝備與不限職業的裝備。`, rows,
     gearCols([
       { h: '攻擊', n: true, v: o => o.attack ? o.attack.max : 0, c: o => o.attack ? `${o.attack.min}–${o.attack.max}` : '' },
       { h: '附加能力', wrap: true, c: o => statText(o.stats).join('、') },
       { h: '職業', c: o => (o.classes || []).map(clsName).join('、') || '全職業' },
+      { h: '用途', wrap: true, c: roleCell },
     ]),
-    [{ h: '部位', v: o => o.slotGroup },
-     { h: '職業', v: o => (o.classes || []).map(clsName).join('、') || '全職業' }],
+    [{ h: '部位', v: o => o.slotGroup }, classFilter,
+     { h: '等級', range: o => o.levelReq }, roleFilter(rows)],
     { sort: 2, desc: false });
 };
 V.equip = gearDetail('equips', 'equips', '裝備列表');
@@ -423,7 +503,8 @@ V.fashion = async () => {
   return listPage('時裝', `${num(rows.length)} 件。`, rows,
     gearCols([{ h: '性別', c: o => T.gender[o.gender] || '' },
               { h: '期限', c: o => o.useTerm ? o.useTerm + ' 天' : '永久' }]),
-    [{ h: '部位', v: o => o.slotGroup }, { h: '性別', v: o => T.gender[o.gender] || '' }],
+    [{ h: '部位', v: o => o.slotGroup }, { h: '性別', v: o => T.gender[o.gender] || '' },
+     { h: '等級', range: o => o.levelReq }, roleFilter(rows)],
     { sort: 2, desc: false });
 };
 V.fashionItem = gearDetail('fashion', 'fashion', '時裝列表');
@@ -433,10 +514,10 @@ V.items = async () => {
   return listPage('道具', `${num(rows.length)} 種。`, rows, [
     { h: '名稱', c: o => itemCell(o) },
     { h: '分類', c: o => o.category },
+    { h: '用途', wrap: true, c: roleCell },
     { h: '說明', wrap: true, c: o => (o.desc || '').split('\n')[0] },
     { h: '價格', n: true, v: o => o.price, c: o => num(o.price) },
-    { h: '堆疊', n: true, v: o => o.maxStack, c: o => o.maxStack > 1 ? o.maxStack : '' },
-  ], [{ h: '分類', v: o => o.category }], { sort: 1, desc: false });
+  ], [{ h: '分類', v: o => o.category }, roleFilter(rows)], { sort: 1, desc: false });
 };
 V.item = gearDetail('items', 'items', '道具列表');
 
@@ -572,7 +653,9 @@ V.npc = async id => {
 V.grind = async () => {
   const rows = await data('grind');
   return listPage('練功地圖排行',
-    `依「每點 HP 能換到多少經驗」排序 —— 數字越高，打死一隻的效益越好。共 ${rows.length} 張有怪地圖。`,
+    `依「每點 HP 能換到多少經驗」排序 —— 數字越高，打死一隻的效益越好。共 ${rows.length} 張有怪地圖。`
+    + `先用「平均等級」篩出打得動的範圍，再看效率。`
+    + `另有 199 張地圖沒有怪物資料（村莊，以及副本的入口／中央／出口這類過場圖），因此不列入排行。`,
     rows, [
       { h: '地圖', c: g => itemCell(g, 'maps') },
       { h: '區域', c: g => g.region },
@@ -584,7 +667,11 @@ V.grind = async () => {
       { h: '平均掉錢', n: true, v: g => g.money, c: g => num(g.money) },
       { h: '主動怪', n: true, v: g => g.aggressive, c: g => g.aggressive ? g.aggressive + ' 種' : '' },
       { h: '怪物種類', n: true, v: g => g.kinds, c: g => g.kinds },
-    ], [{ h: '區域', v: g => g.region }, { h: '類型', v: g => g.type }], { sort: 3 });
+    ], [
+      { h: '平均等級', range: g => g.avgLv },
+      { h: '區域', v: g => g.region },
+      { h: '類型', v: g => g.type },
+    ], { sort: 3 });
 };
 
 /* ───────── 寵物 ─────────
