@@ -318,7 +318,7 @@ V.monster = async id => {
   const here = maps.filter(p => p.monsters.some(x => x.id === id));
   return frag([
     back('#/monsters', '怪物列表'),
-    hero(Object.assign({ icon: null }, m, { icon: (maps.flatMap(p => p.monsters).find(x => x.id === id) || {}).icon }),
+    hero(m,
          tags([m.bossRank ? ['BOSS', 'r'] : null, [T.element[m.element] || m.element, 'a'],
                m.aggressive ? ['主動攻擊', 'r'] : '被動', m.isRare ? ['稀有', 'g'] : null])),
     dl([['等級', m.level], ['HP', num(m.hp)], ['經驗', num(m.exp)],
