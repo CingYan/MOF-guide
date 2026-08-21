@@ -1146,6 +1146,53 @@ V.system = async () => {
   ]);
 };
 
+/* ───────── 玩家筆記 ─────────
+   這批講的是「遊戲怎麼運作」—— 組隊平均等級怎麼算、越級加成的門檻在哪、
+   爆擊為什麼要先堆命中。這些資料表裡沒有，只有玩過的人寫得出來。 */
+V.notes = async () => {
+  const d = await data('notes');
+  return frag([
+    el('h1', { text: '玩家筆記' }),
+    el('p', { class: 'sub', text:
+      `${d.kept} 篇機制說明，整理自玩家社群的攻略討論（2007–2010）。`
+      + `這裡只收「不隨版本變的規則」—— 例如經驗值怎麼算、越級的加成與代價、`
+      + `爆擊與命中的關係。含具體數值的另有 ${d.held} 篇，要逐筆跟現行資料對照過才會收，暫不列入。` }),
+
+    frag(d.groups.map(g => frag([
+      el('h2', { text: `${g.name}（${g.notes.length}）` }),
+      el('div', { class: 'note-list' }, g.notes.map(n => el('article', { class: 'note-card' }, [
+        el('h3', { text: n.title }),
+        el('div', { class: 'note-meta' }, [
+          n.author ? `${n.author}` : '', n.author && n.date ? ' · ' : '', n.date || '',
+        ]),
+        (n.topics || []).length ? tags(n.topics) : null,
+        el('p', { class: 'desc', text: n.text }),
+        n.note ? el('p', { class: 'note-warn', text: '⚠ ' + n.note }) : null,
+      ]))),
+    ]))),
+
+    el('h2', { text: '為什麼有些沒收' }),
+    el('div', { class: 'trait-grid' }, [
+      el('article', { class: 'trait-card' }, [
+        el('h3', { text: '含數值的先擱著' }),
+        el('p', { text: `掉落出處、價格、等級門檻這類寫死數字的內容共 ${d.held} 篇。`
+          + '遊戲改版過很多次，那些數字未必還準，而站上多數同類資料已經直接來自現行資料表。'
+          + '要收之前得逐筆比對，沒比對過就放上來，等於用舊資料蓋掉新資料。' }),
+      ]),
+      el('article', { class: 'trait-card' }, [
+        el('h3', { text: '站上已有的不重複收' }),
+        el('p', { text: '屬性相剋、轉職考試題庫、任務掉落物這些，站上的版本更完整也更新，'
+          + '再放一份舊的只會讓人不知道該信哪個。' }),
+      ]),
+      el('article', { class: 'trait-card' }, [
+        el('h3', { text: '玩法主張不算事實' }),
+        el('p', { text: '「體力該不該點高」「敏捷優先還是力量優先」這類是玩家各自的主張，'
+          + '不是可以查證的規則。有收錄的會標明那是某位玩家的看法，不是定論。' }),
+      ]),
+    ]),
+  ]);
+};
+
 /* ───────── 首頁 ───────── */
 V.home = async () => {
   const [meta, g] = await Promise.all([data('meta'), data('grind')]);
@@ -1164,6 +1211,7 @@ V.home = async () => {
     ['skills', '技能', '154 個'],
     ['badges', '徽章', '59 枚'],
     ['system', '遊戲系統', '屬性 · 轉職 · 題庫'],
+    ['notes', '玩家筆記', '32 篇機制說明'],
   ];
   const top = g.slice().sort((a, b) => b.eff - a.eff).slice(0, 10);
   return frag([
@@ -1234,13 +1282,13 @@ function initSearch() {
 const NAV = [['', '首頁'], ['grind', '練功'], ['monsters', '怪物'], ['maps', '地圖'],
              ['equips', '裝備'], ['fashion', '時裝'], ['items', '道具'], ['recipes', '製作'],
              ['quests', '任務'], ['npcs', 'NPC'], ['pets', '寵物'], ['skills', '技能'],
-             ['badges', '徽章'], ['system', '系統']];
+             ['badges', '徽章'], ['system', '系統'], ['notes', '玩家筆記']];
 
 const ROUTE = {
   '': V.home, grind: V.grind,
   monsters: V.monsters, maps: V.maps, equips: V.equips, fashion: V.fashion,
   items: V.items, recipes: V.recipes, quests: V.quests, npcs: V.npcs,
-  pets: V.pets, skills: V.skills, badges: V.badges, system: V.system,
+  pets: V.pets, skills: V.skills, badges: V.badges, system: V.system, notes: V.notes,
 };
 const ROUTE1 = {
   monsters: V.monster, maps: V.map, equips: V.equip, fashion: V.fashionItem,
