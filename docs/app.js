@@ -1113,10 +1113,22 @@ V.system = async () => {
   const kv = (title, obj) => frag([el('h3', { text: title }), el('dl', { class: 'detail' },
     Object.entries(obj).flatMap(([k, v]) =>
       [el('dt', { text: k }), el('dd', { text: Array.isArray(v) ? v.join(' → ') : v })]))]);
-  const rawTable = t => el('div', { class: 'tw' }, [el('table', {}, [
-    el('thead', {}, [el('tr', {}, t.headers.map(h => el('th', { text: h })))]),
-    el('tbody', {}, t.rows.map(r => el('tr', {}, r.c.map(c => el('td', { class: 'wrap', text: c }))))),
-  ])]);
+  /* 第一欄叫「圖示」的表（強化石），該欄改畫圖並連到道具頁；其餘照舊出文字 */
+  const rawCell = (r, c, i, icons) => {
+    if (!(icons && i === 0)) return el('td', { class: 'wrap', text: c });
+    if (!r.icon) return el('td', { class: 'ic' });
+    const img = el('img', { src: r.icon, alt: r.c[1], loading: 'lazy' });
+    return el('td', { class: 'ic' }, [
+      r.itemId ? el('a', { href: '#/items/' + r.itemId }, [img]) : img,
+    ]);
+  };
+  const rawTable = t => {
+    const icons = t.headers[0] === '圖示' && t.rows.some(r => r.icon);
+    return el('div', { class: 'tw' }, [el('table', {}, [
+      el('thead', {}, [el('tr', {}, t.headers.map(h => el('th', { text: h })))]),
+      el('tbody', {}, t.rows.map(r => el('tr', {}, r.c.map((c, i) => rawCell(r, c, i, icons))))),
+    ])]);
+  };
 
   return frag([
     el('h1', { text: '遊戲系統' }),
