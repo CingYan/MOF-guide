@@ -1290,13 +1290,32 @@ function initSearch() {
 }
 
 /* ───────── 路由 ───────── */
+/* 專業技能：所有職業共用，向克魯諾用專業技能點數學 */
+V.major = async () => {
+  const d = await data('major-skill');
+  const rows = d.skills.map((s, i) => Object.assign({ _i: i }, s));
+  return frag([
+    el('p', { class: 'lead', text: d.intro }),
+    listPage('專業技能', `${rows.length} 個，分屬 ${new Set(rows.map(r => r.group)).size} 個系列。`, rows, [
+      { h: '名稱', c: s => el('span', { class: 'nm' }, [
+        s.icon ? el('img', { class: 'ic sm', src: s.icon, alt: '', loading: 'lazy' }) : null,
+        el('b', { text: s.name })]) },
+      { h: '系列', c: s => s.group || '—' },
+      { h: '階級', c: s => s.tier || '—' },
+      { h: '點數', n: true, v: s => s.cost, c: s => s.cost },
+      { h: '說明', wrap: true, c: s => s.desc || '' },
+    ], [{ h: '系列', v: s => s.group || '—' }, { h: '階級', v: s => s.tier || '—' },
+        { h: '點數', range: s => s.cost }]),
+  ]);
+};
+
 const NAV = [['', '首頁'], ['grind', '練功'], ['monsters', '怪物'], ['maps', '地圖'],
              ['equips', '裝備'], ['fashion', '時裝'], ['items', '道具'], ['recipes', '製作'],
-             ['quests', '任務'], ['npcs', 'NPC'], ['pets', '寵物'], ['skills', '技能'],
+             ['quests', '任務'], ['npcs', 'NPC'], ['pets', '寵物'], ['skills', '技能'], ['major', '專業技能'],
              ['badges', '徽章'], ['system', '系統'], ['notes', '玩家筆記']];
 
 const ROUTE = {
-  '': V.home, grind: V.grind,
+  '': V.home, grind: V.grind, major: V.major,
   monsters: V.monsters, maps: V.maps, equips: V.equips, fashion: V.fashion,
   items: V.items, recipes: V.recipes, quests: V.quests, npcs: V.npcs,
   pets: V.pets, skills: V.skills, badges: V.badges, system: V.system, notes: V.notes,

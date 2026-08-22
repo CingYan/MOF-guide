@@ -120,3 +120,6 @@ td .pick{color:var(--gold)}
   .topbar{flex-wrap:wrap}.searchbox{max-width:none;order:3;flex-basis:100%}
   .detail{grid-template-columns:1fr;gap:2px 0}.detail dt{margin-top:8px}
 }
+
+/* 頁面開頭的一段說明文字 */
+.lead { max-width: 62ch; line-height: 1.7; color: var(--fg-dim, #9aa4b2); margin: 0 0 18px }
