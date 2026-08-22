@@ -937,13 +937,25 @@ V.grind = async () => {
     + `共 ${num(rows.length)} 筆，含 ${rows.filter(g => g.type === '副本鑰匙').length} 場鑰匙副本。`
     + `先用「平均等級」篩出打得動的範圍，再看效率。`
     + `鑰匙副本以「一整場」為單位（你進去是打完整場，不是打單一房間），`
-    + `所以另給整場總量；無限型怪物無限湧出、沒有總量，只給效率。`,
+    + `所以另給整場總量；無限型怪物無限湧出、沒有總量，只給效率。`
+    + `頭目 HP 動輒上萬、經驗也高，混進平均會把效率撐歪（本城登基廳 8.66 → 排除後 2.63），`
+    + `所以另給一欄「排除頭目」的效率，也可以直接用「頭目」篩選器只看沒有頭目的地圖。`,
     rows, [
       { h: '地圖', c: g => itemCell(g, 'maps') },
       { h: '區域', c: g => g.region },
       { h: '平均等級', n: true, v: g => g.avgLv, c: g => g.avgLv },
       { h: '效率', n: true, v: g => g.eff, c: g => el('b', { text: g.eff.toFixed(2) }),
-        title: '平均經驗 ÷ 平均 HP' },
+        title: '平均經驗 ÷ 平均 HP（含頭目）' },
+      { h: '排除頭目', n: true, v: g => g.effNoBoss ?? -1,
+        c: g => g.effNoBoss === undefined ? '—'
+              : el('b', { class: g.effNoBoss < g.eff - 0.005 ? 'warn' : '',
+                          text: g.effNoBoss.toFixed(2) }),
+        title: '只算一般怪的效率。與左欄差很多代表該圖的數字是被頭目撐起來的' },
+      { h: '頭目', c: g => g.boss || g.miniBoss
+          ? el('span', { class: 'tag ' + (g.boss ? 'r' : 'g'),
+                         text: (g.boss ? `${g.boss} 頭目` : '') + (g.boss && g.miniBoss ? ' ' : '')
+                               + (g.miniBoss ? `${g.miniBoss} 小頭目` : '') })
+          : '' },
       { h: '平均經驗', n: true, v: g => g.exp, c: g => num(g.exp) },
       { h: '平均 HP', n: true, v: g => g.hp, c: g => num(g.hp) },
       { h: '整場經驗', n: true, v: g => g.runExp || 0,
@@ -956,6 +968,7 @@ V.grind = async () => {
       { h: '怪物種類', n: true, v: g => g.kinds, c: g => g.kinds },
     ], [
       { h: '平均等級', range: g => g.avgLv },
+      { h: '頭目', v: g => g.bossTag },
       { h: '區域', v: g => g.region },
       { h: '類型', v: g => g.type },
     ], { sort: 3 });

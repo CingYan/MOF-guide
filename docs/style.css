@@ -168,3 +168,6 @@ h4 { margin: 16px 0 6px; font-size: 1em }
 
 td.dim, .dim { color: var(--dim) }
 h1 .en { color: var(--dim); font-size: .55em; font-weight: normal; margin-left: 10px }
+
+/* 排除頭目後掉很多的效率，標色提醒那個數字是被頭目撐起來的 */
+b.warn { color: #e0a33a }
