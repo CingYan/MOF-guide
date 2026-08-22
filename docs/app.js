@@ -45,6 +45,7 @@ const T = {
           atkBeast: '對動物攻擊', atkDemon: '對惡魔攻擊', atkUndead: '對不死攻擊',
           atkMonster: '對怪物攻擊', defBeast: '對動物防禦', defDemon: '對惡魔防禦',
           defUndead: '對不死防禦', defMonster: '對怪物防禦' },
+  enchant: { 1: '強化的', 2: '精緻的', 3: '精煉的', 4: '完美的', 5: '無瑕的', 6: '極緻的' },
   pctStat: new Set(['atkPct', 'skillAtkPct', 'defPct', 'maxHpPct', 'maxMpPct',
                     'atkBeast', 'atkDemon', 'atkUndead', 'atkMonster',
                     'defBeast', 'defDemon', 'defUndead', 'defMonster']),
@@ -194,11 +195,37 @@ function listPage(title, sub, rows, cols, filters, opts) {
   kw.oninput = () => { st.__kw = kw.value.trim(); apply(); };
   bar.appendChild(kw);
 
-  /* 三種篩選器：
+  /* 四種篩選器：
      { h, v }                    值完全相符
      { h, opts, match(row, v) }  自訂條件 —— 例如「這件裝備劍士能不能用」
-     { h, range }                數值區間，產生上下限兩個輸入格 */
+     { h, range }                數值區間，產生上下限兩個輸入格
+     { h, multi, has(row, v) }   可複選，選幾項就要全部具備（用來疊條件縮範圍）
+     另外任何一種都可以加 { def } 指定預設值 */
   for (const f of filters || []) {
+    if (f.multi) {
+      st[f.h] = [];
+      const chips = el('span', { class: 'multi-chips' });
+      const sel = el('select', {}, [el('option', { value: '', text: f.h })]
+        .concat(f.multi.map(o => el('option', { value: o.v, text: o.t }))));
+      const redraw = () => {
+        chips.textContent = '';
+        for (const v of st[f.h]) {
+          const o = f.multi.find(x => x.v === v);
+          const chip = el('button', { class: 'chip', type: 'button', text: (o ? o.t : v) + ' ×' });
+          chip.onclick = () => { st[f.h] = st[f.h].filter(x => x !== v); redraw(); apply(); };
+          chips.appendChild(chip);
+        }
+        /* 已選的不再出現在下拉選單裡 */
+        for (const opt of sel.options) if (opt.value) opt.hidden = st[f.h].includes(opt.value);
+        sel.value = '';
+      };
+      sel.onchange = () => {
+        if (sel.value && !st[f.h].includes(sel.value)) st[f.h].push(sel.value);
+        redraw(); apply();
+      };
+      bar.appendChild(sel); bar.appendChild(chips);
+      continue;
+    }
     if (f.range) {
       const nums = rows.map(f.range).filter(n => typeof n === 'number' && !isNaN(n));
       if (!nums.length) continue;
@@ -218,6 +245,9 @@ function listPage(title, sub, rows, cols, filters, opts) {
     if (!f.opts) vals.sort(f.n ? (a, b) => a - b : (a, b) => String(a).localeCompare(String(b), 'zh-Hant'));
     const sel = el('select', {}, [el('option', { value: '', text: f.h })]
       .concat(vals.map(v => el('option', { value: String(v), text: (f.label ? f.label(v) : v) }))));
+    if (f.def !== undefined && vals.some(v => String(v) === String(f.def))) {
+      sel.value = String(f.def); st[f.h] = String(f.def);
+    }
     sel.onchange = () => { st[f.h] = sel.value; apply(); };
     bar.appendChild(sel);
   }
@@ -236,6 +266,10 @@ function listPage(title, sub, rows, cols, filters, opts) {
         const lo = st[f.h + '_min'], hi = st[f.h + '_max'];
         if (lo !== null && lo !== undefined) out = out.filter(r => (f.range(r) ?? -Infinity) >= lo);
         if (hi !== null && hi !== undefined) out = out.filter(r => (f.range(r) ?? Infinity) <= hi);
+        continue;
+      }
+      if (f.multi) {
+        for (const v of st[f.h] || []) out = out.filter(r => f.has(r, v));
         continue;
       }
       const v = st[f.h];
@@ -417,12 +451,35 @@ const roleCell = o => el('span', { class: 'tags inline' },
   rolesOf(o).map(r => el('span', { class: 'tag', text: r })));
 
 /* 裝備 / 時裝 / 道具共用一套明細 */
+/* 同一件裝備的強化階梯：列表預設只顯示未強化的本體，
+   所以明細頁要把六個階級的數值一次攤開，資訊才沒少 */
+const ENCHANT_PRE = ['強化的', '精緻的', '精煉的', '完美的', '無瑕的', '極緻的'];
+const baseName = n => {
+  for (const p of ENCHANT_PRE) if (n.startsWith(p)) return n.slice(p.length);
+  return n;
+};
+function enchantLadder(rows, o) {
+  const base = baseName(o.name);
+  const fam = rows.filter(x => baseName(x.name) === base)
+                  .sort((a, b) => (a.enchantLevel || 0) - (b.enchantLevel || 0));
+  if (fam.length < 2) return null;
+  return section('強化階梯', fam, [
+    { h: '階級', c: x => x.enchantLevel ? `${T.enchant[x.enchantLevel]}（+${x.enchantLevel}）` : '未強化' },
+    { h: '名稱', c: x => x.id === o.id ? el('b', { text: x.name }) : itemCell(x, kindOf(x)) },
+    { h: '攻擊', c: x => x.attack ? `${x.attack.min}–${x.attack.max}` : '' },
+    { h: '附加能力', wrap: true, c: x => statText(x.stats).join('、') },
+    { h: '價格', n: true, v: x => x.price || 0, c: x => x.price ? num(x.price) + ' 利比' : '' },
+  ]);
+}
+let kindOf = () => 'equips';
+
 function gearDetail(kind, listName, backLabel) {
   return async id => {
     const rows = await data(listName);
     const o = byId(rows, id);
     if (!o) return el('p', { class: 'empty', text: '找不到這個項目。' });
     const st = statText(o.stats);
+    kindOf = () => kind;
     return frag([
       back('#/' + kind, backLabel),
       hero(o, tags([o.slotGroup ? [o.slotGroup, 'a'] : (o.category ? [o.category, 'a'] : null),
@@ -441,6 +498,8 @@ function gearDetail(kind, listName, backLabel) {
           ['使用期限', o.useTerm ? o.useTerm + ' 天' : ''],
           ['最大堆疊', o.maxStack > 1 ? o.maxStack : ''],
           ['效果', effectText(o.effects)]]),
+
+      enchantLadder(rows, o),
       section('怪物掉落', o.droppedBy, fromMonCols, { sort: 2 }),
       section('地圖掉落', o.mapDrops, [
         { h: '地圖', c: d => itemCell(d, 'maps') },
@@ -482,10 +541,27 @@ const classFilter = {
   },
 };
 
+/* 附加能力多選：選項只放實際有裝備帶到的屬性，並依出現件數排序 */
+function statFilter(rows) {
+  const n = {};
+  for (const r of rows) for (const k in r.stats || {}) if (r.stats[k]) n[k] = (n[k] || 0) + 1;
+  const opts = Object.keys(n).sort((a, b) => n[b] - n[a])
+    .map(k => ({ v: k, t: T.stat[k] || k }));   /* 只依常見度排序，不顯示件數 —— 那是全體件數，和當下篩選結果不同，會誤導 */
+  return { h: '附加能力（可複選）', multi: opts, has: (r, k) => !!(r.stats || {})[k] };
+}
+
+/* 強化階級：站上一半的裝備是強化版本，預設只看未強化，要看再切 */
+const enchantFilter = {
+  h: '強化階級', v: o => o.enchantLevel || 0, n: true, def: 0,
+  label: v => Number(v) ? `${T.enchant[v]}（+${v}）` : '未強化',
+};
+
 V.equips = async () => {
   const rows = await data('equips');
   return listPage('戰鬥裝備',
-    `${num(rows.length)} 件。選職業會一併列出該職業能用的共用裝備與不限職業的裝備。`, rows,
+    `${num(rows.length)} 件，其中 ${num(rows.filter(o => o.enchantLevel).length)} 件是強化版本。`
+    + '預設只顯示未強化的本體，切換「強化階級」可以看各階數值。'
+    + '選職業會一併列出該職業能用的共用裝備與不限職業的裝備。', rows,
     gearCols([
       { h: '攻擊', n: true, v: o => o.attack ? o.attack.max : 0, c: o => o.attack ? `${o.attack.min}–${o.attack.max}` : '' },
       { h: '附加能力', wrap: true, c: o => statText(o.stats).join('、') },
@@ -493,7 +569,7 @@ V.equips = async () => {
       { h: '用途', wrap: true, c: roleCell },
     ]),
     [{ h: '部位', v: o => o.slotGroup }, classFilter,
-     { h: '等級', range: o => o.levelReq }, roleFilter(rows)],
+     { h: '等級', range: o => o.levelReq }, enchantFilter, statFilter(rows), roleFilter(rows)],
     { sort: 2, desc: false });
 };
 V.equip = gearDetail('equips', 'equips', '裝備列表');
