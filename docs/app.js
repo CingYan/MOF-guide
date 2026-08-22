@@ -1056,7 +1056,8 @@ V.skills = async () => {
   const w = await data('wiki');
   const rows = w.skills.map((s, i) => Object.assign({ _i: i }, s));
   return listPage('技能', `${rows.length} 個。點名稱看各等級數值。`, rows, [
-    { h: '名稱', c: s => el('a', { href: '#/skills/' + s._i, text: s.name }) },
+    { h: '名稱', c: s => el('a', { class: 'nm', href: '#/skills/' + s._i }, [
+      s.icon ? el('img', { class: 'ic sm', src: s.icon, alt: '', loading: 'lazy' }) : null, s.name]) },
     { h: '職業', c: s => s.job || '—' },
     { h: '類型', c: s => s.type || '' },
     { h: '等級數', n: true, v: s => s.levels.length, c: s => s.levels.length },
@@ -1071,9 +1072,7 @@ V.skill = async i => {
   const keys = [...new Set(s.levels.flatMap(l => Object.keys(l.f)))];
   return frag([
     back('#/skills', '技能列表'),
-    el('h1', { text: s.name }),
-    tags([s.job ? [s.job, 'a'] : null, s.type ? [s.type, 'g'] : null]),
-    s.desc ? el('p', { class: 'desc', text: s.desc }) : null,
+    hero(s, tags([s.job ? [s.job, 'a'] : null, s.type ? [s.type, 'g'] : null])),
     section('各等級數值', s.levels,
       [{ h: '階級', c: l => l.name }].concat(keys.map(k => ({ h: k, c: l => l.f[k] ?? '' })))),
   ]);
