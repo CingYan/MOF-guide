@@ -1396,14 +1396,96 @@ V.character = async () => {
   ]);
 };
 
+/* 副本、寶箱、地圖大師 */
+V.dungeons = async () => {
+  const d = await data('dungeons');
+  const paras = a => (a || []).map(t => el('p', { class: 'lead', text: t }));
+  const ul = a => el('ul', {}, (a || []).map(t => el('li', { class: 'wrap', text: t })));
+  /* 名稱＋圖，有 id 就連到對應頁 */
+  const ref = (o, kind, idKey, suffix) => {
+    const inner = [o.icon ? el('img', { class: 'ic sm', src: o.icon, alt: '', loading: 'lazy' }) : null,
+                   o.name + (suffix || '')];
+    return o[idKey] ? el('a', { class: 'nm', href: `#/${kind}/${o[idKey]}` }, inner)
+                    : el('span', { class: 'nm' }, inner);
+  };
+  const chips = (list, kind, idKey, suffix) =>
+    el('div', { class: 'chips' }, (list || []).map(o => ref(o, kind, idKey, suffix && suffix(o))));
+
+  const run = r => el('div', { class: 'run' }, [
+    el('b', { text: r.typeName }),
+    r.keyName ? el('span', { class: 'en', text: r.keyName.en }) : null,
+    el('div', { class: 'kv' }, [el('span', { text: '房間' }), chips(r.maps, 'maps', 'mapId')]),
+    el('div', { class: 'kv' }, [el('span', { text: '怪物' }),
+      chips(r.monsters, 'monsters', 'monsterId', m => m.level ? ` Lv${m.level}` : '')]),
+  ]);
+
+  const group = g => el('section', { class: 'card dg' }, [
+    el('h3', {}, [g.dungeonKeyIcon ? el('img', { class: 'ic sm', src: g.dungeonKeyIcon, alt: '' }) : null,
+                  g.name, el('span', { class: 'en', text: g.en })]),
+    el('div', { class: 'kv' }, [el('span', { text: '所在' }),
+      el('span', { text: [g.continent && g.continent.name, g.location && g.location.name].filter(Boolean).join(' → ') })]),
+    g.npc ? el('div', { class: 'kv' }, [el('span', { text: '入口 NPC' }), ref(g.npc, 'npcs', 'npcId')]) : null,
+    g.dungeonKeyFrom ? el('div', { class: 'kv' }, [el('span', { text: '鑰匙來源' }),
+      el('span', { text: g.dungeonKeyFrom.name })]) : null,
+    frag((g.runs || []).map(run)),
+  ]);
+
+  const box = b => el('section', { class: 'card dg' }, [
+    el('h3', {}, [b.icon ? el('img', { class: 'ic sm', src: b.icon, alt: '' }) : null,
+                  b.name, el('span', { class: 'en', text: b.en })]),
+    b.hp ? el('div', { class: 'kv' }, [el('span', { text: 'HP' }), el('span', { text: String(b.hp) })]) : null,
+    el('div', { class: 'kv' }, [el('span', { text: '地點' }),
+      el('span', { text: (b.locations || []).map(l => l.name).join('、') || '—' })]),
+    el('div', { class: 'kv' }, [el('span', { text: '掉落' }),
+      chips(b.drops, 'items', 'itemId', o => o.count > 1 ? ` ×${o.count}` : '')]),
+  ]);
+
+  const dg = d.dungeons, mm = d.mapMaster;
+  return frag([
+    el('h1', { text: '副本' }),
+    el('p', { class: 'sub', text: `${dg.groups.length} 組副本、${dg.types.length} 種型態，另有寶箱與地圖大師。` }),
+    frag(paras(dg.intro)),
+
+    el('h2', { text: '四種型態' }),
+    el('div', { class: 'defs' }, dg.types.map(t => el('div', { class: 'def' }, [
+      el('b', { text: t.name }), el('span', { class: 'en', text: t.en }),
+      el('p', {}, [el('span', { class: 'wrap', text: t.goal })]),
+    ]))),
+    el('p', { class: 'lead', text: `進場只要持有${dg.entry.requires}，一次 ${dg.entry.durationMinutes} 分鐘。${dg.entry.note}` }),
+
+    el('h2', { text: '八組副本' }),
+    frag(dg.groups.map(group)),
+
+    el('h2', { text: '站上有、副本資料沒列出來的房間' }),
+    el('div', { class: 'defs' }, (dg.otherTypes || []).map(t => el('div', { class: 'def' }, [
+      el('b', { text: t.name }),
+      t.guess ? el('span', { class: 'en', text: '推測為 ' + t.guess }) : null,
+      el('p', {}, [el('span', { class: 'wrap', text: t.note }),
+                   el('span', { class: 'wrap', text: t.mapIdRange.join(' – ') })]),
+    ]))),
+
+    el('h2', { text: '寶箱' }),
+    frag(paras(d.treasureBoxes.intro)),
+    frag(d.treasureBoxes.boxes.map(box)),
+
+    el('h2', { text: '地圖大師' }),
+    el('p', { class: 'lead', text: mm.summary }),
+    el('h3', { text: '怎麼挑戰' }), ul(mm.howTo),
+    el('h3', { text: '規則' }), ul(mm.rules),
+    el('h3', { text: '挑戰地點' }),
+    el('p', { class: 'wrap', text: (mm.locations || []).map(l => l.name).join('、') }),
+  ]);
+};
+
 const NAV = [['', '首頁'], ['grind', '練功'], ['monsters', '怪物'], ['maps', '地圖'],
              ['equips', '裝備'], ['fashion', '時裝'], ['items', '道具'], ['recipes', '製作'],
              ['quests', '任務'], ['npcs', 'NPC'], ['pets', '寵物'], ['skills', '技能'], ['major', '專業技能'],
              ['character', '角色'],
+             ['dungeons', '副本'],
              ['badges', '徽章'], ['system', '系統'], ['notes', '玩家筆記']];
 
 const ROUTE = {
-  '': V.home, grind: V.grind, major: V.major, character: V.character,
+  '': V.home, grind: V.grind, major: V.major, character: V.character, dungeons: V.dungeons,
   monsters: V.monsters, maps: V.maps, equips: V.equips, fashion: V.fashion,
   items: V.items, recipes: V.recipes, quests: V.quests, npcs: V.npcs,
   pets: V.pets, skills: V.skills, badges: V.badges, system: V.system, notes: V.notes,
@@ -1446,3 +1528,5 @@ window.addEventListener('hashchange', route);
 data('meta').then(m => { $('#stamp').textContent = '資料更新：' + m.updated; }).catch(() => {});
 initSearch();
 route();
+
+if (typeof window !== 'undefined') window.ROUTE = ROUTE;  /* 測試用：讓回歸腳本能檢查路由名稱 */

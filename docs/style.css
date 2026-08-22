@@ -132,3 +132,11 @@ td .pick{color:var(--gold)}
 .def p { margin: 4px 0 0; display: flex; flex-direction: column; gap: 2px }
 kbd { border: 1px solid var(--line, #2a3140); border-radius: 4px; padding: 1px 6px;
       font-family: ui-monospace, monospace; font-size: .9em; white-space: nowrap }
+
+/* 副本／寶箱卡片 */
+.card.dg { border: 1px solid var(--line, #2a3140); border-radius: 8px; padding: 12px 14px; margin: 0 0 14px }
+.card.dg h3 { margin: 0 0 8px; display: flex; align-items: center; gap: 6px }
+.kv { display: flex; gap: 8px; margin: 4px 0; align-items: baseline; flex-wrap: wrap }
+.kv > span:first-child { color: var(--fg-dim, #9aa4b2); min-width: 5em; flex: none }
+.chips { display: flex; flex-wrap: wrap; gap: 4px 10px }
+.run { border-top: 1px solid var(--line, #2a3140); margin-top: 10px; padding-top: 8px }

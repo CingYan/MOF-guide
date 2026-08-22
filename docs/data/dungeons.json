@@ -1,0 +1,4812 @@
+{
+ "dungeons": {
+  "name": "副本",
+  "en": "Instant Dungeon",
+  "intro": [
+   "副本（韓文 인스턴스던전，Instance Dungeon）是只有使用副本鑰匙才能進去的地下城。",
+   "副本一次只持續一小時，時間到就會自動被送出副本；也可以按畫面中央的 Exit 鍵自行離開。",
+   "副本是練等效率最高的地方，同時也是找稀有武器的好去處。",
+   "和使用副本鑰匙的人待在同一張地圖上的隊伍成員，都會一起被帶進副本。"
+  ],
+  "types": [
+   {
+    "key": "normal",
+    "name": "普通",
+    "en": "Normal",
+    "goal": "把場上的怪物全部清光，離開副本的傳送門才會出現。"
+   },
+   {
+    "key": "infinite",
+    "name": "無限",
+    "en": "Infinite",
+    "goal": "怪物會無限湧出，擊敗頭目才會出現離開副本的傳送門。"
+   },
+   {
+    "key": "advance",
+    "name": "眾多",
+    "en": "Advance",
+    "goal": "清光一個區域的怪物後會開啟通往下一個區域的傳送門，重複同樣的流程直到開出通往頭目區的傳送門；把頭目與所有怪物都打倒後，離開副本的傳送門才會出現。"
+   },
+   {
+    "key": "maze",
+    "name": "迷宮",
+    "en": "Maze",
+    "goal": "規則與眾多相同，但清光一個區域的怪物後會同時出現兩個傳送門。選門要小心，有可能被送回第一個區域或先前走過的區域。"
+   }
+  ],
+  "entry": {
+   "requires": "副本鑰匙",
+   "requiresEn": "Instant Dungeon Key",
+   "durationMinutes": 60,
+   "note": "沒有等級門檻的紀錄；進場條件只有持有對應的副本鑰匙。"
+  },
+  "groups": [
+   {
+    "id": "pirates",
+    "name": "海賊船",
+    "en": "Pirates",
+    "continent": {
+     "en": "Ribi Island",
+     "name": "利比島",
+     "region": "羅溫克林"
+    },
+    "npc": {
+     "en": "Hyde",
+     "name": "克丁哈以德",
+     "npcId": "N0150",
+     "icon": "img/npcs/克丁哈以德.png"
+    },
+    "location": {
+     "en": "Poseidon",
+     "name": "普賽以道斯",
+     "region": "普賽以道斯"
+    },
+    "dungeonKeyFrom": {
+     "en": "Rosy",
+     "name": "羅西"
+    },
+    "mapLayout": {
+     "en": "Poseidon",
+     "name": "普賽以道斯",
+     "region": "普賽以道斯"
+    },
+    "bgm": [
+     {
+      "file": "Bg_poseidos.ogg",
+      "label": "Poseidon Theme"
+     }
+    ],
+    "ambient": [
+     {
+      "file": "Embi_madsea.ogg"
+     }
+    ],
+    "runs": [
+     {
+      "type": "normal",
+      "typeName": "普通",
+      "typeEn": "Normal",
+      "keyName": {
+       "en": "Pirates",
+       "name": "海賊船"
+      },
+      "maps": [
+       {
+        "en": "Interior of The Pirate Ship",
+        "mapId": "I0101",
+        "name": "海賊船內部",
+        "minimap": "img/maps/船長室.png"
+       }
+      ],
+      "monsters": [
+       {
+        "en": "Skull Pirates",
+        "monsterId": "J0156",
+        "name": "幽靈海賊",
+        "level": 16,
+        "hp": 190,
+        "icon": "img/monsters/幽靈海賊.png",
+        "count": 50,
+        "countLabel": "50 隻"
+       },
+       {
+        "en": "Phantom Officer",
+        "monsterId": "J0206",
+        "name": "幽靈軍官",
+        "level": 21,
+        "hp": 340,
+        "icon": "img/monsters/幽靈軍官.png",
+        "count": 70,
+        "countLabel": "70 隻"
+       },
+       {
+        "en": "High Pirates",
+        "monsterId": "J0216",
+        "name": "加勒比海盜",
+        "level": 23,
+        "hp": 420,
+        "icon": "img/monsters/加勒比海盜.png",
+        "count": 100,
+        "countLabel": "100 隻"
+       }
+      ],
+      "boss": {
+       "en": "Captain Jay Bubble",
+       "monsterId": "J0266",
+       "name": "深海閻王",
+       "level": 28,
+       "hp": 7644,
+       "icon": "img/monsters/深海閻王.png"
+      }
+     },
+     {
+      "type": "infinite",
+      "typeName": "無限",
+      "typeEn": "Infinite",
+      "keyName": {
+       "en": "Infinite Pirates",
+       "name": "無限海賊船"
+      },
+      "maps": [
+       {
+        "en": "Normal - Interior of The Pirate Ship",
+        "mapId": "I0109",
+        "name": "無限海賊船內部",
+        "minimap": "img/maps/船長室.png"
+       }
+      ],
+      "monsters": [
+       {
+        "en": "Poltergeist",
+        "monsterId": "J0171",
+        "name": "頑皮鬼",
+        "level": 18,
+        "hp": 184,
+        "icon": "img/monsters/頑皮鬼.png",
+        "unlimited": true,
+        "countLabel": "無限"
+       },
+       {
+        "en": "Countess",
+        "monsterId": "J0176",
+        "name": "幽靈貴公主",
+        "level": 19,
+        "hp": 260,
+        "icon": "img/monsters/幽靈貴公主.png",
+        "unlimited": true,
+        "countLabel": "無限"
+       },
+       {
+        "en": "High Pirates",
+        "monsterId": "J0216",
+        "name": "加勒比海盜",
+        "level": 23,
+        "hp": 420,
+        "icon": "img/monsters/加勒比海盜.png",
+        "unlimited": true,
+        "countLabel": "無限"
+       }
+      ],
+      "boss": {
+       "en": "Captain Jay Bubble",
+       "monsterId": "J0266",
+       "name": "深海閻王",
+       "level": 28,
+       "hp": 7644,
+       "icon": "img/monsters/深海閻王.png"
+      }
+     },
+     {
+      "type": "advance",
+      "typeName": "眾多",
+      "typeEn": "Advance",
+      "keyName": {
+       "en": "Advance Pirates",
+       "name": "眾多海賊船"
+      },
+      "maps": [
+       {
+        "en": "Advance - Intrance of Pirate Ship",
+        "mapId": "I0117",
+        "name": "眾多海賊船入口",
+        "minimap": "img/maps/廚房.png"
+       },
+       {
+        "en": "Advance - Center of Pirate Ship",
+        "mapId": "I0118",
+        "name": "眾多海賊船中央",
+        "minimap": "img/maps/海軍隊待機室.png"
+       },
+       {
+        "en": "Advance - Exit of Pirate Ship",
+        "mapId": "I0119",
+        "name": "眾多海賊船出口",
+        "minimap": "img/maps/船長室.png"
+       }
+      ],
+      "monsters": [
+       {
+        "en": "Wild Boar",
+        "monsterId": "J0940",
+        "name": "搞怪山豬",
+        "level": 25,
+        "hp": 510,
+        "icon": "img/monsters/搞怪山豬.png",
+        "count": 200,
+        "countLabel": "200 隻",
+        "enhanced": {
+         "monsterId": "J1288",
+         "name": "強化野豬",
+         "level": 30,
+         "hp": 612
+        }
+       },
+       {
+        "en": "Small Feary",
+        "monsterId": "J0610",
+        "name": "綠色小精靈",
+        "level": 26,
+        "hp": 510,
+        "icon": "img/monsters/綠色小精靈.png",
+        "count": 200,
+        "countLabel": "200 隻",
+        "enhanced": {
+         "monsterId": "J1289",
+         "name": "強化小惡魔",
+         "level": 30,
+         "hp": 612
+        }
+       },
+       {
+        "en": "Bumble Bee",
+        "monsterId": "J0271",
+        "name": "大黃蜂",
+        "level": 28,
+        "hp": 630,
+        "icon": "img/monsters/大黃蜂.png",
+        "count": 200,
+        "countLabel": "200 隻",
+        "enhanced": {
+         "monsterId": "J1290",
+         "name": "強化大黃蜂",
+         "level": 30,
+         "hp": 756
+        }
+       }
+      ],
+      "boss": {
+       "en": "Dr Kingbo",
+       "monsterId": "J0283",
+       "name": "DR.金伯",
+       "level": 29,
+       "hp": 8160,
+       "icon": "img/monsters/DR.金伯.png",
+       "enhanced": {
+        "monsterId": "J1312",
+        "name": "強化金博士",
+        "level": 30,
+        "hp": 10608
+       }
+      }
+     },
+     {
+      "type": "maze",
+      "typeName": "迷宮",
+      "typeEn": "Maze",
+      "keyName": {
+       "en": "Maze Pirates",
+       "name": "迷宮海賊船"
+      },
+      "maps": [
+       {
+        "en": "Extreme - Intrance of Pirate Ship",
+        "mapId": "I0141",
+        "name": "迷宮海賊船入口",
+        "minimap": "img/maps/船室.png"
+       },
+       {
+        "en": "Extreme - Center of Pirate Ship",
+        "mapId": "I0142",
+        "name": "迷宮海賊船中央",
+        "minimap": "img/maps/廚房.png"
+       },
+       {
+        "en": "Extreme - Pirate Ship Plaza",
+        "mapId": "I0143",
+        "name": "迷宮海賊船廣場",
+        "minimap": "img/maps/海軍隊待機室.png"
+       },
+       {
+        "en": "Extreme - Exit of Pirate Ship",
+        "mapId": "I0144",
+        "name": "迷宮海賊船出口",
+        "minimap": "img/maps/船長室.png"
+       }
+      ],
+      "monsters": [
+       {
+        "en": "Demon Deers",
+        "monsterId": "J0615",
+        "name": "麋鹿標本",
+        "level": 27,
+        "hp": 670,
+        "icon": "img/monsters/麋鹿標本.png",
+        "count": 200,
+        "countLabel": "200 隻"
+       },
+       {
+        "en": "Chogals",
+        "monsterId": "J0261",
+        "name": "混混草",
+        "level": 27,
+        "hp": 670,
+        "icon": "img/monsters/混混草.png",
+        "count": 200,
+        "countLabel": "200 隻"
+       },
+       {
+        "en": "Queen Bee",
+        "monsterId": "J0281",
+        "name": "女王蜂",
+        "level": 29,
+        "hp": 680,
+        "icon": "img/monsters/女王蜂.png",
+        "count": 200,
+        "countLabel": "200 隻",
+        "note": "在兩個不同的副本房間各出現一次"
+       }
+      ],
+      "boss": {
+       "en": "Dr Kingbo",
+       "monsterId": "J0283",
+       "name": "DR.金伯",
+       "level": 29,
+       "hp": 8160,
+       "icon": "img/monsters/DR.金伯.png",
+       "enhanced": {
+        "monsterId": "J1312",
+        "name": "強化金博士",
+        "level": 30,
+        "hp": 10608
+       }
+      }
+     }
+    ],
+    "dungeonKeyIcon": "img/dungeons/副本鑰匙-利比島.png",
+    "roomLayouts": [
+     {
+      "file": "Poseidon_-_Captain's_Cabin.png",
+      "rooms": [
+       {
+        "en": "Interior of The Pirate Ship",
+        "mapId": "I0101",
+        "name": "海賊船內部",
+        "minimap": "img/maps/船長室.png"
+       },
+       {
+        "en": "Normal - Interior of The Pirate Ship",
+        "mapId": "I0109",
+        "name": "無限海賊船內部",
+        "minimap": "img/maps/船長室.png"
+       },
+       {
+        "en": "Advance - Exit of Pirate Ship",
+        "mapId": "I0119",
+        "name": "眾多海賊船出口",
+        "minimap": "img/maps/船長室.png"
+       },
+       {
+        "en": "Extreme - Exit of Pirate Ship",
+        "mapId": "I0144",
+        "name": "迷宮海賊船出口",
+        "minimap": "img/maps/船長室.png"
+       }
+      ],
+      "sourceMap": {
+       "mapId": "E1010",
+       "name": "船長室",
+       "minimap": "img/maps/船長室.png"
+      }
+     },
+     {
+      "file": "Poseidon_-_Kitchen.png",
+      "rooms": [
+       {
+        "en": "Advance - Intrance of Pirate Ship",
+        "mapId": "I0117",
+        "name": "眾多海賊船入口",
+        "minimap": "img/maps/廚房.png"
+       },
+       {
+        "en": "Extreme - Intrance of Pirate Ship",
+        "mapId": "I0141",
+        "name": "迷宮海賊船入口",
+        "minimap": "img/maps/船室.png"
+       }
+      ],
+      "sourceMap": {
+       "mapId": "E1006",
+       "name": "廚房",
+       "minimap": "img/maps/廚房.png"
+      }
+     },
+     {
+      "file": "Poseidon_-_Warehouses.png",
+      "rooms": [
+       {
+        "en": "Advance - Center of Pirate Ship",
+        "mapId": "I0118",
+        "name": "眾多海賊船中央",
+        "minimap": "img/maps/海軍隊待機室.png"
+       },
+       {
+        "en": "Extreme - Center of Pirate Ship",
+        "mapId": "I0142",
+        "name": "迷宮海賊船中央",
+        "minimap": "img/maps/廚房.png"
+       },
+       {
+        "en": "Extreme - Pirate Ship Plaza",
+        "mapId": "I0143",
+        "name": "迷宮海賊船廣場",
+        "minimap": "img/maps/海軍隊待機室.png"
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "id": "ghost-castle",
+    "name": "鬼城堡",
+    "en": "Ghost Castle",
+    "continent": {
+     "en": "Ribi Island",
+     "name": "利比島",
+     "region": "羅溫克林"
+    },
+    "npc": {
+     "en": "Dracula",
+     "name": "巴泰規拉",
+     "npcId": "N0152",
+     "icon": "img/npcs/巴泰規拉.png"
+    },
+    "location": {
+     "en": "Ghost Castle",
+     "name": "幽靈城堡",
+     "region": "幽靈城堡"
+    },
+    "dungeonKeyFrom": {
+     "en": "Merchant",
+     "name": "流浪商人",
+     "at": {
+      "en": "West Post",
+      "name": "西部前哨基地",
+      "region": "沃斯特炎帕"
+     }
+    },
+    "mapLayout": {
+     "en": "Ghost Castle",
+     "name": "幽靈城堡",
+     "region": "幽靈城堡"
+    },
+    "bgm": [
+     {
+      "file": "Bg_ghostcastle.ogg",
+      "label": "Ghost Castle Theme"
+     }
+    ],
+    "ambient": [
+     {
+      "file": "Embi_ghostcastle.ogg"
+     }
+    ],
+    "runs": [
+     {
+      "type": "normal",
+      "typeName": "普通",
+      "typeEn": "Normal",
+      "keyName": {
+       "en": "Ghost Castle",
+       "name": "鬼城堡"
+      },
+      "maps": [
+       {
+        "en": "Ghost Base",
+        "mapId": "I0102",
+        "name": "鬼城堡基地",
+        "minimap": "img/maps/寢室.png"
+       }
+      ],
+      "monsters": [
+       {
+        "en": "Fierce Pumpkin Ghost",
+        "monsterId": "J0625",
+        "name": "邪惡魔瓜",
+        "level": 29,
+        "hp": 680,
+        "icon": "img/monsters/邪惡魔瓜.png",
+        "count": 400,
+        "countLabel": "400 隻"
+       },
+       {
+        "en": "Red Devil",
+        "monsterId": "J0630",
+        "name": "紅魔鬼",
+        "level": 30,
+        "hp": 512,
+        "icon": "img/monsters/紅魔鬼.png",
+        "count": 300,
+        "countLabel": "300 隻"
+       }
+      ],
+      "boss": {
+       "en": "Blue Fire Bead",
+       "monsterId": "J0635",
+       "name": "吸血魔珠",
+       "level": 38,
+       "hp": 12744,
+       "icon": "img/monsters/吸血魔珠.png"
+      }
+     },
+     {
+      "type": "infinite",
+      "typeName": "無限",
+      "typeEn": "Infinite",
+      "keyName": {
+       "en": "Infinite Ghost Castle",
+       "name": "無限鬼城堡"
+      },
+      "maps": [
+       {
+        "en": "Normal - Ghost Base",
+        "mapId": "I0110",
+        "name": "無限鬼城堡基地",
+        "minimap": "img/maps/寢室.png"
+       }
+      ],
+      "monsters": [
+       {
+        "en": "Evil Candle",
+        "monsterId": "J0620",
+        "name": "幽冥燭台",
+        "level": 28,
+        "hp": 630,
+        "icon": "img/monsters/幽冥燭台.png",
+        "unlimited": true,
+        "countLabel": "無限"
+       },
+       {
+        "en": "Red Devil",
+        "monsterId": "J0630",
+        "name": "紅魔鬼",
+        "level": 30,
+        "hp": 512,
+        "icon": "img/monsters/紅魔鬼.png",
+        "unlimited": true,
+        "countLabel": "無限"
+       },
+       {
+        "en": "Evil Tree",
+        "monsterId": "J0655",
+        "name": "樹精",
+        "level": 38,
+        "hp": 980,
+        "icon": "img/monsters/樹精.png",
+        "unlimited": true,
+        "countLabel": "無限"
+       }
+      ],
+      "boss": {
+       "en": "Blue Fire Bead",
+       "monsterId": "J0635",
+       "name": "吸血魔珠",
+       "level": 38,
+       "hp": 12744,
+       "icon": "img/monsters/吸血魔珠.png"
+      }
+     },
+     {
+      "type": "advance",
+      "typeName": "眾多",
+      "typeEn": "Advance",
+      "keyName": {
+       "en": "Advance Ghost Castle",
+       "name": "眾多鬼城堡"
+      },
+      "maps": [
+       {
+        "en": "Advance - Intrance of Ghost Base",
+        "mapId": "I0120",
+        "name": "眾多鬼城堡入口",
+        "minimap": "img/maps/中央宴會廳.png"
+       },
+       {
+        "en": "Advance - Center of Ghost Base",
+        "mapId": "I0121",
+        "name": "眾多鬼城堡中央",
+        "minimap": "img/maps/招待室.png"
+       },
+       {
+        "en": "Advance - Exit of Ghost Base",
+        "mapId": "I0122",
+        "name": "眾多鬼城堡出口",
+        "minimap": "img/maps/寢室.png"
+       }
+      ],
+      "monsters": [
+       {
+        "en": "Dog Soldier",
+        "monsterId": "J0331",
+        "name": "小紅帽",
+        "level": 34,
+        "hp": 890,
+        "icon": "img/monsters/小紅帽.png",
+        "count": 200,
+        "countLabel": "200 隻",
+        "enhanced": {
+         "monsterId": "J1291",
+         "name": "強化多貝戰士",
+         "level": 40,
+         "hp": 1068
+        }
+       },
+       {
+        "en": "Blue Rock",
+        "monsterId": "J0364",
+        "name": "冰怪",
+        "level": 37,
+        "hp": 1020,
+        "icon": "img/monsters/冰怪.png",
+        "count": 200,
+        "countLabel": "200 隻"
+       },
+       {
+        "en": "Purple Jelly",
+        "monsterId": "J0371",
+        "name": "紫色果凍",
+        "level": 38,
+        "hp": 1060,
+        "icon": "img/monsters/紫色果凍.png",
+        "count": 200,
+        "countLabel": "200 隻",
+        "enhanced": {
+         "monsterId": "J1293",
+         "name": "強化波庫林",
+         "level": 40,
+         "hp": 1272
+        }
+       }
+      ],
+      "boss": {
+       "en": "Blue Fire Bead",
+       "monsterId": "J0635",
+       "name": "吸血魔珠",
+       "level": 38,
+       "hp": 12744,
+       "icon": "img/monsters/吸血魔珠.png"
+      }
+     },
+     {
+      "type": "maze",
+      "typeName": "迷宮",
+      "typeEn": "Maze",
+      "keyName": {
+       "en": "Maze Ghost Castle",
+       "name": "迷宮鬼城堡"
+      },
+      "maps": [
+       {
+        "en": "Extreme - Intrance of Ghost Base",
+        "mapId": "I0145",
+        "name": "迷宮鬼城堡入口",
+        "minimap": "img/maps/定員入口.png"
+       },
+       {
+        "en": "Extreme - Center of Ghost Base",
+        "mapId": "I0146",
+        "name": "迷宮鬼城堡中央",
+        "minimap": "img/maps/中央宴會廳.png"
+       },
+       {
+        "en": "Extreme - Ghost Base Plaza",
+        "mapId": "I0147",
+        "name": "迷宮鬼城堡廣場",
+        "minimap": "img/maps/招待室.png"
+       },
+       {
+        "en": "Extreme - Exit of Ghost Base",
+        "mapId": "I0148",
+        "name": "迷宮鬼城堡出口",
+        "minimap": "img/maps/寢室.png"
+       }
+      ],
+      "monsters": [
+       {
+        "en": "Tree Plank",
+        "monsterId": "J0311",
+        "name": "唬人路牌",
+        "level": 32,
+        "hp": 800,
+        "icon": "img/monsters/唬人路牌.png",
+        "count": 200,
+        "countLabel": "200 隻"
+       },
+       {
+        "en": "Dog Captain",
+        "monsterId": "J0341",
+        "name": "終極小紅帽",
+        "level": 35,
+        "hp": 1010,
+        "icon": "img/monsters/終極小紅帽.png",
+        "count": 200,
+        "countLabel": "200 隻"
+       },
+       {
+        "en": "Purple Jelly",
+        "monsterId": "J0371",
+        "name": "紫色果凍",
+        "level": 38,
+        "hp": 1060,
+        "icon": "img/monsters/紫色果凍.png",
+        "count": 200,
+        "countLabel": "200 隻",
+        "note": "在兩個不同的副本房間各出現一次",
+        "enhanced": {
+         "monsterId": "J1293",
+         "name": "強化波庫林",
+         "level": 40,
+         "hp": 1272
+        }
+       }
+      ],
+      "boss": {
+       "en": "Blue Fire Bead",
+       "monsterId": "J0635",
+       "name": "吸血魔珠",
+       "level": 38,
+       "hp": 12744,
+       "icon": "img/monsters/吸血魔珠.png"
+      }
+     }
+    ],
+    "dungeonKeyIcon": "img/dungeons/副本鑰匙-利比島.png",
+    "roomLayouts": [
+     {
+      "file": "Ghost_Castle_-_Bedroom.png",
+      "rooms": [
+       {
+        "en": "Ghost Base",
+        "mapId": "I0102",
+        "name": "鬼城堡基地",
+        "minimap": "img/maps/寢室.png"
+       },
+       {
+        "en": "Normal - Ghost Base",
+        "mapId": "I0110",
+        "name": "無限鬼城堡基地",
+        "minimap": "img/maps/寢室.png"
+       },
+       {
+        "en": "Advance - Exit of Ghost Base",
+        "mapId": "I0122",
+        "name": "眾多鬼城堡出口",
+        "minimap": "img/maps/寢室.png"
+       },
+       {
+        "en": "Extreme - Exit of Ghost Base",
+        "mapId": "I0148",
+        "name": "迷宮鬼城堡出口",
+        "minimap": "img/maps/寢室.png"
+       }
+      ],
+      "sourceMap": {
+       "mapId": "G0005",
+       "name": "寢室",
+       "minimap": "img/maps/寢室.png"
+      }
+     },
+     {
+      "file": "Ghost_Castle_-_Center_Hall.png",
+      "rooms": [
+       {
+        "en": "Advance - Intrance of Ghost Base",
+        "mapId": "I0120",
+        "name": "眾多鬼城堡入口",
+        "minimap": "img/maps/中央宴會廳.png"
+       },
+       {
+        "en": "Extreme - Intrance of Ghost Base",
+        "mapId": "I0145",
+        "name": "迷宮鬼城堡入口",
+        "minimap": "img/maps/定員入口.png"
+       }
+      ],
+      "sourceMap": {
+       "mapId": "G0003",
+       "name": "中央宴會廳",
+       "minimap": "img/maps/中央宴會廳.png"
+      }
+     },
+     {
+      "file": "Ghost_Castle_-_Reception_Room.png",
+      "rooms": [
+       {
+        "en": "Advance - Center of Ghost Base",
+        "mapId": "I0121",
+        "name": "眾多鬼城堡中央",
+        "minimap": "img/maps/招待室.png"
+       },
+       {
+        "en": "Extreme - Center of Ghost Base",
+        "mapId": "I0146",
+        "name": "迷宮鬼城堡中央",
+        "minimap": "img/maps/中央宴會廳.png"
+       },
+       {
+        "en": "Extreme - Ghost Base Plaza",
+        "mapId": "I0147",
+        "name": "迷宮鬼城堡廣場",
+        "minimap": "img/maps/招待室.png"
+       }
+      ],
+      "sourceMap": {
+       "mapId": "G0004",
+       "name": "招待室",
+       "minimap": "img/maps/招待室.png"
+      }
+     }
+    ]
+   },
+   {
+    "id": "volcano-cave",
+    "name": "火山洞窟",
+    "en": "Volcano Cave",
+    "continent": {
+     "en": "Ribi Island",
+     "name": "利比島",
+     "region": "羅溫克林"
+    },
+    "npc": {
+     "en": "Volcano Guard",
+     "name": "火山警備隊長",
+     "npcId": "N0105",
+     "icon": "img/npcs/廢礦警備隊長.png"
+    },
+    "location": {
+     "en": "Volcano Post",
+     "name": "火山監視塔",
+     "region": "克雷畢"
+    },
+    "dungeonKeyFrom": {
+     "en": "Merchant",
+     "name": "流浪商人",
+     "at": {
+      "en": "Volcano Post",
+      "name": "火山監視塔",
+      "region": "克雷畢"
+     },
+     "npcId": "N0111",
+     "icon": "img/npcs/流浪商人.png"
+    },
+    "mapLayout": {
+     "en": "Volcano Cave",
+     "name": "火山洞窟",
+     "region": "克雷畢"
+    },
+    "bgm": [
+     {
+      "file": "Bg_magmagro.ogg",
+      "label": "Volcano Cave Theme"
+     }
+    ],
+    "ambient": [
+     {
+      "file": "Embi_vocano.ogg"
+     }
+    ],
+    "runs": [
+     {
+      "type": "normal",
+      "typeName": "普通",
+      "typeEn": "Normal",
+      "keyName": {
+       "en": "Volcano Cave",
+       "name": "火山洞窟"
+      },
+      "maps": [
+       {
+        "en": "Normal - Volcano Cave",
+        "mapId": "I0105",
+        "name": "火山洞窟內部",
+        "minimap": "img/maps/火山洞窟 6樓下部.png"
+       }
+      ],
+      "monsters": [
+       {
+        "en": "Wolf Fighter",
+        "monsterId": "J0413",
+        "name": "綠毛狼人",
+        "level": 42,
+        "hp": 1230,
+        "icon": "img/monsters/綠毛狼人.png",
+        "count": 250,
+        "countLabel": "250 隻"
+       },
+       {
+        "en": "Wolf Ranger",
+        "monsterId": "J0421",
+        "name": "夜狼弓箭手",
+        "level": 43,
+        "hp": 952,
+        "icon": "img/monsters/夜狼弓箭手.png",
+        "count": 300,
+        "countLabel": "300 隻"
+       },
+       {
+        "en": "Little Black Dragon",
+        "monsterId": "J0441",
+        "name": "小飛龍",
+        "level": 45,
+        "hp": 1480,
+        "icon": "img/monsters/小飛龍.png",
+        "count": 100,
+        "countLabel": "100 隻"
+       }
+      ],
+      "boss": {
+       "en": "Black Dragon",
+       "monsterId": "J0451",
+       "name": "黑威龍",
+       "level": 46,
+       "hp": 13464,
+       "icon": "img/monsters/黑威龍.png"
+      }
+     },
+     {
+      "type": "infinite",
+      "typeName": "無限",
+      "typeEn": "Infinite",
+      "keyName": {
+       "en": "Infinite Volcano Cave",
+       "name": "無限火山洞窟"
+      },
+      "maps": [
+       {
+        "en": "Normal - Interior of Volcano Cave",
+        "mapId": "I0111",
+        "name": "無限火山洞窟內部",
+        "minimap": "img/maps/火山洞窟 6樓下部.png"
+       }
+      ],
+      "monsters": [
+       {
+        "en": "Wolf General",
+        "monsterId": "J0431",
+        "name": "赤狼隊長",
+        "level": 44,
+        "hp": 1390,
+        "icon": "img/monsters/赤狼隊長.png",
+        "unlimited": true,
+        "countLabel": "無限"
+       },
+       {
+        "en": "Little Black Dragon",
+        "monsterId": "J0441",
+        "name": "小飛龍",
+        "level": 45,
+        "hp": 1480,
+        "icon": "img/monsters/小飛龍.png",
+        "unlimited": true,
+        "countLabel": "無限"
+       }
+      ],
+      "boss": {
+       "en": "Black Dragon",
+       "monsterId": "J0451",
+       "name": "黑威龍",
+       "level": 46,
+       "hp": 13464,
+       "icon": "img/monsters/黑威龍.png"
+      }
+     },
+     {
+      "type": "advance",
+      "typeName": "眾多",
+      "typeEn": "Advance",
+      "keyName": {
+       "en": "Advance Volcano Cave",
+       "name": "眾多火山洞窟"
+      },
+      "maps": [
+       {
+        "en": "Advance - Intrance of Volcano Cave",
+        "mapId": "I0123",
+        "name": "眾多火山洞窟入口",
+        "minimap": "img/maps/火山洞窟 1樓.png"
+       },
+       {
+        "en": "Advance - Center of Volcano Cave",
+        "mapId": "I0124",
+        "name": "眾多火山洞窟中央",
+        "minimap": "img/maps/火山洞窟 2樓.png"
+       },
+       {
+        "en": "Advance - Exit of Volcano Cave",
+        "mapId": "I0125",
+        "name": "眾多火山洞窟出口",
+        "minimap": "img/maps/火山洞窟 4樓下部.png"
+       }
+      ],
+      "monsters": [
+       {
+        "en": "Fighter Mecas",
+        "monsterId": "J0420",
+        "name": "鼴鼠",
+        "level": 42,
+        "hp": 1230,
+        "icon": "img/monsters/鼴鼠.png",
+        "count": 200,
+        "countLabel": "200 隻"
+       },
+       {
+        "en": "Harpy",
+        "monsterId": "J0422",
+        "name": "冰之女",
+        "level": 43,
+        "hp": 1350,
+        "icon": "img/monsters/冰之女.png",
+        "count": 200,
+        "countLabel": "200 隻"
+       },
+       {
+        "en": "Black Skeleton Wheel",
+        "monsterId": "J0465",
+        "name": "老滾輪骷顱",
+        "level": 47,
+        "hp": 1440,
+        "icon": "img/monsters/老滾輪骷顱.png",
+        "count": 200,
+        "countLabel": "200 隻",
+        "enhanced": {
+         "monsterId": "J1296",
+         "name": "強化骷髏車輪老型",
+         "level": 50,
+         "hp": 1728
+        }
+       }
+      ],
+      "boss": {
+       "en": "Blue Fire Bead",
+       "monsterId": "J0635",
+       "name": "吸血魔珠",
+       "level": 38,
+       "hp": 12744,
+       "icon": "img/monsters/吸血魔珠.png"
+      }
+     },
+     {
+      "type": "maze",
+      "typeName": "迷宮",
+      "typeEn": "Maze",
+      "keyName": {
+       "en": "Maze Volcano Cave",
+       "name": "迷宮火山洞窟"
+      },
+      "maps": [
+       {
+        "en": "Extreme - Intrance of Volcano Cave",
+        "mapId": "I0149",
+        "name": "迷宮火山洞窟入口",
+        "minimap": "img/maps/火山洞窟 1樓.png"
+       },
+       {
+        "en": "Extreme - Center of Volcano Cave",
+        "mapId": "I0150",
+        "name": "迷宮火山洞窟中央",
+        "minimap": "img/maps/火山洞窟 2樓.png"
+       },
+       {
+        "en": "Extreme - Volcano Cave Plaza",
+        "mapId": "I0151",
+        "name": "迷宮火山洞窟廣場",
+        "minimap": "img/maps/火山洞窟 4樓下部.png"
+       },
+       {
+        "en": "Extreme - Exit of Volcano Cave",
+        "mapId": "I0152",
+        "name": "迷宮火山洞窟入口",
+        "minimap": "img/maps/火山洞窟 6樓下部.png"
+       }
+      ],
+      "monsters": [
+       {
+        "en": "Sanchoseu",
+        "monsterId": "J0425",
+        "name": "山椒草",
+        "level": 43,
+        "hp": 1270,
+        "icon": "img/monsters/山椒草.png",
+        "count": 200,
+        "countLabel": "200 隻"
+       },
+       {
+        "en": "Queen Harpy",
+        "monsterId": "J0432",
+        "name": "火之女",
+        "level": 44,
+        "hp": 1310,
+        "icon": "img/monsters/火之女.png",
+        "count": 200,
+        "countLabel": "200 隻"
+       },
+       {
+        "en": "Black Skeleton Wheel",
+        "monsterId": "J0465",
+        "name": "老滾輪骷顱",
+        "level": 47,
+        "hp": 1440,
+        "icon": "img/monsters/老滾輪骷顱.png",
+        "count": 200,
+        "countLabel": "200 隻",
+        "note": "在兩個不同的副本房間各出現一次",
+        "enhanced": {
+         "monsterId": "J1296",
+         "name": "強化骷髏車輪老型",
+         "level": 50,
+         "hp": 1728
+        }
+       }
+      ],
+      "boss": {
+       "en": "Fire Master Jelly",
+       "monsterId": "J0485",
+       "name": "火焰果凍",
+       "level": 49,
+       "hp": 9180,
+       "icon": "img/monsters/火焰果凍.png",
+       "enhanced": {
+        "monsterId": "J1314",
+        "name": "強化瑪格靈",
+        "level": 50,
+        "hp": 11934
+       }
+      }
+     }
+    ],
+    "dungeonKeyIcon": "img/dungeons/副本鑰匙-利比島.png",
+    "roomLayouts": [
+     {
+      "file": "Volcano_Cave_-_Volcano_Cave_3F_Down.png",
+      "rooms": [
+       {
+        "en": "Normal - Volcano Cave",
+        "mapId": "I0105",
+        "name": "火山洞窟內部",
+        "minimap": "img/maps/火山洞窟 6樓下部.png"
+       },
+       {
+        "en": "Normal - Interior of Volcano Cave",
+        "mapId": "I0111",
+        "name": "無限火山洞窟內部",
+        "minimap": "img/maps/火山洞窟 6樓下部.png"
+       },
+       {
+        "en": "Advance - Exit of Volcano Cave",
+        "mapId": "I0125",
+        "name": "眾多火山洞窟出口",
+        "minimap": "img/maps/火山洞窟 4樓下部.png"
+       },
+       {
+        "en": "Extreme - Exit of Volcano Cave",
+        "mapId": "I0152",
+        "name": "迷宮火山洞窟入口",
+        "minimap": "img/maps/火山洞窟 6樓下部.png"
+       }
+      ]
+     },
+     {
+      "file": "Volcano_Cave_-_Volcano_Cave_1F.png",
+      "rooms": [
+       {
+        "en": "Advance - Intrance of Volcano Cave",
+        "mapId": "I0123",
+        "name": "眾多火山洞窟入口",
+        "minimap": "img/maps/火山洞窟 1樓.png"
+       },
+       {
+        "en": "Extreme - Intrance of Volcano Cave",
+        "mapId": "I0149",
+        "name": "迷宮火山洞窟入口",
+        "minimap": "img/maps/火山洞窟 1樓.png"
+       }
+      ],
+      "sourceMap": {
+       "mapId": "D0020",
+       "name": "火山洞窟 1樓",
+       "minimap": "img/maps/火山洞窟 1樓.png"
+      }
+     },
+     {
+      "file": "Volcano_Cave_-_Volcano_Cave_2F.png",
+      "rooms": [
+       {
+        "en": "Advance - Center of Volcano Cave",
+        "mapId": "I0124",
+        "name": "眾多火山洞窟中央",
+        "minimap": "img/maps/火山洞窟 2樓.png"
+       },
+       {
+        "en": "Extreme - Center of Volcano Cave",
+        "mapId": "I0150",
+        "name": "迷宮火山洞窟中央",
+        "minimap": "img/maps/火山洞窟 2樓.png"
+       },
+       {
+        "en": "Extreme - Volcano Cave Plaza",
+        "mapId": "I0151",
+        "name": "迷宮火山洞窟廣場",
+        "minimap": "img/maps/火山洞窟 4樓下部.png"
+       }
+      ],
+      "sourceMap": {
+       "mapId": "D0021",
+       "name": "火山洞窟 2樓",
+       "minimap": "img/maps/火山洞窟 2樓.png"
+      }
+     }
+    ]
+   },
+   {
+    "id": "dark-grove",
+    "name": "暗黑樹林",
+    "en": "Dark Grove",
+    "continent": {
+     "en": "Ribi Island",
+     "name": "利比島",
+     "region": "羅溫克林"
+    },
+    "npc": {
+     "en": "North Guard",
+     "name": "北部警備隊長",
+     "npcId": "N0106",
+     "icon": "img/npcs/廢礦警備隊長.png"
+    },
+    "location": {
+     "en": "North Post",
+     "name": "北部前哨地基",
+     "region": "達克比拉"
+    },
+    "dungeonKeyFrom": {
+     "en": "Merchant",
+     "name": "流浪商人",
+     "at": {
+      "en": "North Post",
+      "name": "北部前哨地基",
+      "region": "達克比拉"
+     },
+     "npcId": "N0112",
+     "icon": "img/npcs/流浪商人.png"
+    },
+    "mapLayout": {
+     "en": "Dark Hill",
+     "name": "達克比拉",
+     "region": "達克比拉"
+    },
+    "bgm": [
+     {
+      "file": "Bg_northfield.ogg",
+      "label": "Dark Hill Theme 1"
+     },
+     {
+      "file": "Bg_northfield2.ogg",
+      "label": "Dark Hill Theme 2"
+     }
+    ],
+    "ambient": [
+     {
+      "file": "Embi_north.ogg"
+     }
+    ],
+    "runs": [
+     {
+      "type": "normal",
+      "typeName": "普通",
+      "typeEn": "Normal",
+      "keyName": {
+       "en": "Dark Grove",
+       "name": "暗黑樹林"
+      },
+      "maps": [
+       {
+        "en": "Normal - Dark Grove",
+        "mapId": "I0106",
+        "name": "暗黑樹林內部",
+        "minimap": "img/maps/黑暗之樹林1.png"
+       }
+      ],
+      "monsters": [
+       {
+        "en": "Evil Mask Rabbit",
+        "monsterId": "J0727",
+        "name": "惡魔兔",
+        "level": 50,
+        "hp": 1570,
+        "icon": "img/monsters/惡魔兔.png",
+        "count": 250,
+        "countLabel": "250 隻"
+       },
+       {
+        "en": "Steel Racoon",
+        "monsterId": "J0728",
+        "name": "鍋子狸",
+        "level": 51,
+        "hp": 2070,
+        "icon": "img/monsters/鍋子狸.png",
+        "count": 300,
+        "countLabel": "300 隻"
+       },
+       {
+        "en": "Steel Cabbage",
+        "monsterId": "J0729",
+        "name": "瓢蟲將軍",
+        "level": 52,
+        "hp": 2160,
+        "icon": "img/monsters/瓢蟲將軍.png",
+        "count": 100,
+        "countLabel": "100 隻"
+       }
+      ],
+      "boss": {
+       "en": "Lightning Jelly",
+       "monsterId": "J0530",
+       "name": "閃電果凍",
+       "level": 54,
+       "hp": 11472,
+       "icon": "img/monsters/閃電果凍.png"
+      }
+     },
+     {
+      "type": "infinite",
+      "typeName": "無限",
+      "typeEn": "Infinite",
+      "keyName": {
+       "en": "Infinite Dark Grove",
+       "name": "無限暗黑樹林"
+      },
+      "maps": [
+       {
+        "en": "Normal - Interior of Dark Grove",
+        "mapId": "I0112",
+        "name": "無限暗黑樹林內部",
+        "minimap": "img/maps/黑暗之樹林1.png"
+       }
+      ],
+      "monsters": [
+       {
+        "en": "Black Big Boo",
+        "monsterId": "J0501",
+        "name": "黑毛邁德托",
+        "level": 51,
+        "hp": 1810,
+        "icon": "img/monsters/黑毛邁德托.png",
+        "unlimited": true,
+        "countLabel": "無限"
+       },
+       {
+        "en": "Evil Chochas",
+        "monsterId": "J0730",
+        "name": "食蟲草",
+        "level": 53,
+        "hp": 1660,
+        "icon": "img/monsters/食蟲草.png",
+        "unlimited": true,
+        "countLabel": "無限"
+       }
+      ],
+      "boss": {
+       "en": "Lightning Jelly",
+       "monsterId": "J0530",
+       "name": "閃電果凍",
+       "level": 54,
+       "hp": 11472,
+       "icon": "img/monsters/閃電果凍.png"
+      }
+     },
+     {
+      "type": "advance",
+      "typeName": "眾多",
+      "typeEn": "Advance",
+      "keyName": {
+       "en": "Advance Dark Grove",
+       "name": "眾多暗黑樹林"
+      },
+      "maps": [
+       {
+        "en": "Advance - Intrance of Dark Grove",
+        "mapId": "I0126",
+        "name": "眾多暗黑樹林入口",
+        "minimap": "img/maps/黑暗之樹林1.png"
+       },
+       {
+        "en": "Advance - Center of Dark Grove",
+        "mapId": "I0127",
+        "name": "眾多暗黑樹林中央",
+        "minimap": "img/maps/黑暗之樹林2.png"
+       },
+       {
+        "en": "Advance - Exit of Dark Grove",
+        "mapId": "I0128",
+        "name": "眾多暗黑樹林出口",
+        "minimap": "img/maps/黑暗之樹林3.png"
+       }
+      ],
+      "monsters": [
+       {
+        "en": "Black Big Boo",
+        "monsterId": "J0501",
+        "name": "黑毛邁德托",
+        "level": 51,
+        "hp": 1810,
+        "icon": "img/monsters/黑毛邁德托.png",
+        "count": 200,
+        "countLabel": "200 隻",
+        "enhanced": {
+         "monsterId": "J1297",
+         "name": "強化黑毛",
+         "level": 60,
+         "hp": 2172
+        }
+       },
+       {
+        "en": "Ancient Skeleton Warrior",
+        "monsterId": "J0511",
+        "name": "死靈騎士",
+        "level": 52,
+        "hp": 1740,
+        "icon": "img/monsters/死靈騎士.png",
+        "count": 200,
+        "countLabel": "200 隻",
+        "enhanced": {
+         "monsterId": "J1298",
+         "name": "強化骷髏騎士",
+         "level": 60,
+         "hp": 2088
+        }
+       },
+       {
+        "en": "Steel Cabbage",
+        "monsterId": "J0729",
+        "name": "瓢蟲將軍",
+        "level": 52,
+        "hp": 2160,
+        "icon": "img/monsters/瓢蟲將軍.png",
+        "count": 200,
+        "countLabel": "200 隻"
+       }
+      ],
+      "boss": {
+       "en": "Lightning Jelly",
+       "monsterId": "J0530",
+       "name": "閃電果凍",
+       "level": 54,
+       "hp": 11472,
+       "icon": "img/monsters/閃電果凍.png",
+       "enhanced": {
+        "monsterId": "J1315",
+        "name": "強化雷霆靈",
+        "level": 60,
+        "hp": 14914
+       }
+      }
+     },
+     {
+      "type": "maze",
+      "typeName": "迷宮",
+      "typeEn": "Maze",
+      "keyName": {
+       "en": "Maze Dark Grove",
+       "name": "迷宮暗黑樹林"
+      },
+      "maps": [
+       {
+        "en": "Extreme - Intrance of Dark Grove",
+        "mapId": "I0153",
+        "name": "迷宮暗黑樹林入口",
+        "minimap": "img/maps/黑暗之樹林1.png"
+       },
+       {
+        "en": "Extreme - Center of Dark Grove",
+        "mapId": "I0154",
+        "name": "迷宮暗黑樹林中央",
+        "minimap": "img/maps/黑暗之樹林2.png"
+       },
+       {
+        "en": "Extreme - Dark Grove Plaza",
+        "mapId": "I0155",
+        "name": "迷宮暗黑樹林廣場",
+        "minimap": "img/maps/黑暗之樹林3.png"
+       },
+       {
+        "en": "Extreme - Exit of Dark Grove",
+        "mapId": "I0156",
+        "name": "迷宮暗黑樹林出口",
+        "minimap": "img/maps/集結地.png"
+       }
+      ],
+      "monsters": [
+       {
+        "en": "Machine Sentinel",
+        "monsterId": "J0690",
+        "name": "古代哨兵",
+        "level": 51,
+        "hp": 1650,
+        "icon": "img/monsters/古代哨兵.png",
+        "count": 200,
+        "countLabel": "200 隻"
+       },
+       {
+        "en": "Steel Cabbage",
+        "monsterId": "J0729",
+        "name": "瓢蟲將軍",
+        "level": 52,
+        "hp": 2160,
+        "icon": "img/monsters/瓢蟲將軍.png",
+        "count": 200,
+        "countLabel": "200 隻",
+        "note": "在兩個不同的副本房間各出現一次"
+       },
+       {
+        "en": "Ancient Skeleton Wizard",
+        "monsterId": "J0521",
+        "name": "死靈咒術師",
+        "level": 53,
+        "hp": 1456,
+        "icon": "img/monsters/死靈咒術師.png",
+        "count": 200,
+        "countLabel": "200 隻"
+       }
+      ],
+      "boss": {
+       "en": "Lightning Jelly",
+       "monsterId": "J0530",
+       "name": "閃電果凍",
+       "level": 54,
+       "hp": 11472,
+       "icon": "img/monsters/閃電果凍.png",
+       "enhanced": {
+        "monsterId": "J1315",
+        "name": "強化雷霆靈",
+        "level": 60,
+        "hp": 14914
+       }
+      }
+     }
+    ],
+    "dungeonKeyIcon": "img/dungeons/副本鑰匙-利比島.png",
+    "roomLayouts": [
+     {
+      "file": "Dark_Hill_-_Dark_Bridge.png",
+      "rooms": [
+       {
+        "en": "Normal - Dark Grove",
+        "mapId": "I0106",
+        "name": "暗黑樹林內部",
+        "minimap": "img/maps/黑暗之樹林1.png"
+       },
+       {
+        "en": "Normal - Interior of Dark Grove",
+        "mapId": "I0112",
+        "name": "無限暗黑樹林內部",
+        "minimap": "img/maps/黑暗之樹林1.png"
+       },
+       {
+        "en": "Advance - Exit of Dark Grove",
+        "mapId": "I0128",
+        "name": "眾多暗黑樹林出口",
+        "minimap": "img/maps/黑暗之樹林3.png"
+       },
+       {
+        "en": "Extreme - Exit of Dark Grove",
+        "mapId": "I0156",
+        "name": "迷宮暗黑樹林出口",
+        "minimap": "img/maps/集結地.png"
+       }
+      ]
+     },
+     {
+      "file": "Dark_Hill_-_Dark_Forest_1.png",
+      "rooms": [
+       {
+        "en": "Advance - Intrance of Dark Grove",
+        "mapId": "I0126",
+        "name": "眾多暗黑樹林入口",
+        "minimap": "img/maps/黑暗之樹林1.png"
+       },
+       {
+        "en": "Extreme - Intrance of Dark Grove",
+        "mapId": "I0153",
+        "name": "迷宮暗黑樹林入口",
+        "minimap": "img/maps/黑暗之樹林1.png"
+       }
+      ],
+      "sourceMap": {
+       "mapId": "M0068",
+       "name": "黑暗之樹林1",
+       "minimap": "img/maps/黑暗之樹林1.png"
+      }
+     },
+     {
+      "file": "Dark_Hill_-_Dark_Forest_2.png",
+      "rooms": [
+       {
+        "en": "Advance - Center of Dark Grove",
+        "mapId": "I0127",
+        "name": "眾多暗黑樹林中央",
+        "minimap": "img/maps/黑暗之樹林2.png"
+       },
+       {
+        "en": "Extreme - Center of Dark Grove",
+        "mapId": "I0154",
+        "name": "迷宮暗黑樹林中央",
+        "minimap": "img/maps/黑暗之樹林2.png"
+       },
+       {
+        "en": "Extreme - Dark Grove Plaza",
+        "mapId": "I0155",
+        "name": "迷宮暗黑樹林廣場",
+        "minimap": "img/maps/黑暗之樹林3.png"
+       }
+      ],
+      "sourceMap": {
+       "mapId": "M0069",
+       "name": "黑暗之樹林2",
+       "minimap": "img/maps/黑暗之樹林2.png"
+      }
+     }
+    ]
+   },
+   {
+    "id": "dark-tower",
+    "name": "黑暗之塔",
+    "en": "Dark Tower",
+    "continent": {
+     "en": "Arnos",
+     "name": "阿諾斯",
+     "region": "阿諾斯"
+    },
+    "npc": {
+     "en": "Ted",
+     "name": "泰德",
+     "npcId": "N0163",
+     "icon": "img/npcs/泰德.png"
+    },
+    "location": {
+     "en": "Bluestar Town",
+     "name": "藍星村莊",
+     "region": "藍星村莊"
+    },
+    "dungeonKeyFrom": {
+     "en": "Sinsia",
+     "name": "辛西亞"
+    },
+    "mapLayout": {
+     "en": "Dark Tower",
+     "name": "黑暗之塔",
+     "region": "達克比拉"
+    },
+    "bgm": [
+     {
+      "file": "Bg_gateofdoom.ogg",
+      "label": "Dark Tower Theme"
+     },
+     {
+      "file": "Boss2.ogg",
+      "label": "Boss Theme 2"
+     }
+    ],
+    "ambient": [
+     {
+      "file": "Embi_darktower.ogg"
+     }
+    ],
+    "runs": [
+     {
+      "type": "normal",
+      "typeName": "普通",
+      "typeEn": "Normal",
+      "keyName": {
+       "en": "Dark Tower",
+       "name": "黑暗之塔"
+      },
+      "maps": [
+       {
+        "en": "Dark Dungeon",
+        "mapId": "I0103",
+        "name": "黑暗之地牢",
+        "minimap": "img/maps/黑暗之塔正常.png"
+       }
+      ],
+      "monsters": [
+       {
+        "en": "Cactuartu",
+        "monsterId": "J0866",
+        "name": "變種草",
+        "level": 66,
+        "hp": 3430,
+        "icon": "img/monsters/變種草.png",
+        "count": 200,
+        "countLabel": "200 隻"
+       },
+       {
+        "en": "Skeleton Little Dragon",
+        "monsterId": "J0868",
+        "name": "死亡的小飛龍",
+        "level": 68,
+        "hp": 4460,
+        "icon": "img/monsters/死亡的小飛龍.png",
+        "count": 300,
+        "countLabel": "300 隻"
+       }
+      ],
+      "boss": {
+       "en": "Skeleton Hand",
+       "monsterId": "J0870",
+       "name": "撒旦的左手",
+       "level": 70,
+       "hp": 22176,
+       "icon": "img/monsters/撒旦的左手.png"
+      }
+     },
+     {
+      "type": "infinite",
+      "typeName": "無限",
+      "typeEn": "Infinite",
+      "keyName": {
+       "en": "Infinite Dark Tower",
+       "name": "無限黑暗之塔"
+      },
+      "maps": [
+       {
+        "en": "Normal - Dark Dungeon",
+        "mapId": "I0113",
+        "name": "無限黑暗之地牢內部",
+        "minimap": "img/maps/黑暗之塔正常.png"
+       }
+      ],
+      "monsters": [
+       {
+        "en": "Scorpion Cannon",
+        "monsterId": "J0793",
+        "name": "毒蠍",
+        "level": 64,
+        "hp": 2536,
+        "icon": "img/monsters/毒蠍.png",
+        "unlimited": true,
+        "countLabel": "無限"
+       },
+       {
+        "en": "White Demon Axe",
+        "monsterId": "J0869",
+        "name": "斧頭幽靈",
+        "level": 69,
+        "hp": 3570,
+        "icon": "img/monsters/斧頭幽靈.png",
+        "unlimited": true,
+        "countLabel": "無限"
+       }
+      ],
+      "boss": {
+       "en": "Skeleton Hand",
+       "monsterId": "J0870",
+       "name": "撒旦的左手",
+       "level": 70,
+       "hp": 22176,
+       "icon": "img/monsters/撒旦的左手.png"
+      }
+     },
+     {
+      "type": "advance",
+      "typeName": "眾多",
+      "typeEn": "Advance",
+      "keyName": {
+       "en": "Advance Dark Tower",
+       "name": "眾多黑暗之塔"
+      },
+      "maps": [
+       {
+        "en": "Advance - Intrance of Dark Dungeon",
+        "mapId": "I0129",
+        "name": "眾多黑暗之地牢入口",
+        "minimap": "img/maps/黑暗之塔 1樓.png"
+       },
+       {
+        "en": "Advance - Center of Dark Dungeon",
+        "mapId": "I0130",
+        "name": "眾多黑暗之地牢出口",
+        "minimap": "img/maps/黑暗之塔 2樓.png"
+       },
+       {
+        "en": "Advance - Exit of Dark Dungeon",
+        "mapId": "I0131",
+        "name": "眾多黑暗之地牢出口",
+        "minimap": "img/maps/黑暗之塔正常.png"
+       }
+      ],
+      "monsters": [
+       {
+        "en": "Blaster",
+        "monsterId": "J0791",
+        "name": "殺手大黃蜂",
+        "level": 63,
+        "hp": 2800,
+        "icon": "img/monsters/殺手大黃蜂.png",
+        "count": 200,
+        "countLabel": "200 隻",
+        "enhanced": {
+         "monsterId": "J1300",
+         "name": "強化殺手蜂",
+         "level": 70,
+         "hp": 3360
+        }
+       },
+       {
+        "en": "Grasshopper",
+        "monsterId": "J0794",
+        "name": "刺刀螳螂",
+        "level": 64,
+        "hp": 2930,
+        "icon": "img/monsters/刺刀螳螂.png",
+        "count": 200,
+        "countLabel": "200 隻",
+        "enhanced": {
+         "monsterId": "J1301",
+         "name": "強化劍螳螂",
+         "level": 70,
+         "hp": 3516
+        }
+       },
+       {
+        "en": "Skeleton Little Dragon",
+        "monsterId": "J0868",
+        "name": "死亡的小飛龍",
+        "level": 68,
+        "hp": 4460,
+        "icon": "img/monsters/死亡的小飛龍.png",
+        "count": 200,
+        "countLabel": "200 隻",
+        "enhanced": {
+         "monsterId": "J1302",
+         "name": "強化死亡萎靈",
+         "level": 70,
+         "hp": 5352
+        }
+       }
+      ],
+      "boss": {
+       "en": "Skeleton Hand",
+       "monsterId": "J0870",
+       "name": "撒旦的左手",
+       "level": 70,
+       "hp": 22176,
+       "icon": "img/monsters/撒旦的左手.png",
+       "enhanced": {
+        "monsterId": "J1316",
+        "name": "強化骨頭隊長",
+        "level": 70,
+        "hp": 28829
+       }
+      }
+     },
+     {
+      "type": "maze",
+      "typeName": "迷宮",
+      "typeEn": "Maze",
+      "keyName": {
+       "en": "Maze Dark Tower",
+       "name": "迷宮黑暗之塔"
+      },
+      "maps": [
+       {
+        "en": "Extreme - Intrance of Dark Dungeon",
+        "mapId": "I0157",
+        "name": "迷宮黑暗之地牢入口",
+        "minimap": "img/maps/黑暗之塔 1樓.png"
+       },
+       {
+        "en": "Extreme - Center of Dark Dungeon",
+        "mapId": "I0158",
+        "name": "迷宮黑暗之地牢中央",
+        "minimap": "img/maps/黑暗之塔 2樓.png"
+       },
+       {
+        "en": "Extreme - Dark Dungeon Plaza",
+        "mapId": "I0159",
+        "name": "迷宮黑暗之地牢廣場",
+        "minimap": "img/maps/黑暗之塔 1樓.png"
+       },
+       {
+        "en": "Extreme - Exit of Dark Dungeon",
+        "mapId": "I0160",
+        "name": "迷宮黑暗之地牢出口",
+        "minimap": "img/maps/黑暗之塔正常.png"
+       }
+      ],
+      "monsters": [
+       {
+        "en": "Blaster",
+        "monsterId": "J0791",
+        "name": "殺手大黃蜂",
+        "level": 63,
+        "hp": 2800,
+        "icon": "img/monsters/殺手大黃蜂.png",
+        "count": 200,
+        "countLabel": "200 隻",
+        "enhanced": {
+         "monsterId": "J1300",
+         "name": "強化殺手蜂",
+         "level": 70,
+         "hp": 3360
+        }
+       },
+       {
+        "en": "Evil Spy Head",
+        "monsterId": "J0760",
+        "name": "食夢王",
+        "level": 66,
+        "hp": 3180,
+        "icon": "img/monsters/食夢王.png",
+        "count": 200,
+        "countLabel": "200 隻"
+       },
+       {
+        "en": "White Demon Axe",
+        "monsterId": "J0869",
+        "name": "斧頭幽靈",
+        "level": 69,
+        "hp": 3570,
+        "icon": "img/monsters/斧頭幽靈.png",
+        "count": 200,
+        "countLabel": "200 隻"
+       }
+      ],
+      "boss": {
+       "en": "Skeleton Hand",
+       "monsterId": "J0870",
+       "name": "撒旦的左手",
+       "level": 70,
+       "hp": 22176,
+       "icon": "img/monsters/撒旦的左手.png",
+       "enhanced": {
+        "monsterId": "J1316",
+        "name": "強化骨頭隊長",
+        "level": 70,
+        "hp": 28829
+       }
+      }
+     }
+    ],
+    "dungeonKeyIcon": "img/dungeons/副本鑰匙-阿諾斯.png",
+    "roomLayouts": [
+     {
+      "file": "Dark_Tower_-_Dark_Tower_Top.png",
+      "rooms": [
+       {
+        "en": "Dark Dungeon",
+        "mapId": "I0103",
+        "name": "黑暗之地牢",
+        "minimap": "img/maps/黑暗之塔正常.png"
+       },
+       {
+        "en": "Normal - Dark Dungeon",
+        "mapId": "I0113",
+        "name": "無限黑暗之地牢內部",
+        "minimap": "img/maps/黑暗之塔正常.png"
+       },
+       {
+        "en": "Advance - Exit of Dark Dungeon",
+        "mapId": "I0131",
+        "name": "眾多黑暗之地牢出口",
+        "minimap": "img/maps/黑暗之塔正常.png"
+       },
+       {
+        "en": "Extreme - Exit of Dark Dungeon",
+        "mapId": "I0160",
+        "name": "迷宮黑暗之地牢出口",
+        "minimap": "img/maps/黑暗之塔正常.png"
+       }
+      ],
+      "sourceMap": {
+       "mapId": "D0045",
+       "name": "黑暗之塔正常",
+       "minimap": "img/maps/黑暗之塔正常.png"
+      }
+     },
+     {
+      "file": "Dark_Tower_-_Dark_Tower_1F.png",
+      "rooms": [
+       {
+        "en": "Advance - Intrance of Dark Dungeon",
+        "mapId": "I0129",
+        "name": "眾多黑暗之地牢入口",
+        "minimap": "img/maps/黑暗之塔 1樓.png"
+       },
+       {
+        "en": "Extreme - Intrance of Dark Dungeon",
+        "mapId": "I0157",
+        "name": "迷宮黑暗之地牢入口",
+        "minimap": "img/maps/黑暗之塔 1樓.png"
+       }
+      ],
+      "sourceMap": {
+       "mapId": "D0031",
+       "name": "黑暗之塔 1樓",
+       "minimap": "img/maps/黑暗之塔 1樓.png"
+      }
+     },
+     {
+      "file": "Dark_Tower_-_Dark_Tower_1F_Step.png",
+      "rooms": [
+       {
+        "en": "Advance - Center of Dark Dungeon",
+        "mapId": "I0130",
+        "name": "眾多黑暗之地牢出口",
+        "minimap": "img/maps/黑暗之塔 2樓.png"
+       },
+       {
+        "en": "Extreme - Center of Dark Dungeon",
+        "mapId": "I0158",
+        "name": "迷宮黑暗之地牢中央",
+        "minimap": "img/maps/黑暗之塔 2樓.png"
+       },
+       {
+        "en": "Extreme - Dark Dungeon Plaza",
+        "mapId": "I0159",
+        "name": "迷宮黑暗之地牢廣場",
+        "minimap": "img/maps/黑暗之塔 1樓.png"
+       }
+      ],
+      "sourceMap": {
+       "mapId": "D0032",
+       "name": "黑暗之塔 1樓 階梯",
+       "minimap": "img/maps/黑暗之塔 1樓 階梯.png"
+      }
+     }
+    ]
+   },
+   {
+    "id": "evil-base",
+    "name": "魔族集結地",
+    "en": "Evil Base",
+    "continent": {
+     "en": "Arnos",
+     "name": "阿諾斯",
+     "region": "阿諾斯"
+    },
+    "npc": {
+     "en": "Bruno",
+     "name": "布魯諾"
+    },
+    "location": {
+     "en": "Paperon",
+     "name": "派貝倫",
+     "region": "派貝倫平原"
+    },
+    "dungeonKeyFrom": {
+     "en": "Heidi",
+     "name": "海蒂"
+    },
+    "mapLayout": {
+     "en": "West Enpa",
+     "name": "沃斯特炎帕",
+     "region": "沃斯特炎帕"
+    },
+    "bgm": [
+     {
+      "file": "Bg_westenpa1.ogg",
+      "label": "West Enpa Theme 1"
+     },
+     {
+      "file": "Bg_westenpa2.ogg",
+      "label": "West Enpa Theme 2"
+     }
+    ],
+    "ambient": [
+     {
+      "file": "Embi_westenpa.ogg"
+     }
+    ],
+    "runs": [
+     {
+      "type": "normal",
+      "typeName": "普通",
+      "typeEn": "Normal",
+      "keyName": {
+       "en": "Evil Base",
+       "name": "魔族集結地"
+      },
+      "maps": [
+       {
+        "en": "Assembly Area of Evil's",
+        "mapId": "I0104",
+        "name": "滿族之集結地",
+        "minimap": "img/maps/獵人草棚.png"
+       }
+      ],
+      "monsters": [
+       {
+        "en": "Demon Spore",
+        "monsterId": "J0818",
+        "name": "藍魔菇",
+        "level": 73,
+        "hp": 4460,
+        "icon": "img/monsters/藍魔菇.png",
+        "count": 250,
+        "countLabel": "250 隻"
+       },
+       {
+        "en": "Crime Dog",
+        "monsterId": "J0820",
+        "name": "森林趴趴犬",
+        "level": 74,
+        "hp": 4210,
+        "icon": "img/monsters/森林趴趴犬.png",
+        "count": 300,
+        "countLabel": "300 隻"
+       }
+      ],
+      "boss": {
+       "en": "Ware Wolf",
+       "monsterId": "J0822",
+       "name": "首領趴趴犬",
+       "level": 75,
+       "hp": 29832,
+       "icon": "img/monsters/首領趴趴犬.png"
+      }
+     },
+     {
+      "type": "infinite",
+      "typeName": "無限",
+      "typeEn": "Infinite",
+      "keyName": {
+       "en": "Infinite Evil Base",
+       "name": "無限魔族集結地"
+      },
+      "maps": [
+       {
+        "en": "Normal - Assembly Area of Evil's",
+        "mapId": "I0114",
+        "name": "無限滿族之集結地內部",
+        "minimap": "img/maps/獵人草棚.png"
+       }
+      ],
+      "monsters": [
+       {
+        "en": "Abyss Worm",
+        "monsterId": "J0819",
+        "name": "吸血蟲",
+        "level": 73,
+        "hp": 3960,
+        "icon": "img/monsters/吸血蟲.png",
+        "unlimited": true,
+        "countLabel": "無限"
+       },
+       {
+        "en": "Ancient Totem",
+        "monsterId": "J0821",
+        "name": "麥德守護神",
+        "level": 74,
+        "hp": 4210,
+        "icon": "img/monsters/麥德守護神.png",
+        "unlimited": true,
+        "countLabel": "無限"
+       }
+      ],
+      "boss": {
+       "en": "Ware Wolf",
+       "monsterId": "J0822",
+       "name": "首領趴趴犬",
+       "level": 75,
+       "hp": 29832,
+       "icon": "img/monsters/首領趴趴犬.png"
+      }
+     },
+     {
+      "type": "advance",
+      "typeName": "眾多",
+      "typeEn": "Advance",
+      "keyName": {
+       "en": "Advance Evil Base",
+       "name": "眾多魔族集結地"
+      },
+      "maps": [
+       {
+        "en": "Advance - Intrance of Assembly Area of Evil's",
+        "mapId": "I0132",
+        "name": "眾多滿足之集結地入口",
+        "minimap": "img/maps/藍星海岸.png"
+       },
+       {
+        "en": "Advance - Center of Assembly Area of Evil's",
+        "mapId": "I0133",
+        "name": "眾多滿足之集結地中央",
+        "minimap": "img/maps/藍星海岸路程.png"
+       },
+       {
+        "en": "Advance - Exit of Assembly Area of Evil's",
+        "mapId": "I0134",
+        "name": "眾多滿足之集結地出口",
+        "minimap": "img/maps/藍星海岸山丘.png"
+       }
+      ],
+      "monsters": [
+       {
+        "en": "Skull Tree Tag",
+        "monsterId": "J0817",
+        "name": "駭人路牌",
+        "level": 72,
+        "hp": 4200,
+        "icon": "img/monsters/駭人路牌.png",
+        "count": 200,
+        "countLabel": "200 隻",
+        "enhanced": {
+         "monsterId": "J1304",
+         "name": "強化里程碑恐懼",
+         "level": 80,
+         "hp": 5040
+        }
+       },
+       {
+        "en": "Illusion Jelly",
+        "monsterId": "J0816",
+        "name": "血紅布丁",
+        "level": 72,
+        "hp": 3700,
+        "icon": "img/monsters/血紅布丁.png",
+        "count": 200,
+        "countLabel": "200 隻",
+        "enhanced": {
+         "monsterId": "J1303",
+         "name": "強化布丁紅",
+         "level": 80,
+         "hp": 4440
+        }
+       },
+       {
+        "en": "Crime Dog",
+        "monsterId": "J0820",
+        "name": "森林趴趴犬",
+        "level": 74,
+        "hp": 4210,
+        "icon": "img/monsters/森林趴趴犬.png",
+        "count": 200,
+        "countLabel": "200 隻",
+        "enhanced": {
+         "monsterId": "J1305",
+         "name": "強化叢林帕帕哥",
+         "level": 80,
+         "hp": 5052
+        }
+       }
+      ],
+      "boss": {
+       "en": "Ware Wolf",
+       "monsterId": "J0822",
+       "name": "首領趴趴犬",
+       "level": 75,
+       "hp": 29832,
+       "icon": "img/monsters/首領趴趴犬.png",
+       "enhanced": {
+        "monsterId": "J1317",
+        "name": "強化首領帕帕哥",
+        "level": 80,
+        "hp": 38782
+       }
+      }
+     },
+     {
+      "type": "maze",
+      "typeName": "迷宮",
+      "typeEn": "Maze",
+      "keyName": {
+       "en": "Maze Evil Base",
+       "name": "迷宮魔族集結地"
+      },
+      "maps": [
+       {
+        "en": "Extreme - Intrance of Assembly Area of Evil's",
+        "mapId": "I0161",
+        "name": "迷宮滿族之集結地入口",
+        "minimap": "img/maps/藍星海岸.png"
+       },
+       {
+        "en": "Extreme - Center of Assembly Area of Evil's",
+        "mapId": "I0162",
+        "name": "迷宮滿族之集結地中央",
+        "minimap": "img/maps/藍星海岸路程.png"
+       },
+       {
+        "en": "Extreme - Assembly Area of Evil's Plaza",
+        "mapId": "I0163",
+        "name": "迷宮滿族之集結地廣場",
+        "minimap": "img/maps/藍星海岸山丘.png"
+       },
+       {
+        "en": "Extreme - Exit of Assembly Area of Evil's",
+        "mapId": "I0164",
+        "name": "迷宮滿族之集結地出口",
+        "minimap": "img/maps/藍星山丘.png"
+       }
+      ],
+      "monsters": [
+       {
+        "en": "Illusion Jelly",
+        "monsterId": "J0816",
+        "name": "血紅布丁",
+        "level": 72,
+        "hp": 3700,
+        "icon": "img/monsters/血紅布丁.png",
+        "count": 200,
+        "countLabel": "200 隻",
+        "enhanced": {
+         "monsterId": "J1303",
+         "name": "強化布丁紅",
+         "level": 80,
+         "hp": 4440
+        }
+       },
+       {
+        "en": "Demon Spore",
+        "monsterId": "J0818",
+        "name": "藍魔菇",
+        "level": 73,
+        "hp": 4460,
+        "icon": "img/monsters/藍魔菇.png",
+        "count": 200,
+        "countLabel": "200 隻"
+       },
+       {
+        "en": "Ancient Totem",
+        "monsterId": "J0821",
+        "name": "麥德守護神",
+        "level": 74,
+        "hp": 4210,
+        "icon": "img/monsters/麥德守護神.png",
+        "count": 200,
+        "countLabel": "200 隻"
+       }
+      ],
+      "boss": {
+       "en": "Ware Wolf",
+       "monsterId": "J0822",
+       "name": "首領趴趴犬",
+       "level": 75,
+       "hp": 29832,
+       "icon": "img/monsters/首領趴趴犬.png",
+       "enhanced": {
+        "monsterId": "J1317",
+        "name": "強化首領帕帕哥",
+        "level": 80,
+        "hp": 38782
+       }
+      }
+     }
+    ],
+    "dungeonKeyIcon": "img/dungeons/副本鑰匙-阿諾斯.png",
+    "roomLayouts": [
+     {
+      "file": "West_Enpa_-_Bluestar_Hunter_Hovel.png",
+      "rooms": [
+       {
+        "en": "Assembly Area of Evil's",
+        "mapId": "I0104",
+        "name": "滿族之集結地",
+        "minimap": "img/maps/獵人草棚.png"
+       },
+       {
+        "en": "Normal - Assembly Area of Evil's",
+        "mapId": "I0114",
+        "name": "無限滿族之集結地內部",
+        "minimap": "img/maps/獵人草棚.png"
+       },
+       {
+        "en": "Advance - Exit of Assembly Area of Evil's",
+        "mapId": "I0134",
+        "name": "眾多滿足之集結地出口",
+        "minimap": "img/maps/藍星海岸山丘.png"
+       },
+       {
+        "en": "Extreme - Exit of Assembly Area of Evil's",
+        "mapId": "I0164",
+        "name": "迷宮滿族之集結地出口",
+        "minimap": "img/maps/藍星山丘.png"
+       }
+      ],
+      "sourceMap": {
+       "mapId": "C0006",
+       "name": "獵人草棚",
+       "minimap": "img/maps/獵人草棚.png"
+      }
+     },
+     {
+      "file": "West_Enpa_-_Bluestar_Seashore_Hill_(Dungeon).png",
+      "rooms": [
+       {
+        "en": "Advance - Intrance of Assembly Area of Evil's",
+        "mapId": "I0132",
+        "name": "眾多滿足之集結地入口",
+        "minimap": "img/maps/藍星海岸.png"
+       },
+       {
+        "en": "Extreme - Intrance of Assembly Area of Evil's",
+        "mapId": "I0161",
+        "name": "迷宮滿族之集結地入口",
+        "minimap": "img/maps/藍星海岸.png"
+       }
+      ],
+      "sourceMap": {
+       "mapId": "C0003",
+       "name": "藍星海岸山丘",
+       "minimap": "img/maps/藍星海岸山丘.png"
+      }
+     },
+     {
+      "file": "West_Enpa_-_Bluestar_Hill_Rock.png",
+      "rooms": [
+       {
+        "en": "Advance - Center of Assembly Area of Evil's",
+        "mapId": "I0133",
+        "name": "眾多滿足之集結地中央",
+        "minimap": "img/maps/藍星海岸路程.png"
+       },
+       {
+        "en": "Extreme - Center of Assembly Area of Evil's",
+        "mapId": "I0162",
+        "name": "迷宮滿族之集結地中央",
+        "minimap": "img/maps/藍星海岸路程.png"
+       }
+      ]
+     },
+     {
+      "file": "West_Enpa_-_Assembly_Area_of_Evil's_Plaza_(Dungeon).png",
+      "rooms": [
+       {
+        "en": "Extreme - Assembly Area of Evil's Plaza",
+        "mapId": "I0163",
+        "name": "迷宮滿族之集結地廣場",
+        "minimap": "img/maps/藍星海岸山丘.png"
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "id": "bamboo-grove",
+    "name": "竹林",
+    "en": "Bamboo Grove",
+    "continent": {
+     "en": "Arnos",
+     "name": "阿諾斯",
+     "region": "阿諾斯"
+    },
+    "npc": {
+     "en": "Zangyi",
+     "name": "贊蓋"
+    },
+    "location": {
+     "en": "Paperon",
+     "name": "派貝倫",
+     "region": "派貝倫平原"
+    },
+    "dungeonKeyFrom": {
+     "en": "Heidi",
+     "name": "海蒂"
+    },
+    "mapLayout": {
+     "en": "Navahorn",
+     "name": "納巴虎任",
+     "region": "納巴虎任"
+    },
+    "bgm": [
+     {
+      "file": "Bg_navahorn1.ogg",
+      "label": "Navahorn Theme 1"
+     },
+     {
+      "file": "Bg_navahorn2.ogg",
+      "label": "Navahorn Theme 2"
+     }
+    ],
+    "ambient": [
+     {
+      "file": "Embi_navahorn.ogg"
+     }
+    ],
+    "runs": [
+     {
+      "type": "normal",
+      "typeName": "普通",
+      "typeEn": "Normal",
+      "keyName": {
+       "en": "Bamboo Grove",
+       "name": "竹林"
+      },
+      "maps": [
+       {
+        "en": "Normal - Bamboo Grove",
+        "mapId": "I0107",
+        "name": "竹林內部",
+        "minimap": "img/maps/竹林中央.png"
+       }
+      ],
+      "monsters": [
+       {
+        "en": "Killer Joker",
+        "monsterId": "J0763",
+        "name": "鐵鍊小丑",
+        "level": 82,
+        "hp": 7080,
+        "icon": "img/monsters/鐵鍊小丑.png",
+        "count": 250,
+        "countLabel": "250 隻"
+       },
+       {
+        "en": "Gunslinger",
+        "monsterId": "J0767",
+        "name": "雙銃小精靈",
+        "level": 84,
+        "hp": 5672,
+        "icon": "img/monsters/雙銃小精靈.png",
+        "count": 300,
+        "countLabel": "300 隻"
+       },
+       {
+        "en": "Armor Of Grief",
+        "monsterId": "J0893",
+        "name": "悲傷死靈盔甲",
+        "level": 89,
+        "hp": 8160,
+        "icon": "img/monsters/悲傷死靈盔甲.png",
+        "count": 100,
+        "countLabel": "100 隻"
+       }
+      ],
+      "boss": {
+       "en": "Curse Sword",
+       "monsterId": "J0895",
+       "name": "血魔劍",
+       "level": 91,
+       "hp": 51765,
+       "icon": "img/monsters/血魔劍.png"
+      }
+     },
+     {
+      "type": "infinite",
+      "typeName": "無限",
+      "typeEn": "Infinite",
+      "keyName": {
+       "en": "Infinite Bamboo Grove",
+       "name": "無限竹林"
+      },
+      "maps": [
+       {
+        "en": "Normal - Interior of Bamboo Grove",
+        "mapId": "I0115",
+        "name": "無限竹林內部",
+        "minimap": "img/maps/竹林中央.png"
+       }
+      ],
+      "monsters": [
+       {
+        "en": "Bamboo Panda",
+        "monsterId": "J0761",
+        "name": "竹子貓熊",
+        "level": 85,
+        "hp": 7310,
+        "icon": "img/monsters/竹子貓熊.png",
+        "unlimited": true,
+        "countLabel": "無限"
+       },
+       {
+        "en": "Brutalizz",
+        "monsterId": "J0891",
+        "name": "雪狼",
+        "level": 87,
+        "hp": 7735,
+        "icon": "img/monsters/雪狼.png",
+        "unlimited": true,
+        "countLabel": "無限"
+       }
+      ],
+      "boss": {
+       "en": "Curse Sword",
+       "monsterId": "J0895",
+       "name": "血魔劍",
+       "level": 91,
+       "hp": 51765,
+       "icon": "img/monsters/血魔劍.png"
+      }
+     },
+     {
+      "type": "advance",
+      "typeName": "眾多",
+      "typeEn": "Advance",
+      "keyName": {
+       "en": "Advance Bamboo Grove",
+       "name": "眾多竹林"
+      },
+      "maps": [
+       {
+        "en": "Advance - Intrance of Bamboo Grove",
+        "mapId": "I0135",
+        "name": "眾多竹林入口",
+        "minimap": "img/maps/林蔭路之出口.png"
+       },
+       {
+        "en": "Advance - Center of Bamboo Grove",
+        "mapId": "I0136",
+        "name": "眾多竹林中央",
+        "minimap": "img/maps/竹林中央.png"
+       },
+       {
+        "en": "Advance - Exit of Bamboo Grove",
+        "mapId": "I0137",
+        "name": "眾多竹林出口",
+        "minimap": "img/maps/竹林中央.png"
+       }
+      ],
+      "monsters": [
+       {
+        "en": "Joker Warrior",
+        "monsterId": "J0764",
+        "name": "巨劍小丑",
+        "level": 83,
+        "hp": 6880,
+        "icon": "img/monsters/巨劍小丑.png",
+        "count": 200,
+        "countLabel": "200 隻",
+        "enhanced": {
+         "monsterId": "J1306",
+         "name": "強化劍破壞者",
+         "level": 90,
+         "hp": 8256
+        }
+       },
+       {
+        "en": "Killer Claw",
+        "monsterId": "J0765",
+        "name": "殺手小精靈",
+        "level": 83,
+        "hp": 5730,
+        "icon": "img/monsters/殺手小精靈.png",
+        "count": 200,
+        "countLabel": "200 隻",
+        "enhanced": {
+         "monsterId": "J1307",
+         "name": "強化戴博林行者",
+         "level": 90,
+         "hp": 6876
+        }
+       },
+       {
+        "en": "Ancient Ice Skeleton",
+        "monsterId": "J0892",
+        "name": "戰場亡靈",
+        "level": 88,
+        "hp": 8160,
+        "icon": "img/monsters/戰場亡靈.png",
+        "count": 200,
+        "countLabel": "200 隻",
+        "enhanced": {
+         "monsterId": "J1308",
+         "name": "強化戰場亡靈",
+         "level": 90,
+         "hp": 9792
+        }
+       }
+      ],
+      "boss": {
+       "en": "Curse Sword",
+       "monsterId": "J0895",
+       "name": "血魔劍",
+       "level": 91,
+       "hp": 51765,
+       "icon": "img/monsters/血魔劍.png",
+       "enhanced": {
+        "monsterId": "J1318",
+        "name": "強化血魔劍",
+        "level": 90,
+        "hp": 67295
+       }
+      }
+     },
+     {
+      "type": "maze",
+      "typeName": "迷宮",
+      "typeEn": "Maze",
+      "keyName": {
+       "en": "Maze Bamboo Grove",
+       "name": "迷宮竹林"
+      },
+      "maps": [
+       {
+        "en": "Extreme - Intrance of Bamboo Grove",
+        "mapId": "I0165",
+        "name": "迷宮竹林入口",
+        "minimap": "img/maps/林蔭路之出口.png"
+       },
+       {
+        "en": "Extreme - Center of Bamboo Grove",
+        "mapId": "I0166",
+        "name": "迷宮竹林中央",
+        "minimap": "img/maps/竹林中央.png"
+       },
+       {
+        "en": "Extreme - Bamboo Grove Plaza",
+        "mapId": "I0167",
+        "name": "迷宮竹林廣場",
+        "minimap": "img/maps/竹林中央.png"
+       },
+       {
+        "en": "Extreme - Exit of Bamboo Grove",
+        "mapId": "I0168",
+        "name": "迷宮竹林出口",
+        "minimap": "img/maps/竹林中央.png"
+       }
+      ],
+      "monsters": [
+       {
+        "en": "Joker Warrior",
+        "monsterId": "J0764",
+        "name": "巨劍小丑",
+        "level": 83,
+        "hp": 6880,
+        "icon": "img/monsters/巨劍小丑.png",
+        "count": 200,
+        "countLabel": "200 隻",
+        "enhanced": {
+         "monsterId": "J1306",
+         "name": "強化劍破壞者",
+         "level": 90,
+         "hp": 8256
+        }
+       },
+       {
+        "en": "Executioner",
+        "monsterId": "J0766",
+        "name": "鐮刀小精靈",
+        "level": 84,
+        "hp": 6680,
+        "icon": "img/monsters/鐮刀小精靈.png",
+        "count": 200,
+        "countLabel": "200 隻"
+       },
+       {
+        "en": "Ancient Ice Skeleton",
+        "monsterId": "J0892",
+        "name": "戰場亡靈",
+        "level": 88,
+        "hp": 8160,
+        "icon": "img/monsters/戰場亡靈.png",
+        "count": 200,
+        "countLabel": "200 隻",
+        "enhanced": {
+         "monsterId": "J1308",
+         "name": "強化戰場亡靈",
+         "level": 90,
+         "hp": 9792
+        }
+       }
+      ],
+      "boss": {
+       "en": "Curse Sword",
+       "monsterId": "J0895",
+       "name": "血魔劍",
+       "level": 91,
+       "hp": 51765,
+       "icon": "img/monsters/血魔劍.png",
+       "enhanced": {
+        "monsterId": "J1318",
+        "name": "強化血魔劍",
+        "level": 90,
+        "hp": 67295
+       }
+      }
+     }
+    ],
+    "dungeonKeyIcon": "img/dungeons/副本鑰匙-阿諾斯.png",
+    "roomLayouts": [
+     {
+      "file": "Navahorn_-_Exit_of_Bamboo_Grove.png",
+      "rooms": [
+       {
+        "en": "Normal - Bamboo Grove",
+        "mapId": "I0107",
+        "name": "竹林內部",
+        "minimap": "img/maps/竹林中央.png"
+       },
+       {
+        "en": "Normal - Interior of Bamboo Grove",
+        "mapId": "I0115",
+        "name": "無限竹林內部",
+        "minimap": "img/maps/竹林中央.png"
+       },
+       {
+        "en": "Advance - Exit of Bamboo Grove",
+        "mapId": "I0137",
+        "name": "眾多竹林出口",
+        "minimap": "img/maps/竹林中央.png"
+       },
+       {
+        "en": "Extreme - Exit of Bamboo Grove",
+        "mapId": "I0168",
+        "name": "迷宮竹林出口",
+        "minimap": "img/maps/竹林中央.png"
+       }
+      ],
+      "sourceMap": {
+       "mapId": "C0028",
+       "name": "竹林出口",
+       "minimap": "img/maps/竹林中央.png"
+      }
+     },
+     {
+      "file": "Navahorn_-_Center_of_Bamboo_Grove.png",
+      "rooms": [
+       {
+        "en": "Advance - Intrance of Bamboo Grove",
+        "mapId": "I0135",
+        "name": "眾多竹林入口",
+        "minimap": "img/maps/林蔭路之出口.png"
+       },
+       {
+        "en": "Advance - Center of Bamboo Grove",
+        "mapId": "I0136",
+        "name": "眾多竹林中央",
+        "minimap": "img/maps/竹林中央.png"
+       },
+       {
+        "en": "Extreme - Intrance of Bamboo Grove",
+        "mapId": "I0165",
+        "name": "迷宮竹林入口",
+        "minimap": "img/maps/林蔭路之出口.png"
+       },
+       {
+        "en": "Extreme - Center of Bamboo Grove",
+        "mapId": "I0166",
+        "name": "迷宮竹林中央",
+        "minimap": "img/maps/竹林中央.png"
+       },
+       {
+        "en": "Extreme - Bamboo Grove Plaza",
+        "mapId": "I0167",
+        "name": "迷宮竹林廣場",
+        "minimap": "img/maps/竹林中央.png"
+       }
+      ],
+      "sourceMap": {
+       "mapId": "C0027",
+       "name": "竹林中央",
+       "minimap": "img/maps/竹林中央.png"
+      }
+     }
+    ]
+   },
+   {
+    "id": "knowledge-tower",
+    "name": "知識之塔",
+    "en": "Knowledge Tower",
+    "continent": {
+     "en": "Arnos",
+     "name": "阿諾斯",
+     "region": "阿諾斯"
+    },
+    "npc": {
+     "en": "Captain Guard",
+     "name": "前哨基地隊長",
+     "npcId": "N0195",
+     "icon": "img/npcs/廢礦警備隊長.png"
+    },
+    "location": {
+     "en": "Death Valley Post",
+     "name": "馬塔前哨基地",
+     "region": "寇烏馬丁"
+    },
+    "dungeonKeyFrom": {
+     "en": "Merchant",
+     "name": "流浪商人",
+     "at": {
+      "en": "Death Valley Post",
+      "name": "馬塔前哨基地",
+      "region": "寇烏馬丁"
+     },
+     "npcId": "N0194",
+     "icon": "img/npcs/流浪商人.png"
+    },
+    "mapLayout": {
+     "en": "Wizard Tower",
+     "name": "魔法師之塔",
+     "region": "魔法師之塔"
+    },
+    "bgm": [
+     {
+      "file": "Boss2.ogg",
+      "label": "Wizard Tower Theme"
+     }
+    ],
+    "ambient": [
+     {
+      "file": "Embi_magetower.ogg"
+     }
+    ],
+    "runs": [
+     {
+      "type": "normal",
+      "typeName": "普通",
+      "typeEn": "Normal",
+      "keyName": {
+       "en": "Knowledge Tower",
+       "name": "知識之塔"
+      },
+      "maps": [
+       {
+        "en": "Normal - Knowledge Tower",
+        "mapId": "I0108",
+        "name": "知識之塔內部",
+        "minimap": "img/maps/知識之塔下部.png"
+       }
+      ],
+      "monsters": [
+       {
+        "en": "Evil Doll",
+        "monsterId": "J0950",
+        "name": "恐怖布偶",
+        "level": 91,
+        "hp": 8628,
+        "icon": "img/monsters/恐怖布偶.png",
+        "count": 250,
+        "countLabel": "250 隻"
+       },
+       {
+        "en": "Dead Plank",
+        "monsterId": "J0952",
+        "name": "殺人路牌",
+        "level": 93,
+        "hp": 9138,
+        "icon": "img/monsters/殺人路牌.png",
+        "count": 300,
+        "countLabel": "300 隻"
+       },
+       {
+        "en": "Black Head",
+        "monsterId": "J0960",
+        "name": "黑暗惡靈",
+        "level": 96,
+        "hp": 9903,
+        "icon": "img/monsters/黑暗惡靈.png",
+        "count": 100,
+        "countLabel": "100 隻"
+       }
+      ],
+      "boss": {
+       "en": "Dark Lord",
+       "monsterId": "J0958",
+       "name": "黑暗魔王",
+       "level": 100,
+       "hp": 131070,
+       "icon": "img/monsters/黑暗魔王.png"
+      }
+     },
+     {
+      "type": "infinite",
+      "typeName": "無限",
+      "typeEn": "Infinite",
+      "keyName": {
+       "en": "Infinite Knowledge Tower",
+       "name": "無限知識之塔"
+      },
+      "maps": [
+       {
+        "en": "Normal - Interior of Knowledge Tower",
+        "mapId": "I0116",
+        "name": "無限知識之塔內部",
+        "minimap": "img/maps/知識之塔下部.png"
+       }
+      ],
+      "monsters": [
+       {
+        "en": "Ghost Shall",
+        "monsterId": "J0959",
+        "name": "時尚幽靈",
+        "level": 95,
+        "hp": 9648,
+        "icon": "img/monsters/時尚幽靈.png",
+        "unlimited": true,
+        "countLabel": "無限"
+       },
+       {
+        "en": "Slimy Bucket",
+        "monsterId": "J0963",
+        "name": "打翻的魔桶",
+        "level": 99,
+        "hp": 10668,
+        "icon": "img/monsters/打翻的魔桶.png",
+        "unlimited": true,
+        "countLabel": "無限"
+       }
+      ],
+      "boss": {
+       "en": "Dark Lord",
+       "monsterId": "J0958",
+       "name": "黑暗魔王",
+       "level": 100,
+       "hp": 131070,
+       "icon": "img/monsters/黑暗魔王.png"
+      }
+     },
+     {
+      "type": "advance",
+      "typeName": "眾多",
+      "typeEn": "Advance",
+      "keyName": {
+       "en": "Advance Knowledge Tower",
+       "name": "眾多知識之塔"
+      },
+      "maps": [
+       {
+        "en": "Advance - Intrance of Knowledge Tower",
+        "mapId": "I0138",
+        "name": "眾多知識之塔入口",
+        "minimap": "img/maps/知識之塔下部.png"
+       },
+       {
+        "en": "Advance - Center of Knowledge Tower",
+        "mapId": "I0139",
+        "name": "眾多知識之塔中央",
+        "minimap": "img/maps/知識之塔 出口.png"
+       },
+       {
+        "en": "Advance - Exit of Knowledge Tower",
+        "mapId": "I0140",
+        "name": "眾多知識之塔出口",
+        "minimap": "img/maps/知識之塔頂樓.png"
+       }
+      ],
+      "monsters": [
+       {
+        "en": "Skeleton Fire",
+        "monsterId": "J0954",
+        "name": "火焰骷顱",
+        "level": 95,
+        "hp": 9648,
+        "icon": "img/monsters/火焰骷顱.png",
+        "count": 200,
+        "countLabel": "200 隻"
+       },
+       {
+        "en": "Black Wizard",
+        "monsterId": "J0956",
+        "name": "黑暗巫師",
+        "level": 97,
+        "hp": 10158,
+        "icon": "img/monsters/黑暗巫師.png",
+        "count": 200,
+        "countLabel": "200 隻",
+        "enhanced": {
+         "monsterId": "J1310",
+         "name": "強化死靈法師",
+         "level": 100,
+         "hp": 12190
+        }
+       },
+       {
+        "en": "Onix",
+        "monsterId": "J0957",
+        "name": "紅威龍",
+        "level": 98,
+        "hp": 10413,
+        "icon": "img/monsters/紅威龍.png",
+        "count": 200,
+        "countLabel": "200 隻",
+        "enhanced": {
+         "monsterId": "J1311",
+         "name": "強化骷髏龍",
+         "level": 100,
+         "hp": 12496
+        }
+       }
+      ],
+      "boss": {
+       "en": "Dark Lord",
+       "monsterId": "J0958",
+       "name": "黑暗魔王",
+       "level": 100,
+       "hp": 131070,
+       "icon": "img/monsters/黑暗魔王.png",
+       "enhanced": {
+        "monsterId": "J1319",
+        "name": "強化尤比斯卡",
+        "level": 100,
+        "hp": 170391
+       }
+      }
+     },
+     {
+      "type": "maze",
+      "typeName": "迷宮",
+      "typeEn": "Maze",
+      "keyName": {
+       "en": "Maze Knowledge Tower",
+       "name": "迷宮知識之塔"
+      },
+      "maps": [
+       {
+        "en": "Extreme - Intrance of Knowledge Tower",
+        "mapId": "I0169",
+        "name": "迷宮智慧之塔入口",
+        "minimap": "img/maps/知慧之塔  3樓.png"
+       },
+       {
+        "en": "Extreme - Center of Knowledge Tower",
+        "mapId": "I0170",
+        "name": "迷宮智慧之塔中央",
+        "minimap": "img/maps/知慧之塔  3樓 樓梯.png"
+       },
+       {
+        "en": "Extreme - Knowledge Tower Plaza",
+        "mapId": "I0171",
+        "name": "迷宮智慧之塔廣場",
+        "minimap": "img/maps/知識之塔  1樓.png"
+       },
+       {
+        "en": "Extreme - Exit of Knowledge Tower",
+        "mapId": "I0172",
+        "name": "迷宮智慧之塔出口",
+        "minimap": "img/maps/知慧之塔頂樓.png"
+       }
+      ],
+      "monsters": [
+       {
+        "en": "Skeleton Fire",
+        "monsterId": "J0954",
+        "name": "火焰骷顱",
+        "level": 95,
+        "hp": 9648,
+        "icon": "img/monsters/火焰骷顱.png",
+        "count": 200,
+        "countLabel": "200 隻"
+       },
+       {
+        "en": "Black Wizard",
+        "monsterId": "J0956",
+        "name": "黑暗巫師",
+        "level": 97,
+        "hp": 10158,
+        "icon": "img/monsters/黑暗巫師.png",
+        "count": 200,
+        "countLabel": "200 隻",
+        "enhanced": {
+         "monsterId": "J1310",
+         "name": "強化死靈法師",
+         "level": 100,
+         "hp": 12190
+        }
+       },
+       {
+        "en": "Slimy Bucket",
+        "monsterId": "J0963",
+        "name": "打翻的魔桶",
+        "level": 99,
+        "hp": 10668,
+        "icon": "img/monsters/打翻的魔桶.png",
+        "count": 200,
+        "countLabel": "200 隻",
+        "note": "在兩個不同的副本房間各出現一次"
+       }
+      ],
+      "boss": {
+       "en": "Dark Lord",
+       "monsterId": "J0958",
+       "name": "黑暗魔王",
+       "level": 100,
+       "hp": 131070,
+       "icon": "img/monsters/黑暗魔王.png",
+       "enhanced": {
+        "monsterId": "J1319",
+        "name": "強化尤比斯卡",
+        "level": 100,
+        "hp": 170391
+       }
+      }
+     }
+    ],
+    "dungeonKeyIcon": "img/dungeons/副本鑰匙-阿諾斯.png",
+    "roomLayouts": [
+     {
+      "file": "Wizard_Tower_-_The_Mirage_Tower_1F.png",
+      "rooms": [
+       {
+        "en": "Normal - Knowledge Tower",
+        "mapId": "I0108",
+        "name": "知識之塔內部",
+        "minimap": "img/maps/知識之塔下部.png"
+       },
+       {
+        "en": "Normal - Interior of Knowledge Tower",
+        "mapId": "I0116",
+        "name": "無限知識之塔內部",
+        "minimap": "img/maps/知識之塔下部.png"
+       },
+       {
+        "en": "Advance - Intrance of Knowledge Tower",
+        "mapId": "I0138",
+        "name": "眾多知識之塔入口",
+        "minimap": "img/maps/知識之塔下部.png"
+       },
+       {
+        "en": "Advance - Center of Knowledge Tower",
+        "mapId": "I0139",
+        "name": "眾多知識之塔中央",
+        "minimap": "img/maps/知識之塔 出口.png"
+       }
+      ]
+     },
+     {
+      "file": "Wizard_Tower_-_The_Dark_Lord_Throne.png",
+      "rooms": [
+       {
+        "en": "Advance - Exit of Knowledge Tower",
+        "mapId": "I0140",
+        "name": "眾多知識之塔出口",
+        "minimap": "img/maps/知識之塔頂樓.png"
+       },
+       {
+        "en": "Extreme - Exit of Knowledge Tower",
+        "mapId": "I0172",
+        "name": "迷宮智慧之塔出口",
+        "minimap": "img/maps/知慧之塔頂樓.png"
+       }
+      ],
+      "sourceMap": {
+       "mapId": "U0011",
+       "name": "知識之塔頂樓",
+       "minimap": "img/maps/知識之塔頂樓.png"
+      }
+     },
+     {
+      "file": "Wizard_Tower_-_The_Shadow_Tower_1F.png",
+      "rooms": [
+       {
+        "en": "Extreme - Intrance of Knowledge Tower",
+        "mapId": "I0169",
+        "name": "迷宮智慧之塔入口",
+        "minimap": "img/maps/知慧之塔  3樓.png"
+       },
+       {
+        "en": "Extreme - Center of Knowledge Tower",
+        "mapId": "I0170",
+        "name": "迷宮智慧之塔中央",
+        "minimap": "img/maps/知慧之塔  3樓 樓梯.png"
+       },
+       {
+        "en": "Extreme - Knowledge Tower Plaza",
+        "mapId": "I0171",
+        "name": "迷宮智慧之塔廣場",
+        "minimap": "img/maps/知識之塔  1樓.png"
+       }
+      ]
+     }
+    ]
+   }
+  ],
+  "otherTypes": [
+   {
+    "name": "眾多副本（第二組）",
+    "typeKey": "advance2",
+    "mapIdRange": [
+     "I0173",
+     "I0196"
+    ],
+    "guess": "Circle Dungeon",
+    "note": "站上有第二組「眾多」房間（I0173–I0196），八組、每組三間，架構與副本頁列出的眾多型相同，但副本頁沒有列。Trivia 提到的 Circle Dungeon 可能是它，名稱對不上，僅為推測。"
+   },
+   {
+    "name": "強化副本",
+    "typeKey": "extreme",
+    "mapIdRange": [
+     "I0197",
+     "I0220"
+    ],
+    "guess": "Extreme Dungeon",
+    "note": "站上有一組「強化」房間（I0197–I0220），八組、每組三間，架構與眾多型相同，但副本頁沒有列。名稱對得上 Trivia 的 Extreme Dungeon。注意副本頁「迷宮」型的房間前綴也寫 Extreme，那是另一回事，不要混。"
+   }
+  ],
+  "trivia": [
+   "循環副本與強化副本沿用副本「眾多」型的架構。"
+  ]
+ },
+ "treasureBoxes": {
+  "name": "寶箱",
+  "en": "Treasure Box",
+  "intro": [
+   "冒險途中會遇到寶箱，打破後可以拿到藥水、移動卷軸、礦石、封印石與商城道具等物品。",
+   "被打破的寶箱會在數小時後重新出現。",
+   "婚禮箱打破後會立刻重生，但最多只重生四次。",
+   "和怪物一樣，遊戲管理員（GM）可以在任何地方召喚各種寶箱，安全區域也不例外；由 GM 召喚出來的寶箱一律不會重生。"
+  ],
+  "boxes": [
+   {
+    "en": "Bronze Treasure Box",
+    "name": "青銅寶物箱子",
+    "icon": "img/dungeons/青銅寶物箱子.gif",
+    "locations": [
+     {
+      "en": "Cram Hill",
+      "name": "克雷畢",
+      "region": "克雷畢"
+     },
+     {
+      "en": "Volcano Cave",
+      "name": "火山洞窟",
+      "region": "克雷畢"
+     },
+     {
+      "en": "Dark Hill",
+      "name": "達克比拉",
+      "region": "達克比拉"
+     }
+    ],
+    "drops": [
+     {
+      "en": "Intermediate Resume Syrup",
+      "count": 20,
+      "itemId": "I0013",
+      "name": "中級恢復藥水",
+      "icon": "img/items/中級恢復藥水.png"
+     },
+     {
+      "en": "Intermediate Mana Syrup",
+      "count": 20,
+      "itemId": "I0016",
+      "name": "中級神力藥水",
+      "icon": "img/items/中級神力藥水.png"
+     },
+     {
+      "en": "Restitution",
+      "count": 1,
+      "itemId": "I0504",
+      "name": "脫逃城市咒文書",
+      "icon": "img/items/脫逃城市咒文書.png"
+     },
+     {
+      "en": "Instant Move",
+      "count": 1,
+      "itemId": "I0107",
+      "name": "瞬間移動",
+      "icon": "img/items/瞬間移動.png"
+     }
+    ],
+    "current": [
+     {
+      "monsterId": "J2000",
+      "name": "青銅寶物箱子",
+      "hp": 1570,
+      "maps": [
+       {
+        "mapId": "M0027",
+        "name": "紅色尾巴山丘",
+        "region": "克雷畢"
+       },
+       {
+        "mapId": "M0045",
+        "name": "火花山丘1",
+        "region": "克雷畢"
+       },
+       {
+        "mapId": "M0046",
+        "name": "火花山丘2",
+        "region": "克雷畢"
+       },
+       {
+        "mapId": "M0047",
+        "name": "火花山丘3",
+        "region": "克雷畢"
+       }
+      ],
+      "drops": [
+       {
+        "itemId": "I0013",
+        "name": "中級恢復藥水",
+        "icon": "img/items/中級恢復藥水.png",
+        "min": 15,
+        "max": 15,
+        "rate": 1
+       },
+       {
+        "itemId": "I0016",
+        "name": "中級神力藥水",
+        "icon": "img/items/中級神力藥水.png",
+        "min": 15,
+        "max": 15,
+        "rate": 1
+       },
+       {
+        "itemId": "I0504",
+        "name": "脫逃城市咒文書",
+        "icon": "img/items/脫逃城市咒文書.png",
+        "min": 1,
+        "max": 1,
+        "rate": 0.6
+       },
+       {
+        "itemId": "I0107",
+        "name": "瞬間移動",
+        "icon": "img/items/瞬間移動.png",
+        "min": 1,
+        "max": 1,
+        "rate": 0.6
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "en": "Silver Treasure Box",
+    "name": "銀寶物箱子",
+    "icon": "img/dungeons/銀寶物箱子.gif",
+    "locations": [
+     {
+      "en": "Cram Hill",
+      "name": "克雷畢",
+      "region": "克雷畢"
+     },
+     {
+      "en": "Volcano Cave",
+      "name": "火山洞窟",
+      "region": "克雷畢"
+     },
+     {
+      "en": "Dark Hill",
+      "name": "達克比拉",
+      "region": "達克比拉"
+     }
+    ],
+    "drops": [
+     {
+      "en": "Attacks Syrup",
+      "count": 20,
+      "itemId": "I0019",
+      "name": "攻擊的藥水",
+      "icon": "img/items/攻擊的藥水.png"
+     },
+     {
+      "en": "Intelligence Syrup",
+      "count": 20,
+      "itemId": "I0022",
+      "name": "智力的藥水",
+      "icon": "img/items/智力的藥水.png"
+     },
+     {
+      "en": "Restitution",
+      "count": 1,
+      "itemId": "I0504",
+      "name": "脫逃城市咒文書",
+      "icon": "img/items/脫逃城市咒文書.png"
+     },
+     {
+      "en": "Instant Move",
+      "count": 1,
+      "itemId": "I0107",
+      "name": "瞬間移動",
+      "icon": "img/items/瞬間移動.png"
+     }
+    ],
+    "current": [
+     {
+      "monsterId": "J2001",
+      "name": "銀寶物箱子",
+      "hp": 2660,
+      "maps": [
+       {
+        "mapId": "M0027",
+        "name": "紅色尾巴山丘",
+        "region": "克雷畢"
+       },
+       {
+        "mapId": "M0045",
+        "name": "火花山丘1",
+        "region": "克雷畢"
+       },
+       {
+        "mapId": "M0046",
+        "name": "火花山丘2",
+        "region": "克雷畢"
+       },
+       {
+        "mapId": "M0047",
+        "name": "火花山丘3",
+        "region": "克雷畢"
+       },
+       {
+        "mapId": "M0056",
+        "name": "共同墓地入口",
+        "region": "達克比拉"
+       },
+       {
+        "mapId": "M0057",
+        "name": "古代共同墓地1",
+        "region": "達克比拉"
+       },
+       {
+        "mapId": "M0058",
+        "name": "古代共同墓地2",
+        "region": "達克比拉"
+       },
+       {
+        "mapId": "M0059",
+        "name": "黑暗樂園山麓1",
+        "region": "達克比拉"
+       },
+       {
+        "mapId": "M0060",
+        "name": "黑暗樂園山麓2",
+        "region": "達克比拉"
+       },
+       {
+        "mapId": "M0061",
+        "name": "黑暗樂園山麓3",
+        "region": "達克比拉"
+       },
+       {
+        "mapId": "D0020",
+        "name": "火山洞窟 1樓",
+        "region": "克雷畢"
+       },
+       {
+        "mapId": "D0021",
+        "name": "火山洞窟 2樓",
+        "region": "克雷畢"
+       }
+      ],
+      "drops": [
+       {
+        "itemId": "I0019",
+        "name": "攻擊的藥水",
+        "icon": "img/items/攻擊的藥水.png",
+        "min": 20,
+        "max": 20,
+        "rate": 1
+       },
+       {
+        "itemId": "I0022",
+        "name": "智力的藥水",
+        "icon": "img/items/智力的藥水.png",
+        "min": 20,
+        "max": 20,
+        "rate": 1
+       },
+       {
+        "itemId": "I0504",
+        "name": "脫逃城市咒文書",
+        "icon": "img/items/脫逃城市咒文書.png",
+        "min": 1,
+        "max": 1,
+        "rate": 0.6
+       },
+       {
+        "itemId": "I0107",
+        "name": "瞬間移動",
+        "icon": "img/items/瞬間移動.png",
+        "min": 1,
+        "max": 1,
+        "rate": 0.6
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "en": "Gold Treasure Box",
+    "name": "黃金寶石箱子",
+    "icon": "img/dungeons/黃金寶石箱子.gif",
+    "locations": [
+     {
+      "en": "Cram Hill",
+      "name": "克雷畢",
+      "region": "克雷畢"
+     },
+     {
+      "en": "Harlon Castle",
+      "name": "郝代杻",
+      "region": "郝代杻"
+     },
+     {
+      "en": "Dark Hill",
+      "name": "達克比拉",
+      "region": "達克比拉"
+     },
+     {
+      "en": "Dark Tower",
+      "name": "黑暗之塔",
+      "region": "達克比拉"
+     }
+    ],
+    "drops": [
+     {
+      "en": "High Resume Syrup",
+      "count": 15,
+      "itemId": "I0014",
+      "name": "高級恢復藥水",
+      "icon": "img/items/高級恢復藥水.png"
+     },
+     {
+      "en": "High Mana Syrup",
+      "count": 15,
+      "itemId": "I0017",
+      "name": "高級神力藥水",
+      "icon": "img/items/高級神力藥水.png"
+     },
+     {
+      "en": "Restitution",
+      "count": 2,
+      "itemId": "I0504",
+      "name": "脫逃城市咒文書",
+      "icon": "img/items/脫逃城市咒文書.png"
+     },
+     {
+      "en": "Instant Move",
+      "count": 2,
+      "itemId": "I0107",
+      "name": "瞬間移動",
+      "icon": "img/items/瞬間移動.png"
+     }
+    ],
+    "current": [
+     {
+      "monsterId": "J2002",
+      "name": "黃金寶石箱子",
+      "hp": 3570,
+      "maps": [
+       {
+        "mapId": "M0045",
+        "name": "火花山丘1",
+        "region": "克雷畢"
+       },
+       {
+        "mapId": "M0046",
+        "name": "火花山丘2",
+        "region": "克雷畢"
+       },
+       {
+        "mapId": "M0047",
+        "name": "火花山丘3",
+        "region": "克雷畢"
+       },
+       {
+        "mapId": "M0059",
+        "name": "黑暗樂園山麓1",
+        "region": "達克比拉"
+       },
+       {
+        "mapId": "M0060",
+        "name": "黑暗樂園山麓2",
+        "region": "達克比拉"
+       },
+       {
+        "mapId": "M0061",
+        "name": "黑暗樂園山麓3",
+        "region": "達克比拉"
+       },
+       {
+        "mapId": "H0003",
+        "name": "研究室",
+        "region": "郝代杻"
+       },
+       {
+        "mapId": "D0044",
+        "name": "黑暗之塔 7樓 階梯",
+        "region": "達克比拉"
+       }
+      ],
+      "drops": [
+       {
+        "itemId": "I0014",
+        "name": "高級恢復藥水",
+        "icon": "img/items/高級恢復藥水.png",
+        "min": 15,
+        "max": 15,
+        "rate": 1
+       },
+       {
+        "itemId": "I0017",
+        "name": "高級神力藥水",
+        "icon": "img/items/高級神力藥水.png",
+        "min": 15,
+        "max": 15,
+        "rate": 1
+       },
+       {
+        "itemId": "I0504",
+        "name": "脫逃城市咒文書",
+        "icon": "img/items/脫逃城市咒文書.png",
+        "min": 2,
+        "max": 2,
+        "rate": 0.6
+       },
+       {
+        "itemId": "I0107",
+        "name": "瞬間移動",
+        "icon": "img/items/瞬間移動.png",
+        "min": 2,
+        "max": 2,
+        "rate": 0.6
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "en": "Gem Treasure Box",
+    "name": "寶石箱子",
+    "icon": "img/dungeons/寶石箱子.gif",
+    "locations": [
+     {
+      "en": "West Enpa",
+      "name": "沃斯特炎帕",
+      "region": "沃斯特炎帕"
+     },
+     {
+      "en": "North Enpa",
+      "name": "挪思炎帕",
+      "region": "挪思炎帕"
+     },
+     {
+      "en": "Albadia Desert",
+      "name": "寇烏馬丁",
+      "region": "寇烏馬丁"
+     },
+     {
+      "en": "East Enpa",
+      "name": "伊斯特炎帕",
+      "region": "伊斯特炎帕"
+     }
+    ],
+    "drops": [
+     {
+      "en": "Attack Syrup",
+      "count": 20,
+      "itemId": "I0019",
+      "name": "攻擊的藥水",
+      "icon": "img/items/攻擊的藥水.png"
+     },
+     {
+      "en": "Intelligence Syrup",
+      "count": 20,
+      "itemId": "I0022",
+      "name": "智力的藥水",
+      "icon": "img/items/智力的藥水.png"
+     },
+     {
+      "en": "Restitution",
+      "count": 2,
+      "itemId": "I0504",
+      "name": "脫逃城市咒文書",
+      "icon": "img/items/脫逃城市咒文書.png"
+     },
+     {
+      "en": "Instant Move",
+      "count": 2,
+      "itemId": "I0107",
+      "name": "瞬間移動",
+      "icon": "img/items/瞬間移動.png"
+     }
+    ],
+    "current": [
+     {
+      "monsterId": "J2003",
+      "name": "寶石箱子",
+      "hp": 5990,
+      "maps": [
+       {
+        "mapId": "C0016",
+        "name": "藍星草原",
+        "region": "沃斯特炎帕"
+       },
+       {
+        "mapId": "C0017",
+        "name": "藍星江下流",
+        "region": "沃斯特炎帕"
+       },
+       {
+        "mapId": "C0018",
+        "name": "藍星江上流",
+        "region": "沃斯特炎帕"
+       },
+       {
+        "mapId": "C0033",
+        "name": "黃金樹林入口",
+        "region": "挪思炎帕"
+       },
+       {
+        "mapId": "C0022",
+        "name": "蜿蜒釣魚台出口",
+        "region": "納巴虎任"
+       },
+       {
+        "mapId": "C0043",
+        "name": "原木橋入口",
+        "region": "伊斯特炎帕"
+       },
+       {
+        "mapId": "C0044",
+        "name": "原木橋中央",
+        "region": "伊斯特炎帕"
+       },
+       {
+        "mapId": "C0045",
+        "name": "原木橋出口",
+        "region": "伊斯特炎帕"
+       }
+      ],
+      "drops": [
+       {
+        "itemId": "I0020",
+        "name": "敏捷的藥水",
+        "icon": "img/items/敏捷的藥水.png",
+        "min": 20,
+        "max": 20,
+        "rate": 1
+       },
+       {
+        "itemId": "I0021",
+        "name": "體力的藥水",
+        "icon": "img/items/體力的藥水.png",
+        "min": 20,
+        "max": 20,
+        "rate": 1
+       },
+       {
+        "itemId": "I0504",
+        "name": "脫逃城市咒文書",
+        "icon": "img/items/脫逃城市咒文書.png",
+        "min": 3,
+        "max": 3,
+        "rate": 0.6
+       },
+       {
+        "itemId": "I0107",
+        "name": "瞬間移動",
+        "icon": "img/items/瞬間移動.png",
+        "min": 3,
+        "max": 3,
+        "rate": 0.6
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "en": "Extreme Gem Treasure Box",
+    "name": "高級寶石箱子",
+    "icon": "img/dungeons/高級寶石箱子.gif",
+    "locations": [
+     {
+      "en": "West Enpa",
+      "name": "沃斯特炎帕",
+      "region": "沃斯特炎帕"
+     },
+     {
+      "en": "North Enpa",
+      "name": "挪思炎帕",
+      "region": "挪思炎帕"
+     },
+     {
+      "en": "Albadia Desert",
+      "name": "寇烏馬丁",
+      "region": "寇烏馬丁"
+     },
+     {
+      "en": "East Enpa",
+      "name": "伊斯特炎帕",
+      "region": "伊斯特炎帕"
+     },
+     {
+      "en": "Thousands Tree",
+      "name": "萊斯汀",
+      "region": "萊斯汀"
+     },
+     {
+      "en": "Navahorn",
+      "name": "納巴虎任",
+      "region": "納巴虎任"
+     },
+     {
+      "en": "Ciberian",
+      "name": "派貝倫平原",
+      "region": "派貝倫平原"
+     },
+     {
+      "en": "Wizard Tower",
+      "name": "魔法師之塔",
+      "region": "魔法師之塔"
+     },
+     {
+      "en": "Big Woods",
+      "name": "大樹林",
+      "region": "大樹林"
+     }
+    ],
+    "drops": [
+     {
+      "en": "Huge Resume Syrup",
+      "count": 5,
+      "itemId": "I0023",
+      "name": "生命的根源",
+      "icon": "img/items/生命的根源.png"
+     },
+     {
+      "en": "Huge Mana Syrup",
+      "count": 5,
+      "itemId": "I0024",
+      "name": "精神的根源",
+      "icon": "img/items/精神的根源.png"
+     },
+     {
+      "en": "Restitution",
+      "count": 2,
+      "itemId": "I0504",
+      "name": "脫逃城市咒文書",
+      "icon": "img/items/脫逃城市咒文書.png"
+     },
+     {
+      "en": "Instant Move",
+      "count": 2,
+      "itemId": "I0107",
+      "name": "瞬間移動",
+      "icon": "img/items/瞬間移動.png"
+     }
+    ],
+    "current": [
+     {
+      "monsterId": "J2004",
+      "name": "高級寶石箱子",
+      "hp": 8372,
+      "maps": [
+       {
+        "mapId": "C0022",
+        "name": "蜿蜒釣魚台出口",
+        "region": "納巴虎任"
+       },
+       {
+        "mapId": "C0057",
+        "name": "死亡之溪谷入口",
+        "region": "寇烏馬丁"
+       },
+       {
+        "mapId": "C0058",
+        "name": "死亡之溪谷",
+        "region": "寇烏馬丁"
+       },
+       {
+        "mapId": "C0043",
+        "name": "原木橋入口",
+        "region": "伊斯特炎帕"
+       },
+       {
+        "mapId": "C0044",
+        "name": "原木橋中央",
+        "region": "伊斯特炎帕"
+       },
+       {
+        "mapId": "C0045",
+        "name": "原木橋出口",
+        "region": "伊斯特炎帕"
+       },
+       {
+        "mapId": "C0067",
+        "name": "帕佩倫牆壁入口",
+        "region": "派貝倫平原"
+       },
+       {
+        "mapId": "C0068",
+        "name": "帕佩倫牆壁出口",
+        "region": "派貝倫平原"
+       }
+      ],
+      "drops": [
+       {
+        "itemId": "I0023",
+        "name": "生命的根源",
+        "icon": "img/items/生命的根源.png",
+        "min": 5,
+        "max": 5,
+        "rate": 1
+       },
+       {
+        "itemId": "I0024",
+        "name": "精神的根源",
+        "icon": "img/items/精神的根源.png",
+        "min": 5,
+        "max": 5,
+        "rate": 1
+       },
+       {
+        "itemId": "I0504",
+        "name": "脫逃城市咒文書",
+        "icon": "img/items/脫逃城市咒文書.png",
+        "min": 3,
+        "max": 3,
+        "rate": 0.6
+       },
+       {
+        "itemId": "I0107",
+        "name": "瞬間移動",
+        "icon": "img/items/瞬間移動.png",
+        "min": 3,
+        "max": 3,
+        "rate": 0.6
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "en": "Ralph Treasure Box",
+    "name": "拉爾夫寶箱",
+    "icon": "img/dungeons/青銅寶物箱子.gif",
+    "locations": [
+     {
+      "en": "Rundwell Fortress",
+      "name": "蘭德韋爾要塞",
+      "region": "蘭德韋爾要塞"
+     }
+    ],
+    "drops": []
+   },
+   {
+    "en": "Runpei Treasure Box",
+    "name": "倫佩寶箱",
+    "icon": "img/dungeons/銀寶物箱子.gif",
+    "locations": [
+     {
+      "en": "Rundwell Fortress",
+      "name": "蘭德韋爾要塞",
+      "region": "蘭德韋爾要塞"
+     }
+    ],
+    "drops": []
+   },
+   {
+    "en": "Bydert Treasure Box",
+    "name": "拜德爾特寶箱",
+    "icon": "img/dungeons/黃金寶石箱子.gif",
+    "locations": [
+     {
+      "en": "Rundwell Fortress",
+      "name": "蘭德韋爾要塞",
+      "region": "蘭德韋爾要塞"
+     }
+    ],
+    "drops": []
+   },
+   {
+    "en": "Cenacia Treasure Box",
+    "name": "賽納西亞寶箱",
+    "icon": "img/dungeons/寶石箱子.gif",
+    "locations": [
+     {
+      "en": "Rundwell Fortress",
+      "name": "蘭德韋爾要塞",
+      "region": "蘭德韋爾要塞"
+     }
+    ],
+    "drops": []
+   },
+   {
+    "en": "Alucard Treasure Box",
+    "name": "魯茲博特寶箱",
+    "icon": "img/dungeons/高級寶石箱子.gif",
+    "locations": [
+     {
+      "en": "Rundwell Fortress",
+      "name": "蘭德韋爾要塞",
+      "region": "蘭德韋爾要塞"
+     }
+    ],
+    "drops": []
+   },
+   {
+    "en": "Gold Wedding Box",
+    "name": "黃金婚禮箱",
+    "icon": "img/dungeons/黃金婚禮箱.gif",
+    "healthText": "1500/1800",
+    "locations": [
+     {
+      "en": "Meldives Island (Ribi Town)",
+      "name": "Meldives Island (Ribi Town)"
+     }
+    ],
+    "drops": [
+     {
+      "en": "Huge Resume Syrup",
+      "count": 5,
+      "itemId": "I0023",
+      "name": "生命的根源",
+      "icon": "img/items/生命的根源.png"
+     },
+     {
+      "en": "Huge Mana Syrup",
+      "count": 5,
+      "itemId": "I0024",
+      "name": "精神的根源",
+      "icon": "img/items/精神的根源.png"
+     },
+     {
+      "en": "Sealed Water Stone",
+      "count": 1,
+      "itemId": "I0666",
+      "name": "已封印的水石",
+      "icon": "img/items/已封印的水石.png"
+     },
+     {
+      "en": "Sealed Silver Stone",
+      "count": 1,
+      "itemId": "I0667",
+      "name": "已封印的銀石",
+      "icon": "img/items/已封印的銀石.png"
+     },
+     {
+      "en": "Sealed Gold Stone",
+      "count": 1,
+      "itemId": "I0668",
+      "name": "已封印的金石",
+      "icon": "img/items/已封印的金石.png"
+     },
+     {
+      "en": "Speed Potion",
+      "count": 1,
+      "itemId": "I0083",
+      "name": "縮地藥水",
+      "icon": "img/items/縮地藥水.png"
+     },
+     {
+      "en": "Experience 100% (1D)",
+      "count": 1,
+      "itemId": "I0908",
+      "name": "EXP 100% (1D)",
+      "icon": "img/items/EXP 100％ (1D).png"
+     },
+     {
+      "en": "Libi 100% (1D)",
+      "count": 1,
+      "itemId": "I0913",
+      "name": "LIBI 100% (1D)",
+      "icon": "img/items/LIBI 100％ (1D).png"
+     },
+     {
+      "en": "Snow Falling (CH)",
+      "count": 1,
+      "itemId": "I0937",
+      "name": "雪花結晶氣象魔術(CH)",
+      "icon": "img/items/雪花結晶氣象魔術(CH).png"
+     },
+     {
+      "en": "Love Aura (CH)",
+      "count": 1,
+      "itemId": "I0938",
+      "name": "愛心氣象魔術(CH)",
+      "icon": "img/items/愛心氣象魔術(CH).png"
+     },
+     {
+      "en": "Gold Coin Rain (CH)",
+      "count": 1,
+      "itemId": "I0939",
+      "name": "灑錢氣象魔術(CH)",
+      "icon": "img/items/灑錢氣象魔術(CH).png"
+     },
+     {
+      "en": "Popo Rain Magic (CH)",
+      "count": 1,
+      "itemId": "I0940",
+      "name": "灑糖果氣象魔術(CH)",
+      "icon": "img/items/灑糖果氣象魔術(CH).png"
+     },
+     {
+      "en": "HP Rain Magic (CH)",
+      "count": 1,
+      "itemId": "I0941",
+      "name": "HP藥水氣象魔術(CH)",
+      "icon": "img/items/HP藥水氣象魔術(CH).png"
+     },
+     {
+      "en": "MP Rain Magic (CH)",
+      "count": 1,
+      "itemId": "I0942",
+      "name": "MP藥水氣象魔術(CH)",
+      "icon": "img/items/MP藥水氣象魔術(CH).png"
+     },
+     {
+      "en": "Frozen Rain (CH)",
+      "count": 1,
+      "itemId": "I0943",
+      "name": "冰柱氣象魔術(CH)",
+      "icon": "img/items/冰柱氣象魔術(CH).png"
+     },
+     {
+      "en": "Red Rose (CH)",
+      "count": 1,
+      "itemId": "I0944",
+      "name": "玫瑰花氣象魔術(CH)",
+      "icon": "img/items/玫瑰花氣象魔術(CH).png"
+     },
+     {
+      "en": "Rainbow Arrow (CH)",
+      "count": 1,
+      "itemId": "I0945",
+      "name": "邱比特之箭氣象魔術(CH)",
+      "icon": "img/items/邱比特之箭氣象魔術(CH).png"
+     },
+     {
+      "en": "Bubble Rain (CH)",
+      "count": 1,
+      "itemId": "I0946",
+      "name": "泡泡氣象魔術(CH)",
+      "icon": "img/items/泡泡氣象魔術(CH).png"
+     },
+     {
+      "en": "Rainbow Candy Weather Magic (CH)",
+      "count": 1,
+      "itemId": "I0947",
+      "name": "彩虹糖果氣象魔術(CH)",
+      "icon": "img/items/彩虹糖果氣象魔術(CH).png"
+     },
+     {
+      "en": "Boom Rain (CH)",
+      "count": 1,
+      "itemId": "I0948",
+      "name": "手套氣象魔術(CH)",
+      "icon": "img/items/手套氣象魔術(CH).png"
+     }
+    ],
+    "current": [
+     {
+      "monsterId": "J2011",
+      "name": "婚禮珠寶箱",
+      "hp": 1500,
+      "maps": [
+       {
+        "mapId": "A0006",
+        "name": "馬爾地夫",
+        "region": "利比村莊"
+       }
+      ],
+      "drops": [
+       {
+        "itemId": "I0668",
+        "name": "已封印的金石",
+        "icon": "img/items/已封印的金石.png",
+        "min": 1,
+        "max": 1,
+        "rate": 0.17
+       },
+       {
+        "itemId": "I0966",
+        "name": "灑糖果氣象魔術(CH)",
+        "icon": "img/items/灑糖果氣象魔術(CH).png",
+        "min": 1,
+        "max": 1,
+        "rate": 0.17
+       },
+       {
+        "itemId": "I0967",
+        "name": "HP藥水氣象魔術(CH)",
+        "icon": "img/items/HP藥水氣象魔術(CH).png",
+        "min": 1,
+        "max": 1,
+        "rate": 0.17
+       },
+       {
+        "itemId": "I0968",
+        "name": "MP藥水氣象魔術(CH)",
+        "icon": "img/items/MP藥水氣象魔術(CH).png",
+        "min": 1,
+        "max": 1,
+        "rate": 0.17
+       },
+       {
+        "itemId": "I0917",
+        "name": "EXP 100% (1H)(E)",
+        "icon": "img/items/EXP 100％ (1H)(E).png",
+        "min": 1,
+        "max": 1,
+        "rate": 0.17
+       },
+       {
+        "itemId": "I0918",
+        "name": "LIBI 100% (1H)(E)",
+        "icon": "img/items/LIBI 100％ (1H)(E).png",
+        "min": 1,
+        "max": 1,
+        "rate": 0.17
+       },
+       {
+        "itemId": "I0665",
+        "name": "已封印的鑄石",
+        "icon": "img/items/已封印的鑄石.png",
+        "min": 5,
+        "max": 5,
+        "rate": 0
+       },
+       {
+        "itemId": "I0666",
+        "name": "已封印的水石",
+        "icon": "img/items/已封印的水石.png",
+        "min": 5,
+        "max": 5,
+        "rate": 0
+       },
+       {
+        "itemId": "I0667",
+        "name": "已封印的銀石",
+        "icon": "img/items/已封印的銀石.png",
+        "min": 5,
+        "max": 5,
+        "rate": 0
+       },
+       {
+        "itemId": "I0949",
+        "name": "瞬間移動",
+        "icon": "img/items/瞬間移動.png",
+        "min": 15,
+        "max": 15,
+        "rate": 0
+       },
+       {
+        "itemId": "I0975",
+        "name": "縮地藥水",
+        "icon": "img/items/縮地藥水-2.png",
+        "min": 10,
+        "max": 10,
+        "rate": 0
+       }
+      ]
+     },
+     {
+      "monsterId": "J2012",
+      "name": "婚禮寶物箱",
+      "hp": 1800,
+      "maps": [
+       {
+        "mapId": "A0006",
+        "name": "馬爾地夫",
+        "region": "利比村莊"
+       }
+      ],
+      "drops": [
+       {
+        "itemId": "I0969",
+        "name": "冰柱氣象魔術(CH)",
+        "icon": "img/items/冰柱氣象魔術(CH).png",
+        "min": 1,
+        "max": 1,
+        "rate": 0.17
+       },
+       {
+        "itemId": "I0970",
+        "name": "玫瑰花氣象魔術(CH)",
+        "icon": "img/items/玫瑰花氣象魔術(CH).png",
+        "min": 1,
+        "max": 1,
+        "rate": 0.17
+       },
+       {
+        "itemId": "I0971",
+        "name": "邱比特之箭氣象魔術(CH)",
+        "icon": "img/items/邱比特之箭氣象魔術(CH).png",
+        "min": 1,
+        "max": 1,
+        "rate": 0.17
+       },
+       {
+        "itemId": "I0972",
+        "name": "泡泡氣象魔術(CH)",
+        "icon": "img/items/泡泡氣象魔術(CH).png",
+        "min": 1,
+        "max": 1,
+        "rate": 0.17
+       },
+       {
+        "itemId": "I0973",
+        "name": "彩虹糖果氣象魔術(CH)",
+        "icon": "img/items/彩虹糖果氣象魔術(CH).png",
+        "min": 1,
+        "max": 1,
+        "rate": 0.17
+       },
+       {
+        "itemId": "I0974",
+        "name": "手套氣象魔術(CH)",
+        "icon": "img/items/手套氣象魔術(CH).png",
+        "min": 1,
+        "max": 1,
+        "rate": 0.17
+       },
+       {
+        "itemId": "I0976",
+        "name": "超級攻擊藥水",
+        "icon": "img/items/超級攻擊藥水.png",
+        "min": 5,
+        "max": 5,
+        "rate": 0
+       },
+       {
+        "itemId": "I0977",
+        "name": "超級敏捷藥水",
+        "icon": "img/items/超級敏捷藥水.png",
+        "min": 5,
+        "max": 5,
+        "rate": 0
+       },
+       {
+        "itemId": "I0978",
+        "name": "超級智力藥水",
+        "icon": "img/items/超級智力藥水.png",
+        "min": 5,
+        "max": 5,
+        "rate": 0
+       },
+       {
+        "itemId": "I0979",
+        "name": "超級攻擊能力藥水",
+        "icon": "img/items/超級攻擊能力藥水.png",
+        "min": 5,
+        "max": 5,
+        "rate": 0
+       },
+       {
+        "itemId": "I0980",
+        "name": "一擊藥水",
+        "icon": "img/items/一擊藥水.png",
+        "min": 5,
+        "max": 5,
+        "rate": 0
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "en": "Diamond Wedding Box",
+    "name": "鑽石婚禮箱",
+    "icon": "img/dungeons/鑽石婚禮箱.gif",
+    "healthText": "1200",
+    "locations": [
+     {
+      "en": "Meldives Island (Ribi Town)",
+      "name": "Meldives Island (Ribi Town)"
+     }
+    ],
+    "drops": [
+     {
+      "en": "Huge Resume Syrup",
+      "count": 5,
+      "itemId": "I0023",
+      "name": "生命的根源",
+      "icon": "img/items/生命的根源.png"
+     },
+     {
+      "en": "Huge Mana Syrup",
+      "count": 5,
+      "itemId": "I0024",
+      "name": "精神的根源",
+      "icon": "img/items/精神的根源.png"
+     },
+     {
+      "en": "Sealed Gold Stone",
+      "count": 1,
+      "itemId": "I0668",
+      "name": "已封印的金石",
+      "icon": "img/items/已封印的金石.png"
+     },
+     {
+      "en": "Sealed Ruby Stone",
+      "count": 1,
+      "itemId": "I0755",
+      "name": "密封的強化紅寶石",
+      "icon": "img/items/密封的強化紅寶石.png"
+     },
+     {
+      "en": "Sealed Diamond Stone",
+      "count": 1,
+      "name": "已封印的鑽石"
+     },
+     {
+      "en": "Speed Potion",
+      "count": 1,
+      "itemId": "I0083",
+      "name": "縮地藥水",
+      "icon": "img/items/縮地藥水.png"
+     },
+     {
+      "en": "Experience 100% (1D)",
+      "count": 1,
+      "itemId": "I0908",
+      "name": "EXP 100% (1D)",
+      "icon": "img/items/EXP 100％ (1D).png"
+     },
+     {
+      "en": "Libi 100% (1D)",
+      "count": 1,
+      "itemId": "I0913",
+      "name": "LIBI 100% (1D)",
+      "icon": "img/items/LIBI 100％ (1D).png"
+     },
+     {
+      "en": "Snow Falling (CH)",
+      "count": 1,
+      "itemId": "I0937",
+      "name": "雪花結晶氣象魔術(CH)",
+      "icon": "img/items/雪花結晶氣象魔術(CH).png"
+     },
+     {
+      "en": "Love Aura (CH)",
+      "count": 1,
+      "itemId": "I0938",
+      "name": "愛心氣象魔術(CH)",
+      "icon": "img/items/愛心氣象魔術(CH).png"
+     },
+     {
+      "en": "Gold Coin Rain (CH)",
+      "count": 1,
+      "itemId": "I0939",
+      "name": "灑錢氣象魔術(CH)",
+      "icon": "img/items/灑錢氣象魔術(CH).png"
+     },
+     {
+      "en": "Popo Rain Magic (CH)",
+      "count": 1,
+      "itemId": "I0940",
+      "name": "灑糖果氣象魔術(CH)",
+      "icon": "img/items/灑糖果氣象魔術(CH).png"
+     },
+     {
+      "en": "HP Rain Magic (CH)",
+      "count": 1,
+      "itemId": "I0941",
+      "name": "HP藥水氣象魔術(CH)",
+      "icon": "img/items/HP藥水氣象魔術(CH).png"
+     },
+     {
+      "en": "MP Rain Magic (CH)",
+      "count": 1,
+      "itemId": "I0942",
+      "name": "MP藥水氣象魔術(CH)",
+      "icon": "img/items/MP藥水氣象魔術(CH).png"
+     },
+     {
+      "en": "Frozen Rain (CH)",
+      "count": 1,
+      "itemId": "I0943",
+      "name": "冰柱氣象魔術(CH)",
+      "icon": "img/items/冰柱氣象魔術(CH).png"
+     },
+     {
+      "en": "Red Rose (CH)",
+      "count": 1,
+      "itemId": "I0944",
+      "name": "玫瑰花氣象魔術(CH)",
+      "icon": "img/items/玫瑰花氣象魔術(CH).png"
+     },
+     {
+      "en": "Rainbow Arrow (CH)",
+      "count": 1,
+      "itemId": "I0945",
+      "name": "邱比特之箭氣象魔術(CH)",
+      "icon": "img/items/邱比特之箭氣象魔術(CH).png"
+     },
+     {
+      "en": "Bubble Rain (CH)",
+      "count": 1,
+      "itemId": "I0946",
+      "name": "泡泡氣象魔術(CH)",
+      "icon": "img/items/泡泡氣象魔術(CH).png"
+     },
+     {
+      "en": "Rainbow Candy Weather Magic (CH)",
+      "count": 1,
+      "itemId": "I0947",
+      "name": "彩虹糖果氣象魔術(CH)",
+      "icon": "img/items/彩虹糖果氣象魔術(CH).png"
+     },
+     {
+      "en": "Boom Rain (CH)",
+      "count": 1,
+      "itemId": "I0948",
+      "name": "手套氣象魔術(CH)",
+      "icon": "img/items/手套氣象魔術(CH).png"
+     }
+    ],
+    "current": [
+     {
+      "monsterId": "J2010",
+      "name": "婚禮禮物箱",
+      "hp": 1200,
+      "maps": [
+       {
+        "mapId": "A0006",
+        "name": "馬爾地夫",
+        "region": "利比村莊"
+       }
+      ],
+      "drops": [
+       {
+        "itemId": "I0668",
+        "name": "已封印的金石",
+        "icon": "img/items/已封印的金石.png",
+        "min": 1,
+        "max": 1,
+        "rate": 0.17
+       },
+       {
+        "itemId": "I0755",
+        "name": "密封的強化紅寶石",
+        "icon": "img/items/密封的強化紅寶石.png",
+        "min": 1,
+        "max": 1,
+        "rate": 0.17
+       },
+       {
+        "itemId": "I0756",
+        "name": "密封的強化綠寶石",
+        "icon": "img/items/密封的強化綠寶石.png",
+        "min": 1,
+        "max": 1,
+        "rate": 0.17
+       },
+       {
+        "itemId": "I0963",
+        "name": "雪花結晶氣象魔術(CH)",
+        "icon": "img/items/雪花結晶氣象魔術(CH).png",
+        "min": 1,
+        "max": 1,
+        "rate": 0.17
+       },
+       {
+        "itemId": "I0964",
+        "name": "愛心氣象魔術(CH)",
+        "icon": "img/items/愛心氣象魔術(CH).png",
+        "min": 1,
+        "max": 1,
+        "rate": 0.17
+       },
+       {
+        "itemId": "I0965",
+        "name": "灑錢氣象魔術(CH)",
+        "icon": "img/items/灑錢氣象魔術(CH).png",
+        "min": 1,
+        "max": 1,
+        "rate": 0.17
+       },
+       {
+        "itemId": "G1059",
+        "name": "鐵塊",
+        "icon": "img/items/鐵塊.png",
+        "min": 100,
+        "max": 100,
+        "rate": 0
+       },
+       {
+        "itemId": "G1060",
+        "name": "鋼鐵塊",
+        "icon": "img/items/鋼鐵塊.png",
+        "min": 100,
+        "max": 100,
+        "rate": 0
+       },
+       {
+        "itemId": "G1061",
+        "name": "他馬思克斯",
+        "icon": "img/items/他馬思克斯.png",
+        "min": 30,
+        "max": 30,
+        "rate": 0
+       },
+       {
+        "itemId": "G1062",
+        "name": "米絲麗(米絲麗)",
+        "icon": "img/items/米絲麗(米絲麗).png",
+        "min": 30,
+        "max": 30,
+        "rate": 0
+       },
+       {
+        "itemId": "G1066",
+        "name": "(音譯近itoliwun)",
+        "icon": "img/items/(音譯近itoliwun).png",
+        "min": 30,
+        "max": 30,
+        "rate": 0
+       }
+      ]
+     }
+    ]
+   }
+  ]
+ },
+ "mapMaster": {
+  "name": "地圖大師",
+  "en": "Map Master",
+  "summary": "地圖大師是某張地圖的持有者。設有地圖大師的區域，小地圖上方會出現皇冠標誌與 Top 字樣。",
+  "howTo": [
+   "點小地圖上方的皇冠標誌，選「挑戰」即可報名。",
+   "按畫面中央的 Start 鍵開始地圖大師挑戰。",
+   "從開始挑戰的那張地圖起，你有兩小時的時間在原地打怪。",
+   "按下 Pause 鍵或離開該地圖時，挑戰計時會停止。",
+   "挑戰期間累積的經驗值越多越有利，經驗值總量最高的人獲勝。"
+  ],
+  "rules": [
+   "挑戰期間，雙倍經驗值道具、部分徽章與「克魯諾的祝福」技能的效果都不會計入挑戰的經驗值總量。",
+   "當你的經驗值總量超過前一任地圖大師，或該地點原本還沒有地圖大師時，你的角色就會成為地圖大師。",
+   "成為某地的地圖大師後，在該地打怪可以提升怪物給的經驗值、Libi 與掉寶率。",
+   "有報名地圖大師挑戰的玩家也會拿到經驗值、Libi 與掉寶加成，但幅度比地圖大師小。",
+   "挑戰結束後要等結算：結果從星期三到星期一，每天早上 07:00 更新。",
+   "地圖大師的結果每星期二早上 07:00 重置。"
+  ],
+  "excludedFromExp": [
+   {
+    "name": "雙倍經驗值道具",
+    "en": "Double Experience"
+   },
+   {
+    "name": "部分徽章",
+    "en": "Badge"
+   },
+   {
+    "name": "克魯諾的祝福",
+    "en": "Cruno's Blessing",
+    "icon": "img/skills/Cruno's Blessing.png"
+   }
+  ],
+  "example": {
+   "name": "蜿蜒釣魚台",
+   "en": "Fishing Place of Horn",
+   "note": "納巴虎任境內設有地圖大師挑戰的地點之一。",
+   "mapIds": [
+    "C0020",
+    "C0021",
+    "C0022"
+   ]
+  },
+  "locations": [
+   {
+    "en": "North Enpa",
+    "name": "挪思炎帕",
+    "region": "挪思炎帕"
+   },
+   {
+    "en": "Albadia Desert",
+    "name": "寇烏馬丁",
+    "region": "寇烏馬丁"
+   },
+   {
+    "en": "East Enpa",
+    "name": "伊斯特炎帕",
+    "region": "伊斯特炎帕"
+   },
+   {
+    "en": "Thousands Tree",
+    "name": "萊斯汀",
+    "region": "萊斯汀"
+   },
+   {
+    "en": "Navahorn",
+    "name": "納巴虎任",
+    "region": "納巴虎任"
+   },
+   {
+    "en": "Ciberian",
+    "name": "派貝倫平原",
+    "region": "派貝倫平原"
+   }
+  ]
+ }
+}
