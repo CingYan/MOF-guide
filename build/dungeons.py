@@ -373,7 +373,10 @@ MAP_MASTER = {
     "excludedFromExp": [
         {"name": "雙倍經驗值道具", "en": "Double Experience"},
         {"name": "部分徽章", "en": "Badge"},
-        {"name": "克魯諾的祝福", "en": "Cruno's Blessing", "icon": "img/skills/Cruno's Blessing.png"},
+        # 圖不寫死路徑：技能圖是依中文技能名命名的，技能一改名這裡就會斷。
+        # 改成開跑時用英文原名去 wiki.json 反查（見 skill_icon()）。
+        # name 會被 skill_ref() 以 wiki.json 的現行名稱覆蓋（技能書考證出來的遊戲內名）
+        {"name": "克魯諾的祝福", "en": "Cruno's Blessing"},
     ],
     "example": {"name": "蜿蜒釣魚台", "en": "Fishing Place of Horn",
                 "note": "納巴虎任境內設有地圖大師挑戰的地點之一。",
@@ -408,6 +411,18 @@ EXTRA_TYPES = [
 # ── 站上既有資料 ──────────────────────────────────────────────────────────
 def load(name):
     return json.loads((DOCS / "data" / (name + ".json")).read_text("utf-8"))
+
+
+def skill_ref(en):
+    """用技能的英文原名去 wiki.json 反查現在的中文名與圖示。
+
+    中文名會隨著考證進度改變（先前是英文，後來從技能書考證出遊戲內名稱），
+    所以這裡只認不會變的英文原名，名稱與圖都以 wiki.json 為準，
+    避免同一個技能在站上出現兩個名字。"""
+    for s in load("wiki")["skills"]:
+        if s.get("en") == en:
+            return {k: v for k, v in (("name", s.get("name")), ("icon", s.get("icon"))) if v}
+    return {}
 
 
 MAPS = {m["id"]: m for m in load("maps")}
@@ -788,6 +803,8 @@ def main():
 
     mm = dict(MAP_MASTER)
     mm["locations"] = [place_ref(x) for x in MAP_MASTER["locations"]]
+    # 技能圖示開跑時才反查，避免技能改名後路徑失效
+    mm["excludedFromExp"] = [{**e, **skill_ref(e.get("en"))} for e in MAP_MASTER["excludedFromExp"]]
 
     data = {
         "dungeons": {
