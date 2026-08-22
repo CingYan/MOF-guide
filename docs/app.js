@@ -778,6 +778,23 @@ V.npcs = async () => {
   ], [{ h: '區域', v: n => n.region }, { h: '功能', v: n => (n.roleLabels || [])[0] || '' }]);
 };
 
+/* NPC 個人檔案：原始 desc 的分隔符號寫法很亂（冒號有無、半形全形、
+   欄位名打錯字），已在 build/npc_profile.py 解析成欄位，這裡只負責排版 */
+function npcProfile(n) {
+  const p = n.profile, t = n.traits || [], notes = n.notes || [];
+  if (!p && !t.length && !notes.length) return null;
+  const bits = p ? [['年齡', p.age], ['血型', p.blood], ['身高', p.height], ['體重', p.weight]]
+                     .filter(([, v]) => v && v !== '?') : [];
+  return el('div', { class: 'profile' }, [
+    bits.length ? el('div', { class: 'chips' },
+      bits.map(([k, v]) => el('span', { class: 'tag', text: `${k} ${v}` }))) : null,
+    t.length ? el('dl', {}, t.flatMap(o => [
+      el('dt', { text: o.k }), el('dd', { class: 'wrap', text: o.v })])) : null,
+    notes.length ? el('ul', { class: 'notes' },
+      notes.map(x => el('li', { class: 'wrap', text: x }))) : null,
+  ]);
+}
+
 V.npc = async id => {
   const [rows, quests] = await Promise.all([data('npcs'), data('quests')]);
   const n = byId(rows, id);
@@ -785,8 +802,11 @@ V.npc = async id => {
   const qs = quests.filter(q => q.npcs.some(x => x.id === id));
   return frag([
     back('#/npcs', 'NPC 列表'),
-    hero(n, tags([n.region ? [n.region, 'a'] : null, n.job || null,
-                  ...(n.roleLabels || []).map(r => [r, 'g'])])),
+    /* desc 是原始那整塊文字，個人檔案已拆成欄位，兩者不重複顯示 */
+    hero(Object.assign({}, n, { desc: (n.traits || n.profile) ? null : n.desc }),
+         tags([n.region ? [n.region, 'a'] : null, n.job || null,
+               ...(n.roleLabels || []).map(r => [r, 'g'])])),
+    npcProfile(n),
     section('所在地', n.maps, [
       { h: '地圖', c: m => itemCell(m, 'maps') },
       { h: '座標', c: m => (m.x || m.y) ? `${m.x}, ${m.y}` : '' },
