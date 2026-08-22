@@ -174,6 +174,24 @@ def bullets(body):
     return out
 
 
+def blocks(body):
+    """把「引言 + 底下的 * 項目」綁在一起，回傳 [(引言, [項目...])]。"""
+    out, title, items = [], '', []
+    for line in body.split('\n'):
+        s = line.strip()
+        if s.startswith('*') and not s.startswith('**'):
+            items.append(plain(take_files(s[1:])[0]))
+            continue
+        if s.startswith(('{|', '|', '!', '[[Category:', '<gallery', '</gallery')) or not s:
+            continue
+        if title or items:
+            out.append((title, items))
+        title, items = plain(take_files(s)[0]), []
+    if title or items:
+        out.append((title, items))
+    return [(t, i) for t, i in out if t or i]
+
+
 def paragraphs(body):
     """取出一般段落（略過表格、清單、圖片、分類）。"""
     out, skip = [], False
@@ -426,8 +444,7 @@ def tr(s, table=None, mark=True):
     src = s.strip()
     for tbl in ([table] if table else []) + [TERM, FASHION, TXT]:
         if tbl and src in tbl:
-            got = tbl[src]
-            return got if isinstance(got, str) else got
+            return tbl[src]
     if not re.search(r'[A-Za-z一-鿿]', src):      # 純數字／符號不用翻
         return numfix(src)
     if not re.search(r'[A-Za-z]', src):
@@ -685,9 +702,11 @@ def build_player_character(text, out):
 
     # 師徒制度
     body = secs['Proctor']['body']
+    req = [{'title': tr(numfix(t)), 'items': [tr(numfix(x)) for x in items]}
+           for t, items in blocks(body) if items]
     out['proctor'] = {
-        'text': [tr(numfix(p)) for p in paragraphs(body)],
-        'rules': [tr(numfix(plain(b))) for b in bullets(body)],
+        'text': [tr(numfix(t)) for t, items in blocks(body) if not items],
+        'requirements': req,
         'seniorRewards': build_table(parse_tables(
             [s for s in split_sections(text) if s['title'] == 'Senior Libi Rewards'][0]['body'])[0]),
         'juniorRewards': build_table(parse_tables(

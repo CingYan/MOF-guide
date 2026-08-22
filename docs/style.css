@@ -123,3 +123,12 @@ td .pick{color:var(--gold)}
 
 /* 頁面開頭的一段說明文字 */
 .lead { max-width: 62ch; line-height: 1.7; color: var(--fg-dim, #9aa4b2); margin: 0 0 18px }
+
+/* 名稱＋英文原名＋說明的卡片列表 */
+.defs { display: grid; gap: 12px; margin: 12px 0 20px }
+.def { border: 1px solid var(--line, #2a3140); border-radius: 8px; padding: 10px 12px }
+.def > b { margin-right: 6px }
+.def .en { color: var(--fg-dim, #9aa4b2); font-size: .85em }
+.def p { margin: 4px 0 0; display: flex; flex-direction: column; gap: 2px }
+kbd { border: 1px solid var(--line, #2a3140); border-radius: 4px; padding: 1px 6px;
+      font-family: ui-monospace, monospace; font-size: .9em; white-space: nowrap }

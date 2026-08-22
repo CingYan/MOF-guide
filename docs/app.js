@@ -1107,27 +1107,30 @@ V.badges = async () => {
     { sort: 2, desc: false });
 };
 
+/* 第一欄的圖：欄名叫「圖示」就整格放圖，否則貼在文字前面 */
+const rawCell = (r, c, i, mode) => {
+  if (i !== 0 || !mode) return el('td', { class: 'wrap', text: c });
+  const img = r.icon ? el('img', { class: mode === 'only' ? '' : 'ic sm',
+                                   src: r.icon, alt: '', loading: 'lazy' }) : null;
+  const link = img && r.itemId ? el('a', { href: '#/items/' + r.itemId }, [img]) : img;
+  return mode === 'only' ? el('td', { class: 'ic' }, [link])
+                         : el('td', { class: 'wrap nm' }, [link, c]);
+};
+const rawTable = t => {
+  const mode = !t.rows.some(r => r.icon) ? null
+             : t.headers[0] === '圖示' ? 'only' : 'inline';
+  return el('div', { class: 'tw' }, [el('table', {}, [
+    el('thead', {}, [el('tr', {}, t.headers.map(h => el('th', { text: h })))]),
+    el('tbody', {}, t.rows.map(r => el('tr', {}, r.c.map((c, i) => rawCell(r, c, i, mode))))),
+  ])]);
+};
 V.system = async () => {
   const w = await data('wiki');
   const kv = (title, obj) => frag([el('h3', { text: title }), el('dl', { class: 'detail' },
     Object.entries(obj).flatMap(([k, v]) =>
       [el('dt', { text: k }), el('dd', { text: Array.isArray(v) ? v.join(' → ') : v })]))]);
   /* 第一欄叫「圖示」的表（強化石），該欄改畫圖並連到道具頁；其餘照舊出文字 */
-  const rawCell = (r, c, i, icons) => {
-    if (!(icons && i === 0)) return el('td', { class: 'wrap', text: c });
-    if (!r.icon) return el('td', { class: 'ic' });
-    const img = el('img', { src: r.icon, alt: r.c[1], loading: 'lazy' });
-    return el('td', { class: 'ic' }, [
-      r.itemId ? el('a', { href: '#/items/' + r.itemId }, [img]) : img,
-    ]);
-  };
-  const rawTable = t => {
-    const icons = t.headers[0] === '圖示' && t.rows.some(r => r.icon);
-    return el('div', { class: 'tw' }, [el('table', {}, [
-      el('thead', {}, [el('tr', {}, t.headers.map(h => el('th', { text: h })))]),
-      el('tbody', {}, t.rows.map(r => el('tr', {}, r.c.map((c, i) => rawCell(r, c, i, icons))))),
-    ])]);
-  };
+
 
   return frag([
     el('h1', { text: '遊戲系統' }),
@@ -1309,13 +1312,98 @@ V.major = async () => {
   ]);
 };
 
+/* 角色：能力值、能力點、經驗表、能量條、時裝、操作、師徒、狀態異常 */
+V.character = async () => {
+  const d = await data('character');
+  const paras = a => (a || []).map(t => el('p', { class: 'lead', text: t }));
+  /* 名稱＋英文原名＋說明的卡片列表，能力值／能力點／狀態異常共用 */
+  const defs = (list, body) => el('div', { class: 'defs' }, list.map(o => el('div', { class: 'def' }, [
+    o.icon ? el('img', { class: 'ic sm', src: o.icon, alt: '', loading: 'lazy' }) : null,
+    el('b', { text: o.name }),
+    o.en && o.en !== o.name ? el('span', { class: 'en', text: o.en }) : null,
+    el('p', {}, body(o).filter(Boolean).map(t => el('span', { class: 'wrap', text: t }))),
+  ])));
+
+  return frag([
+    el('h1', { text: '角色' }),
+    el('p', { class: 'sub', text: '能力值、能力點、經驗表、能量條、時裝、操作與狀態異常。' }),
+    frag(paras(d.intro)),
+
+    el('h2', { text: '能力值' }),
+    defs(d.stats, o => [o.desc]),
+
+    el('h2', { text: '能力點' }),
+    frag(paras(d.points.intro)),
+    defs(d.points.list, o => [o.effect, o.perPoint]),
+    d.points.note ? el('p', { class: 'lead', text: d.points.note }) : null,
+    rawTable(d.points.cost),
+    d.points.reset && d.points.reset.icon
+      ? el('p', { class: 'lead nm' }, [
+          el('img', { class: 'ic sm', src: d.points.reset.icon, alt: '', loading: 'lazy' }),
+          '能力點可以用重置道具歸零重配。']) : null,
+
+    el('h2', { text: '升級經驗表' }),
+    rawTable(d.expTable),
+
+    el('h2', { text: '能量條' }),
+    frag(paras(d.gauge.intro)),
+    frag(d.gauge.bars.map(b => frag([
+      el('h3', { text: b.name }), rawTable(b.table)]))),
+
+    el('h2', { text: '狀態異常' }),
+    defs(d.statusEffects, o => [o.desc]),
+    frag(paras(d.statusSources.intro)),
+    el('h3', { text: '會造成狀態異常的怪物' }),
+    frag(paras(d.statusSources.monsterIntro)),
+    rawTable(d.statusSources.monsters),
+    el('h3', { text: '徽章' }),
+    rawTable(d.statusSources.badges),
+    frag(d.statusSources.skills.map(g => frag([
+      el('h3', { text: '技能 —— ' + g.name }), rawTable(g.table)]))),
+
+    el('h2', { text: '師徒' }),
+    frag(paras(d.proctor.text)),
+    frag(d.proctor.requirements.map(r => frag([
+      el('h3', { text: r.title }),
+      el('ul', {}, r.items.map(t => el('li', { class: 'wrap', text: t }))),
+    ]))),
+    el('h3', { text: '前輩獎勵' }), rawTable(d.proctor.seniorRewards),
+    el('h3', { text: '後輩獎勵' }), rawTable(d.proctor.juniorRewards),
+
+    el('h2', { text: '時裝' }),
+    frag(paras(d.fashion.intro)),
+    frag(d.fashion.groups.map(g => frag([
+      el('h3', { text: g.name }), rawTable(g.table)]))),
+
+    el('h2', { text: '操作按鍵' }),
+    frag(paras(d.controls.intro)),
+    el('div', { class: 'tw' }, [el('table', {}, [
+      el('thead', {}, [el('tr', {}, [el('th', { text: '按鍵' }), el('th', { text: '功能' })])]),
+      el('tbody', {}, d.controls.keys.map(k => el('tr', {}, [
+        el('td', {}, [el('kbd', { text: k.key })]), el('td', { class: 'wrap', text: k.action })]))),
+    ])]),
+
+    el('h2', { text: '背包與交易' }),
+    frag(paras(d.inventory.text)),
+    d.quickSlot.icon
+      ? el('p', { class: 'lead nm' }, [
+          el('img', { class: 'ic sm', src: d.quickSlot.icon, alt: '', loading: 'lazy' }),
+          '進階快速欄']) : null,
+    frag(paras(d.quickSlot.text)),
+    frag(paras(d.privateStore.text)),
+    frag(paras(d.trading.text)),
+    el('ul', {}, (d.trading.tips || []).map(t => el('li', { class: 'wrap', text: t }))),
+  ]);
+};
+
 const NAV = [['', '首頁'], ['grind', '練功'], ['monsters', '怪物'], ['maps', '地圖'],
              ['equips', '裝備'], ['fashion', '時裝'], ['items', '道具'], ['recipes', '製作'],
              ['quests', '任務'], ['npcs', 'NPC'], ['pets', '寵物'], ['skills', '技能'], ['major', '專業技能'],
+             ['character', '角色'],
              ['badges', '徽章'], ['system', '系統'], ['notes', '玩家筆記']];
 
 const ROUTE = {
-  '': V.home, grind: V.grind, major: V.major,
+  '': V.home, grind: V.grind, major: V.major, character: V.character,
   monsters: V.monsters, maps: V.maps, equips: V.equips, fashion: V.fashion,
   items: V.items, recipes: V.recipes, quests: V.quests, npcs: V.npcs,
   pets: V.pets, skills: V.skills, badges: V.badges, system: V.system, notes: V.notes,
