@@ -40,7 +40,30 @@ for path in sorted((DOCS / "data").glob("*.json")):
         if bad:
             fail.append(f"{path.name} 的 {key} 查無此 id: {sorted(bad)[:5]}")
 
-# ── 3. 不該再出現的英文單位 ──
+# ── 3. NPC 參照（含合併後的別名）──
+npcs = json.loads((DOCS / "data/npcs.json").read_text("utf-8"))
+ok_npc = {x["id"] for x in npcs} | {a for x in npcs for a in x.get("aliasIds") or []}
+NPC_FIELDS = {"soldBy", "npcs", "npcId", "questNpcs"}
+seen_npc = 0
+for path in sorted((DOCS / "data").glob("*.json")):
+    if path.name == "npcs.json":
+        continue
+    def walk(node, field=None):
+        global seen_npc
+        if isinstance(node, dict):
+            if field in NPC_FIELDS and isinstance(node.get("id"), str):
+                seen_npc += 1
+                if node["id"] not in ok_npc:
+                    fail.append(f"{path.name} 的 {field} 指向不存在的 NPC: {node['id']}")
+            for k, v in node.items():
+                walk(v, k)
+        elif isinstance(node, list):
+            for v in node:
+                walk(v, field)
+    walk(json.loads(path.read_text("utf-8")))
+print(f"NPC 參照 {seen_npc} 個 / 解不開 {sum(1 for f in fail if '不存在的 NPC' in f)}")
+
+# ── 4. 不該再出現的英文單位 ──
 for path in sorted((DOCS / "data").glob("*.json")):
     for word in ("Libi", "LIBI"):
         n = len(re.findall(r"\b%s\b" % word, path.read_text("utf-8")))

@@ -95,7 +95,9 @@ async function data(name) {
   }
   return cache[name];
 }
-const byId = (list, id) => list.find(x => x.id === id);
+/* 合併過的 NPC 會把被併掉的 id 記在 aliasIds，別處既有的參照才不會斷 */
+const byId = (list, id) =>
+  list.find(x => x.id === id) || list.find(x => (x.aliasIds || []).includes(id));
 
 /* 掉落／獎勵／材料只給 id + 名稱，得自行判斷屬於哪個域 */
 const KIND = { m: 'monsters', p: 'maps', e: 'equips', f: 'fashion',
@@ -845,8 +847,14 @@ V.quest = async id => {
 
 V.npcs = async () => {
   const rows = await data('npcs');
-  return listPage('NPC', `${rows.length} 位。`, rows, [
+  const merged = rows.reduce((a, n) => a + (n.aliasIds || []).length, 0);
+  return listPage('NPC',
+    `${rows.length} 位。原始資料有 ${rows.length + merged} 筆，其中 ${merged} 筆是同一位 NPC 的重複紀錄`
+    + '（同一個名字出現在多張地圖，或商店與任務分成兩筆），已合併並列出全部所在地。'
+    + '販售或任務內容不同的同名 NPC 是不同個體，維持獨立條目。', rows, [
     { h: '名稱', c: n => itemCell(n, 'npcs') },
+    { h: '所在地', n: true, v: n => (n.maps || []).length,
+      c: n => (n.maps || []).length > 1 ? `${(n.maps || []).length} 處` : ((n.maps || [])[0] || {}).name || '' },
     { h: '職務', c: n => n.job || '' },
     { h: '區域', c: n => n.region || '' },
     { h: '所在地', c: n => (n.maps || []).map(m => m.name).join('、') },
@@ -856,6 +864,25 @@ V.npcs = async () => {
 
 /* NPC 個人檔案：原始 desc 的分隔符號寫法很亂（冒號有無、半形全形、
    欄位名打錯字），已在 build/npc_profile.py 解析成欄位，這裡只負責排版 */
+/* 同名的其他 NPC：合併只併「內容完全相同」的，剩下同名多筆代表真的是不同個體 */
+function sameNameVariants(rows, n) {
+  const others = rows.filter(x => x.name === n.name && x.id !== n.id);
+  if (!others.length) return null;
+  return frag([
+    el('p', { class: 'lead', text:
+      `站上還有 ${others.length} 位同名的「${n.name}」，販售或任務內容不同，是不同的個體。` }),
+    section('同名的其他' + n.name, others, [
+      { h: 'NPC', c: x => itemCell(x, 'npcs') },
+      { h: '所在地', wrap: true, c: x => (x.maps || []).map(m => m.name).join('、') || '—' },
+      { h: '販售', n: true, v: x => (x.sells || []).length,
+        c: x => (x.sells || []).length ? `${(x.sells || []).length} 種` : '—' },
+      { h: '任務', n: true, v: x => (x.quests || []).length,
+        c: x => (x.quests || []).length ? `${(x.quests || []).length} 個` : '—' },
+      { h: '角色', wrap: true, c: x => (x.roleLabels || []).join('、') },
+    ]),
+  ]);
+}
+
 function npcProfile(n) {
   const p = n.profile, t = n.traits || [], notes = n.notes || [];
   if (!p && !t.length && !notes.length) return null;
@@ -887,6 +914,9 @@ V.npc = async id => {
       { h: '地圖', c: m => itemCell(m, 'maps') },
       { h: '座標', c: m => (m.x || m.y) ? `${m.x}, ${m.y}` : '' },
     ]),
+    /* 同名但內容不同的，是真的不同個體（決鬥場的流浪商人賣 PvP 稱號、
+       學習之路程的賣時裝）。不把差異藏起來，直接並列讓人看得出差在哪。 */
+    sameNameVariants(rows, n),
     section('販售商品', n.sells, [
       { h: '商品', c: s => itemCell(s) },
       { h: '價格', n: true, v: s => s.price, c: s => num(s.price) },
