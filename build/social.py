@@ -9,7 +9,7 @@ build/skill_icons.py 相同（imageinfo 取網址、依中文名存檔、已存�
 ── 為什麼是「解析 + 對照表」而不是硬寫一份 JSON ──
 原文是印尼文，散文沒辦法機械翻譯，所以譯文寫在下面的對照表裡；但表格、數值、
 段落結構一律每次重新從 wikitext 解析出來，對照表用「清理過的原文」當 key。
-好處是上游改字時對不上的段落會被 report_missing() 列出來，不會默默留著舊譯文。
+好處是上游改字時，對不上的段落會在跑完後被列出來，不會默默留著舊譯文。
 
 ── 翻譯範圍（刻意設限，寧缺勿猜）──
 1. 系統／機制用語、數值單位、能力值名稱：翻譯，英文原名以「中文（English）」保留。
@@ -32,7 +32,7 @@ build/skill_icons.py 相同（imageinfo 取網址、依中文名存檔、已存�
 Weather 表的 Sound 欄只有 .ogg 檔連結，本站不放音檔，整欄不輸出。
 各頁的 Gallery／截圖區塊同理不輸出。
 """
-import json, os, pathlib, re, subprocess, time, urllib.parse
+import json, pathlib, re, subprocess, time, urllib.parse
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 OUT_JSON = ROOT / "docs/data/social.json"
@@ -179,12 +179,18 @@ def sep(s):
     return re.sub(r"(?<=\d)\.(?=\d{3}\b)", ",", s)
 
 
+def group(s):
+    """原文同一格裡千分位時有時無（3.100 - 4799 Points），統一補上逗號。
+    只補分隔符號，數字本身不動。"""
+    return re.sub(r"\d{4,}", lambda m: f"{int(m.group(0)):,}", s)
+
+
 AUTO = [
     (r"-", lambda m: "—"),
     (r"[\d,]+", lambda m: m.group(0)),
     (r"[\d,]+%", lambda m: m.group(0)),
     (r"\d+~\d+", lambda m: m.group(0)),
-    (r"([\d,\sX-]+) Points", lambda m: m.group(1).strip() + " 點"),
+    (r"([\d,\sX-]+) Points", lambda m: group(m.group(1).strip()) + " 點"),
     (r"([\d,]+) Libi", lambda m: m.group(1) + " Libi"),
     (r"(\d+) Major Skill Points", lambda m: m.group(1) + " 點專業技能點數"),
     (r"Lv\.(\S+)~Lv\.(\S+)", lambda m: f"Lv.{m.group(1)}～Lv.{m.group(2)}"),
@@ -192,9 +198,9 @@ AUTO = [
     (r"(\d+) Player", lambda m: m.group(1) + " 人"),
     (r"(.+) \(Boss\)", lambda m: m.group(1) + "（頭目）"),
     (r"(.+) \(Mini-Boss\)", lambda m: m.group(1) + "（小頭目）"),
-    (r"(.+) Monster", lambda m: m.group(1) + " 的怪物"),
     (r"(\d) Level diatas Player: (\d+) Monster",
      lambda m: f"比角色高 {m.group(1)} 級：{m.group(2)} 隻"),
+    (r"([\w' ]+) Monster", lambda m: m.group(1) + " 的怪物"),
 ]
 AUTO = [(re.compile(p + r"\Z"), f) for p, f in AUTO]
 
@@ -220,25 +226,25 @@ KEEP_JOB = [
 ]
 
 # PvM 怪物名、地名 —— 專案內既有中文命名是另一套，對不起來（見檔頭說明）
-KEEP = set("""
-Shaman Sage Warlock Oracle Priest Saint Paladin Holy Avanger Cardinal
-Slow Coach|Power Up|Grass|Ant|Pink Jelly|Wild Pigieon|Cosh|Chipmunk|Cabbage
-Yellow Dreams|Queen Ant|Blue Dreams|Pigieon Skeleton|Chochas|Phantom Sailor
-Skull Pirates|Poltergeist|Countess|Phantom Officer|High Pirates|Stone Cosh
-Small Demon|Skeleton Wheel|Chip Mohican|Rabbit Mask|Wounded Crab|Ground Mecas
-Drum Racoon|Break Sword|Tree Tag|Wild Boar|Red Dream|Chogals|Amber Ghost
-Bumble Bee|Queen Bee|Kaniba|Kaniba Anger|Tree Plank|Dog Fighter|Dog Soldier
-Light Of Dark|Small Feary|Demon Deers|Evil Candle|Fierce Pumpkin Ghost|Red Devil
-Phantom Warrior|Phantom Soldier|Phantom Captain|Dog Captain|Big Boo|Metal Cabbage
-Purple Jelly|Gamakichi|Goblin|Totempool|Zombie Goblin|Anger Goblin|Goblin Chief
-Crab|Big Tree|Sea Star Warrior|Sand Stoker|Blue Rock|Blue Jelly|Gamatatsu
-Bibos Fighter|Bibos Trainer|Evil Tree|Bibos Shaman|Red Rock|Tree Tag Wood Big
-Fighter Mecas|Ghost Sword|Wolf Fighter|Wolf Ranger|Sanchoseu|Harpy|Wolf General
-Queen Harpy|Little Black Dragon|Ghost|Rock|Black Skeleton Wheel|Bapho|Magic Sword
-Zombie|Old Skeleton Prisoner|Orc|Orc Stone|Skeleton Warrior|Skeleton Wizard
-Orc Boss|Ancient Beetle|White Snake|Machine Sentinel|Machine Warrior|Black Big Boo
+KEEP = set(x.strip() for x in """
+Shaman|Sage|Warlock|Oracle|Priest|Saint|Paladin|Holy Avanger|Cardinal|
+Slow Coach|Power Up|Grass|Ant|Pink Jelly|Wild Pigieon|Cosh|Chipmunk|Cabbage|
+Yellow Dreams|Queen Ant|Blue Dreams|Pigieon Skeleton|Chochas|Phantom Sailor|
+Skull Pirates|Poltergeist|Countess|Phantom Officer|High Pirates|Stone Cosh|
+Small Demon|Skeleton Wheel|Chip Mohican|Rabbit Mask|Wounded Crab|Ground Mecas|
+Drum Racoon|Break Sword|Tree Tag|Wild Boar|Red Dream|Chogals|Amber Ghost|
+Bumble Bee|Queen Bee|Kaniba|Kaniba Anger|Tree Plank|Dog Fighter|Dog Soldier|
+Light Of Dark|Small Feary|Demon Deers|Evil Candle|Fierce Pumpkin Ghost|Red Devil|
+Phantom Warrior|Phantom Soldier|Phantom Captain|Dog Captain|Big Boo|Metal Cabbage|
+Purple Jelly|Gamakichi|Goblin|Totempool|Zombie Goblin|Anger Goblin|Goblin Chief|
+Crab|Big Tree|Sea Star Warrior|Sand Stoker|Blue Rock|Blue Jelly|Gamatatsu|
+Bibos Fighter|Bibos Trainer|Evil Tree|Bibos Shaman|Red Rock|Tree Tag Wood Big|
+Fighter Mecas|Ghost Sword|Wolf Fighter|Wolf Ranger|Sanchoseu|Harpy|Wolf General|
+Queen Harpy|Little Black Dragon|Ghost|Rock|Black Skeleton Wheel|Bapho|Magic Sword|
+Zombie|Old Skeleton Prisoner|Orc|Orc Stone|Skeleton Warrior|Skeleton Wizard|
+Orc Boss|Ancient Beetle|White Snake|Machine Sentinel|Machine Warrior|Black Big Boo|
 Ancient Skeleton Warrior|Ancient Skeleton Wizard|Anger Wolf General|Kanzim
-""".replace("\n", " ").replace("|", " ").split())
+""".replace("\n", "").split("|") if x.strip())
 KEEP |= set(KEEP_JOB)
 KEEP |= {
     # 技能名：wiki.json 對應的圖示欄位本身還是英文，沒有既有中文名可抄
@@ -257,7 +263,7 @@ KEEP |= {
 
 
 # ---------------------------------------------------------------------------
-# ③ 譯文對照表：key 是 clean() 之後的原文，對不到就會被 report_missing() 列出來
+# ③ 譯文對照表：key 是 clean() 之後的原文，對不到的會在跑完後列出來提醒補譯
 # ---------------------------------------------------------------------------
 ZH = {
 # ── PvP ────────────────────────────────────────────────────────────────────
@@ -391,6 +397,8 @@ ZH = {
 "Jika beruntung skill Angry Roar aktif ketika kamu diserang musuh sehingga semua lawan yang berada didekatmu terkena status stun.":
 "運氣好的話，被攻擊時會觸發營力之釋放（Angry Roar），周圍所有對手陷入暈眩。",
 "Gallery": "圖庫",
+"Spritesheet": "圖片集",
+"Screenshot": "遊戲畫面",
 "Trivia": "雜項補充",
 # ── Party ──────────────────────────────────────────────────────────────────
 "Party sangat bermanfaat ketika kamu akan pergi hunting. Jumlah maksimal anggota party hanya bisa terdiri dari 5 member saja termasuk karaktermu. Semua anggota party dapat menggunakan Party Chat, warna dari tulisan Party Chat adalah cyan. Semua anggota party dapat mengambil Libi dan Item drop-an dari Monster yang terbunuh. Untuk mengajak pemain lain bergabung kedalam sebuah party, kamu harus mengklik kanan nama pemain atau karakter pemain lalu pilih Invite Party kemudian menunggu apakah dia menolak undangan party atau tidak. Kamu hanya bisa mengajak pemain lain bergabung kedalam party jika level mereka, 10 level lebih rendah atau tinggi dari karaktermu. Semua anggota party akan mendapatkan Exp jika berada ditempat yang sama dengan anggota party yang sedang hunting. Exp yang diterima anggota party akan disetarakan dengan anggota party yang berada di tempat yang sama.":
@@ -597,3 +605,223 @@ ZH = {
 "BGM music tidak dapat didengar di Ribi Island jika ada cuaca di tempat tersebut kecuali di benua Arnos.":
 "在 Ribi Island，只要當地正在出現天氣效果就聽不到背景音樂，Arnos 大陸不受影響。",
 }
+
+
+# ---------------------------------------------------------------------------
+# ④ 圖示：Fandom 檔名 -> 中文檔名（只收會出現在 JSON 裡的那些）
+# ---------------------------------------------------------------------------
+ICON_NAME = {
+    # Weather
+    "Rain.png": "雨", "Snow.png": "雪", "Lightning.png": "閃電",
+    # Wedding
+    "Wedding_Ticket.png": "婚禮使用券",
+    "Premium_Wedding_Ticket.png": "高級婚禮使用券",
+    "Silver_Couple_Gift_Box.png": "銀色情侶禮盒",
+    "Silver_Couple_Ring.png": "銀色情侶戒指",
+    "Gold_Couple_Gift_Box.png": "金色情侶禮盒",
+    "Gold_Couple_Ring.png": "金色情侶戒指",
+    "Diamond_Couple_Gift_Box.png": "鑽石情侶禮盒",
+    "Diamond_Couple_Ring.png": "鑽石情侶戒指",
+    # Circle
+    "Circle_Master.png": "社團團長", "Circle_Vice.png": "社團副團長",
+    # PvP 稱號（原文 WarLord 4 與 God of War 共用 PVP_Title_10.png，
+    # 所以只會存成一個檔，兩列都指向它）
+    "PVP_Title_1.png": "貴族 1", "PVP_Title_2.png": "貴族 2",
+    "PVP_Title_3.png": "貴族 3", "PVP_Title_4.png": "英雄 1",
+    "PVP_Title_5.png": "英雄 2", "PVP_Title_6.png": "英雄 3",
+    "PVP_Title_7.png": "軍閥 1", "PVP_Title_8.png": "軍閥 2",
+    "PVP_Title_9.png": "軍閥 3", "PVP_Title_10.png": "軍閥 4",
+    # Party 隊伍技能（中文名來自 wiki.json 同檔名的技能，見檔頭第 3 點）
+    "Shaman_Skill3.png": "狂氣之歌", "Shaman_Skill5.png": "加速咒文",
+    "Sage_Skill2.png": "賦予火屬性", "Sage_Skill3.png": "賦予冰屬性",
+    "Warlock_Skill2.png": "賦予閃電屬性", "Warlock_Skill3.png": "賦予黑暗屬性",
+    "Oracle_Skill2.png": "Elements Mastery",
+    "Priest_Skill1.png": "Revitalize", "Priest_Skill2.png": "復活",
+    "Priest_Skill3.png": "召喚", "Saint_Skill1.png": "生命之波濤",
+    "Saint_Skill4.png": "神之祝福", "Saint_Skill7.png": "Life Aura",
+    "Paladin_Skill3.png": "聖騎士之吶喊", "Paladin_Skill7.png": "攻擊的縲繩",
+    "Holy_Avanger_Skill1.png": "Self-curse",
+    "Holy_Avanger_Skill3.png": "Holy Attribute",
+    "Cardinal_Skill1.png": "Cruno's Blessing",
+}
+
+DROP_HEADERS = {"Sound"}      # 只有 .ogg 連結，本站不放音檔
+
+PAGES = [
+    ("pvp",      "PvP",                          "PvP 對戰"),
+    ("party",    "Party",                        "組隊"),
+    ("pvm",      "PvM",                          "PvM 對戰"),
+    ("circle",   "Circle",                       "社團"),
+    ("wedding",  "Wedding",                      "婚禮"),
+    ("warTask",  "War Task and Material Supply",  "戰爭任務與物資補給"),
+    ("weather",  "Weather",                      "天氣"),
+]
+
+# 前言那幾張表在原文沒有自己的小標，補一個
+LEAD_CAPTION = {
+    "PvP": ["房型與費用"],
+    "Circle": ["社團建立技能等級與成員上限"],
+}
+
+
+# ---------------------------------------------------------------------------
+# ⑤ 組資料
+# ---------------------------------------------------------------------------
+def tr(s):
+    if not s:
+        return s
+    hit = auto(s)
+    if hit is not None:
+        return hit
+    if s in ZH:
+        return ZH[s]
+    if s in KEEP:
+        return s
+    MISSING.append(s)
+    return s
+
+
+def pick_icon(files):
+    for f in files:
+        if f in ICON_NAME:
+            return f
+    return ""
+
+
+def build_page(title, text):
+    blocks = split_blocks(text)
+    intro, lead_items, sections, tables, path = [], [], [], [], []
+    lead_caps = list(LEAD_CAPTION.get(title, []))
+
+    for lvl, head, body in blocks:
+        paras, bullets = parse_prose(body)
+        raw_tables = parse_tables(body, expand_cols=(3,) if title == "Weather" else ())
+        if lvl == 0:
+            caption_of = lambda i: lead_caps[i] if i < len(lead_caps) else None
+            intro = [tr(p) for p, _ in paras]
+            lead_items = [tr(b) for b, _ in bullets]   # 例：Wedding 的四項條件
+            heading = None
+        else:
+            path = path[:lvl - 2] + [tr(head)]
+            heading = " － ".join(path)
+            caption_of = lambda i: heading
+            sec = {"h": heading, "body": "\n\n".join(tr(p) for p, _ in paras)}
+            if bullets:
+                sec["items"] = [tr(b) for b, _ in bullets]
+                icons = [pick_icon(f) for _, f in bullets]
+                if any(icons):
+                    sec["itemIcons"] = icons
+            if sec["body"] or sec.get("items"):
+                sections.append(sec)
+
+        for i, t in enumerate(raw_tables):
+            keep = [j for j, h in enumerate(t["headers"]) if h not in DROP_HEADERS]
+            if not t["headers"]:
+                keep = list(range(max(len(r) for r in t["rows"])))
+            tbl = {
+                "caption": caption_of(i) or "",
+                "headers": [tr(t["headers"][j]) for j in keep if j < len(t["headers"])],
+                "rows": [[tr(r[j]) for j in keep if j < len(r)] for r in t["rows"]],
+            }
+            icons = [[pick_icon(ic[j]) for j in keep if j < len(ic)] for ic in t["icons"]]
+            if any(any(r) for r in icons):
+                tbl["icons"] = icons
+            tables.append(tbl)
+
+    out = {"intro": "\n\n".join(intro)}
+    if lead_items:
+        out["introItems"] = lead_items
+    out["sections"] = sections
+    out["tables"] = tables
+    return out
+
+
+def wanted_icons(data):
+    out = set()
+    for blk in data.values():
+        for s in blk["sections"]:
+            out |= {i for i in s.get("itemIcons", []) if i}
+        for t in blk["tables"]:
+            for row in t.get("icons", []):
+                out |= {i for i in row if i}
+    return out
+
+
+def download_icons(names):
+    """imageinfo 取網址 -> 依中文名存到 docs/img/social/，回傳 檔名 -> 站內路徑。"""
+    urls = {}
+    names = sorted(names)
+    for i in range(0, len(names), 50):
+        q = "|".join("File:" + n for n in names[i:i + 50])
+        u = (f"{API}?action=query&format=json&prop=imageinfo&iiprop=url&titles="
+             + urllib.parse.quote(q))
+        for p in json.loads(curl(url=u))["query"]["pages"].values():
+            info = p.get("imageinfo")
+            if info:
+                urls[p["title"][len("File:"):].replace(" ", "_")] = info[0]["url"]
+        time.sleep(0.5)
+
+    OUT_IMG.mkdir(parents=True, exist_ok=True)
+    paths, got, cached, missing = {}, 0, 0, []
+    for n in names:
+        url = urls.get(n)
+        fn = ICON_NAME[n].translate(ILLEGAL) + ".png"
+        dst = OUT_IMG / fn
+        if dst.exists() and dst.stat().st_size > 0:
+            cached += 1
+        elif not url:
+            missing.append(n)
+            continue
+        else:
+            subprocess.run(["curl", "-sfLm60", "-o", str(dst), url], check=False)
+            if not dst.exists() or dst.stat().st_size == 0:
+                dst.unlink(missing_ok=True)
+                missing.append(n)
+                continue
+            got += 1
+            time.sleep(0.3)
+        paths[n] = "img/social/" + fn
+    print(f"圖示：新下載 {got}、已存在 {cached}、抓不到 {len(missing)}"
+          + (f" -> {missing}" if missing else ""))
+    return paths
+
+
+def resolve_icons(data, paths):
+    """把佔位的 Fandom 檔名換成站內路徑；抓不到的就整個欄位不寫（缺就是缺）。"""
+    for blk in data.values():
+        for s in blk["sections"]:
+            if "itemIcons" in s:
+                s["itemIcons"] = [paths.get(i, "") for i in s["itemIcons"]]
+                if not any(s["itemIcons"]):
+                    del s["itemIcons"]
+        for t in blk["tables"]:
+            if "icons" in t:
+                t["icons"] = [[paths.get(i, "") for i in row] for row in t["icons"]]
+                if not any(any(r) for r in t["icons"]):
+                    del t["icons"]
+
+
+def main():
+    pages = fetch_pages()
+    data = {}
+    for key, title, zh in PAGES:
+        blk = build_page(title, pages[title])
+        data[key] = {"title": zh, "en": title, **blk}
+        print(f"{title:30s} 段落 {len(blk['sections']):2d}、表 {len(blk['tables'])}"
+              + ("  ← 內容為空" if not blk["intro"] and not blk["sections"] else ""))
+
+    resolve_icons(data, download_icons(wanted_icons(data)))
+
+    OUT_JSON.parent.mkdir(parents=True, exist_ok=True)
+    OUT_JSON.write_text(
+        json.dumps(data, ensure_ascii=False, separators=(",", ":")), "utf-8")
+    print("寫出:", OUT_JSON.relative_to(ROOT))
+
+    if MISSING:
+        print(f"\n沒有譯文、原樣輸出的 {len(MISSING)} 段（對照表要補）：")
+        for s in dict.fromkeys(MISSING):
+            print("  ·", s[:110])
+
+
+if __name__ == "__main__":
+    main()

@@ -153,3 +153,18 @@ kbd { border: 1px solid var(--line, #2a3140); border-radius: 4px; padding: 1px 6
 .chip { border: 1px solid var(--line, #2a3140); border-radius: 999px; padding: 2px 10px;
         background: transparent; color: inherit; cursor: pointer; font: inherit; font-size: .9em }
 .chip:hover { border-color: var(--fg-dim, #9aa4b2) }
+
+/* 頁內跳轉列 */
+.jump { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 0 0 20px;
+        padding-bottom: 12px; border-bottom: 1px solid var(--line, #2a3140) }
+.jump a { color: var(--fg-dim, #9aa4b2); text-decoration: none }
+.jump a:hover { color: inherit; text-decoration: underline }
+h2 .en, h4 { color: var(--fg-dim, #9aa4b2) }
+h2 .en { font-size: .7em; font-weight: normal; margin-left: 8px }
+h4 { margin: 16px 0 6px; font-size: 1em }
+
+/* 兩層導覽：查資料 / 玩法與系統 */
+.nav-row { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px }
+.nav-row + .nav-row { margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--line, #2a3140) }
+.nav-label { color: var(--fg-dim, #9aa4b2); font-size: .8em; flex: none; min-width: 5.5em }
+@media (max-width: 600px) { .nav-label { min-width: 100%; margin-bottom: 2px } }

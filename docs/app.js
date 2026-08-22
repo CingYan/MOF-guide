@@ -1603,15 +1603,71 @@ V.dungeons = async () => {
   ]);
 };
 
-const NAV = [['', '首頁'], ['grind', '練功'], ['monsters', '怪物'], ['maps', '地圖'],
-             ['equips', '裝備'], ['fashion', '時裝'], ['items', '道具'], ['recipes', '製作'],
-             ['quests', '任務'], ['npcs', 'NPC'], ['pets', '寵物'], ['skills', '技能'], ['major', '專業技能'],
-             ['character', '角色'],
-             ['dungeons', '副本'],
-             ['badges', '徽章'], ['system', '系統'], ['notes', '玩家筆記']];
+/* 社群系統：PvP、組隊、PvM、社團、婚禮、戰爭任務、天氣 */
+V.social = async () => {
+  const d = await data('social');
+  const ORDER = ['party', 'circle', 'wedding', 'pvp', 'pvm', 'warTask', 'weather'];
+
+  /* 表格的圖示是與 rows 同形狀的平行矩陣，貼在該格文字前面 */
+  const tbl = t => el('div', {}, [
+    t.caption ? el('h4', { text: t.caption }) : null,
+    el('div', { class: 'tw' }, [el('table', {}, [
+      el('thead', {}, [el('tr', {}, t.headers.map(h => el('th', { text: h })))]),
+      el('tbody', {}, t.rows.map((r, ri) => el('tr', {}, r.map((c, ci) => {
+        const src = ((t.icons || [])[ri] || [])[ci];
+        return src ? el('td', { class: 'wrap nm' },
+                        [el('img', { class: 'ic sm', src, alt: '', loading: 'lazy' }), c])
+                   : el('td', { class: 'wrap', text: c });
+      })))),
+    ])]),
+  ]);
+
+  const sec = x => frag([
+    x.h ? el('h3', { text: x.h }) : null,
+    x.body ? el('p', { class: 'lead', text: x.body }) : null,
+    (x.items || []).length
+      ? el('ul', {}, x.items.map((t, i) => el('li', { class: 'wrap' }, [
+          (x.itemIcons || [])[i]
+            ? el('img', { class: 'ic sm', src: x.itemIcons[i], alt: '', loading: 'lazy' }) : null, t])))
+      : null,
+  ]);
+
+  const block = key => {
+    const b = d[key];
+    if (!b) return null;
+    return frag([
+      el('h2', {}, [b.title, b.en && b.en !== b.title ? el('span', { class: 'en', text: b.en }) : null]),
+      b.intro ? el('p', { class: 'lead', text: b.intro }) : null,
+      (b.introItems || []).length
+        ? el('ul', {}, b.introItems.map(t => el('li', { class: 'wrap', text: t }))) : null,
+      frag((b.sections || []).map(sec)),
+      frag((b.tables || []).map(tbl)),
+    ]);
+  };
+
+  return frag([
+    el('h1', { text: '社群系統' }),
+    el('p', { class: 'sub', text: '組隊、社團、婚禮、對戰模式、戰爭任務與天氣。' }),
+    el('nav', { class: 'jump' }, ORDER.filter(k => d[k]).map(k =>
+      el('a', { href: '#social-' + k, text: d[k].title }))),
+    frag(ORDER.map(k => d[k] ? el('section', { id: 'social-' + k }, [block(k)]) : null)),
+  ]);
+};
+
+/* 導覽分兩層：上層是查資料（怪物、裝備、道具⋯），下層是玩法與系統說明。
+   19 個項目擠成一排在手機上會捲不完，也看不出哪些是同一類。 */
+const NAV_GROUPS = [
+  ['查資料', [['', '首頁'], ['monsters', '怪物'], ['maps', '地圖'], ['equips', '裝備'],
+              ['fashion', '時裝'], ['items', '道具'], ['recipes', '製作'],
+              ['quests', '任務'], ['npcs', 'NPC'], ['pets', '寵物']]],
+  ['玩法與系統', [['grind', '練功'], ['skills', '技能'], ['major', '專業技能'],
+                  ['character', '角色'], ['dungeons', '副本'], ['social', '社群'],
+                  ['badges', '徽章'], ['system', '系統'], ['notes', '玩家筆記']]],
+];
+const NAV = NAV_GROUPS.flatMap(g => g[1]);
 
 const ROUTE = {
-  '': V.home, grind: V.grind, major: V.major, character: V.character, dungeons: V.dungeons,
+  '': V.home, grind: V.grind, major: V.major, character: V.character, dungeons: V.dungeons, social: V.social,
   monsters: V.monsters, maps: V.maps, equips: V.equips, fashion: V.fashion,
   items: V.items, recipes: V.recipes, quests: V.quests, npcs: V.npcs,
   pets: V.pets, skills: V.skills, badges: V.badges, system: V.system, notes: V.notes,
@@ -1624,12 +1680,18 @@ const ROUTE1 = {
 
 function drawNav(active) {
   $('#nav').textContent = '';
-  for (const [h, t] of NAV) {
-    $('#nav').appendChild(el('a', { href: '#/' + h, text: t, class: h === active ? 'on' : '' }));
+  for (const [label, items] of NAV_GROUPS) {
+    const row = el('div', { class: 'nav-row' }, [el('span', { class: 'nav-label', text: label })]);
+    for (const [h, t] of items) {
+      row.appendChild(el('a', { href: '#/' + h, text: t, class: h === active ? 'on' : '' }));
+    }
+    $('#nav').appendChild(row);
   }
 }
 
 async function route() {
+  /* 頁內錨點（#social-party 這種）不是路由，交給瀏覽器自己捲，不要重畫整頁 */
+  if (location.hash && !location.hash.startsWith('#/')) return;
   const parts = location.hash.replace(/^#\/?/, '').split('/').filter(Boolean);
   const [sec, id] = parts;
   drawNav(sec || '');
