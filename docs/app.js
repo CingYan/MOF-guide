@@ -933,9 +933,11 @@ V.npc = async id => {
 V.grind = async () => {
   const rows = await data('grind');
   return listPage('練功地圖排行',
-    `依「每點 HP 能換到多少經驗」排序 —— 數字越高，打死一隻的效益越好。共 ${rows.length} 張有怪地圖。`
+    `依「每點 HP 能換到多少經驗」排序 —— 數字越高，打死一隻的效益越好。`
+    + `共 ${num(rows.length)} 筆，含 ${rows.filter(g => g.type === '副本鑰匙').length} 場鑰匙副本。`
     + `先用「平均等級」篩出打得動的範圍，再看效率。`
-    + `另有 199 張地圖沒有怪物資料（村莊，以及副本的入口／中央／出口這類過場圖），因此不列入排行。`,
+    + `鑰匙副本以「一整場」為單位（你進去是打完整場，不是打單一房間），`
+    + `所以另給整場總量；無限型怪物無限湧出、沒有總量，只給效率。`,
     rows, [
       { h: '地圖', c: g => itemCell(g, 'maps') },
       { h: '區域', c: g => g.region },
@@ -944,6 +946,11 @@ V.grind = async () => {
         title: '平均經驗 ÷ 平均 HP' },
       { h: '平均經驗', n: true, v: g => g.exp, c: g => num(g.exp) },
       { h: '平均 HP', n: true, v: g => g.hp, c: g => num(g.hp) },
+      { h: '整場經驗', n: true, v: g => g.runExp || 0,
+        c: g => g.runExp ? num(g.runExp) : (g.type === '副本鑰匙' ? '無限' : ''),
+        title: '跑完一趟能拿到的總經驗' },
+      { h: '整場 HP', n: true, v: g => g.runHp || 0,
+        c: g => g.runHp ? num(g.runHp) : '', title: '跑完一趟要打掉的總 HP' },
       { h: '平均掉錢', n: true, v: g => g.money, c: g => num(g.money) },
       { h: '主動怪', n: true, v: g => g.aggressive, c: g => g.aggressive ? g.aggressive + ' 種' : '' },
       { h: '怪物種類', n: true, v: g => g.kinds, c: g => g.kinds },
@@ -1606,7 +1613,8 @@ V.dungeons = async () => {
 /* 社群系統：PvP、組隊、PvM、社團、婚禮、戰爭任務、天氣 */
 V.social = async () => {
   const d = await data('social');
-  const ORDER = ['party', 'circle', 'wedding', 'pvp', 'pvm', 'warTask', 'weather'];
+  /* 戰爭任務已獨立成「功勳」頁（它是專業技能點數的主要來源），這裡只留指路 */
+  const ORDER = ['party', 'circle', 'wedding', 'pvp', 'pvm', 'weather'];
 
   /* 表格的圖示是與 rows 同形狀的平行矩陣，貼在該格文字前面 */
   const tbl = t => el('div', {}, [
@@ -1651,23 +1659,76 @@ V.social = async () => {
     el('nav', { class: 'jump' }, ORDER.filter(k => d[k]).map(k =>
       el('a', { href: '#social-' + k, text: d[k].title }))),
     frag(ORDER.map(k => d[k] ? el('section', { id: 'social-' + k }, [block(k)]) : null)),
+    el('h2', { text: '戰爭任務與物資補給' }),
+    el('p', { class: 'lead' }, ['內容較多，已獨立成一頁：',
+      el('a', { href: '#/merit', text: '功勳' }), '。']),
   ]);
 };
 
-/* 導覽分兩層：上層是查資料（怪物、裝備、道具⋯），下層是玩法與系統說明。
-   19 個項目擠成一排在手機上會捲不完，也看不出哪些是同一類。 */
+/* 導覽分兩組：前半是查資料（怪物、裝備、道具⋯），後半是玩法與系統說明。
+   只用一條細分隔線隔開，不加群組標題 —— 標題會變成兩塊擠在列上的雜訊。 */
+/* 功勳：戰爭任務點數，也是專業技能點數的主要來源 */
+V.merit = async () => {
+  const d = await data('merit');
+  return frag([
+    el('h1', {}, [d.title, el('span', { class: 'en', text: d.en })]),
+    el('p', { class: 'sub', text: '戰爭任務、物資補給，以及專業技能點數怎麼來。' }),
+    el('p', { class: 'lead', text: d.intro }),
+    d.quota.length ? frag([
+      el('h3', { text: '可接的怪物數量（依等級差）' }),
+      el('ul', {}, d.quota.map(t => el('li', { class: 'wrap', text: t }))),
+    ]) : null,
+    el('h3', { text: '物資補給' }),
+    el('p', { class: 'lead', text: d.supply }),
+
+    el('h2', { text: '功勳階級與專業技能點數' }),
+    el('p', { class: 'lead', text: d.note }),
+    el('div', { class: 'tw' }, [el('table', {}, [
+      el('thead', {}, [el('tr', {}, ['階', '累計功勳', '階級', '專業技能點數', '另一份來源的階級', '另一份的區間']
+        .map(h => el('th', { text: h })))]),
+      el('tbody', {}, d.tiers.map(t => el('tr', {}, [
+        el('td', { text: String(t.n) }),
+        el('td', { text: num(t.zhPoint) + ' 點' }),
+        el('td', {}, [el('b', { text: t.zhName })]),
+        el('td', {}, [el('b', { text: '+' + t.skillPoints })]),
+        el('td', { class: 'wrap dim', text: t.altName }),
+        el('td', { class: 'wrap dim', text: t.altRange }),
+      ]))),
+    ])]),
+    el('p', { class: 'lead', text:
+      `十階全部升滿共 ${d.tiers.reduce((a, t) => a + t.skillPoints, 0)} 點專業技能點數。` }),
+
+    el('h2', { text: '專業技能點數的來源' }),
+    el('div', { class: 'defs' }, d.sources.map(x => el('div', { class: 'def' }, [
+      el('b', { text: x.from }),
+      el('p', {}, [el('span', { class: 'wrap', text: x.detail })]),
+    ]))),
+    el('p', { class: 'lead' }, ['點數怎麼花：', el('a', { href: '#/major', text: '專業技能' }), '。']),
+
+    el('h2', { text: '用語' }),
+    el('div', { class: 'tw' }, [el('table', {}, [
+      el('thead', {}, [el('tr', {}, ['站上用字', '別名', '說明'].map(h => el('th', { text: h })))]),
+      el('tbody', {}, d.terms.map(t => el('tr', {}, [
+        el('td', {}, [el('b', { text: t.zh })]),
+        el('td', { text: t.alt }),
+        el('td', { class: 'wrap', text: t.note }),
+      ]))),
+    ])]),
+  ]);
+};
+
 const NAV_GROUPS = [
-  ['查資料', [['', '首頁'], ['monsters', '怪物'], ['maps', '地圖'], ['equips', '裝備'],
+  [['', '首頁'], ['monsters', '怪物'], ['maps', '地圖'], ['equips', '裝備'],
               ['fashion', '時裝'], ['items', '道具'], ['recipes', '製作'],
-              ['quests', '任務'], ['npcs', 'NPC'], ['pets', '寵物']]],
-  ['玩法與系統', [['grind', '練功'], ['skills', '技能'], ['major', '專業技能'],
-                  ['character', '角色'], ['dungeons', '副本'], ['social', '社群'],
-                  ['badges', '徽章'], ['system', '系統'], ['notes', '玩家筆記']]],
+              ['quests', '任務'], ['npcs', 'NPC'], ['pets', '寵物']],
+  [['grind', '練功'], ['skills', '技能'], ['major', '專業技能'],
+                  ['character', '角色'], ['dungeons', '副本'], ['social', '社群'], ['merit', '功勳'],
+                  ['badges', '徽章'], ['system', '系統'], ['notes', '玩家筆記']],
 ];
-const NAV = NAV_GROUPS.flatMap(g => g[1]);
+const NAV = NAV_GROUPS.flat();
 
 const ROUTE = {
-  '': V.home, grind: V.grind, major: V.major, character: V.character, dungeons: V.dungeons, social: V.social,
+  '': V.home, grind: V.grind, major: V.major, character: V.character, dungeons: V.dungeons, social: V.social, merit: V.merit,
   monsters: V.monsters, maps: V.maps, equips: V.equips, fashion: V.fashion,
   items: V.items, recipes: V.recipes, quests: V.quests, npcs: V.npcs,
   pets: V.pets, skills: V.skills, badges: V.badges, system: V.system, notes: V.notes,
@@ -1680,13 +1741,12 @@ const ROUTE1 = {
 
 function drawNav(active) {
   $('#nav').textContent = '';
-  for (const [label, items] of NAV_GROUPS) {
-    const row = el('div', { class: 'nav-row' }, [el('span', { class: 'nav-label', text: label })]);
+  NAV_GROUPS.forEach((items, i) => {
+    if (i) $('#nav').appendChild(el('span', { class: 'nav-sep' }));
     for (const [h, t] of items) {
-      row.appendChild(el('a', { href: '#/' + h, text: t, class: h === active ? 'on' : '' }));
+      $('#nav').appendChild(el('a', { href: '#/' + h, text: t, class: h === active ? 'on' : '' }));
     }
-    $('#nav').appendChild(row);
-  }
+  });
 }
 
 async function route() {

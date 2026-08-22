@@ -163,8 +163,8 @@ h2 .en, h4 { color: var(--fg-dim, #9aa4b2) }
 h2 .en { font-size: .7em; font-weight: normal; margin-left: 8px }
 h4 { margin: 16px 0 6px; font-size: 1em }
 
-/* 兩層導覽：查資料 / 玩法與系統 */
-.nav-row { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px }
-.nav-row + .nav-row { margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--line, #2a3140) }
-.nav-label { color: var(--fg-dim, #9aa4b2); font-size: .8em; flex: none; min-width: 5.5em }
-@media (max-width: 600px) { .nav-label { min-width: 100%; margin-bottom: 2px } }
+/* 導覽的分組界線：查資料 | 玩法與系統 */
+.nav-sep { width: 1px; align-self: stretch; margin: 2px 8px; background: var(--bg3) }
+
+td.dim, .dim { color: var(--dim) }
+h1 .en { color: var(--dim); font-size: .55em; font-weight: normal; margin-left: 10px }
