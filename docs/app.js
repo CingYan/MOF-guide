@@ -1743,7 +1743,10 @@ V.schoolyear = async () => {
 
   const feeRows = d.years.map(y => el('tr', {}, [
     el('td', {}, [el('b', { text: y.year + ' 學年' })]),
-    el('td', { text: num(y.fee) + ' 利比' }),
+    el('td', {}, [
+      el('span', { text: num(y.fee) + ' 利比' }),
+      y.feeSource === 'verified' ? el('span', { class: 'dim', text: '（實測）' }) : null,
+    ]),
     el('td', { class: 'dim', text: (grind.get(y.year) || []).length
       ? (grind.get(y.year) || []).length + ' 隻' : (y.year === 2 ? '不需打怪' : '—') }),
     el('td', { class: 'dim', text: y.answersOnly ? '僅有答案' : '題目 + 答案' }),
@@ -1752,7 +1755,8 @@ V.schoolyear = async () => {
   const yearBlock = y => {
     const rows = grind.get(y.year) || [];
     return el('section', { class: 'sy-year', id: 'sy-' + y.year }, [
-      el('h3', {}, [`${y.year} 學年`, el('span', { class: 'en', text: num(y.fee) + ' 利比' })]),
+      el('h3', {}, [`${y.year} 學年`, el('span', { class: 'en',
+        text: num(y.fee) + ' 利比' + (y.feeSource === 'verified' ? '（實測）' : '') })]),
       rows.length ? el('p', { class: 'lead wrap' }, ['所需怪物：', ...rows.flatMap((r, i) => [
         i ? '、' : '', el('span', {}, [
           el('span', { class: 'dim', text: 'Lv' + r.level + ' ' }),
