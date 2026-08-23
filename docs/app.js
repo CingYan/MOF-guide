@@ -1716,7 +1716,8 @@ V.merit = async () => {
       el('b', { text: x.from }),
       el('p', {}, [el('span', { class: 'wrap', text: x.detail })]),
     ]))),
-    el('p', { class: 'lead' }, ['點數怎麼花：', el('a', { href: '#/major', text: '專業技能' }), '。']),
+    el('p', { class: 'lead' }, ['點數怎麼花：', el('a', { href: '#/major', text: '專業技能' }),
+      '。另一個來源的細節看 ', el('a', { href: '#/schoolyear', text: '學年考試' }), '。']),
 
     el('h2', { text: '用語' }),
     el('div', { class: 'tw' }, [el('table', {}, [
@@ -1730,18 +1731,116 @@ V.merit = async () => {
   ]);
 };
 
+/* 學年考試：升學年要繳錢、打指定怪、回學院答題，每學年給 2 點專攻點。
+   怪物名以 2008 官方改版後譯名為準 —— 拿站上怪物資料對照，改版後譯名
+   49 筆中 48 筆對得上，舊譯名只對得上 5 筆，所以舊名只留在同列供對照。 */
+V.schoolyear = async () => {
+  const d = await data('schoolyear');
+  const grind = new Map(d.grind.map(g => [g.year, g.rows]));
+  const mon = (name, id, cur) => id
+    ? el('a', { href: '#/monsters/' + id, text: cur || name })
+    : el('span', { text: name });
+
+  const feeRows = d.years.map(y => el('tr', {}, [
+    el('td', {}, [el('b', { text: y.year + ' 學年' })]),
+    el('td', { text: num(y.fee) + ' 利比' }),
+    el('td', { class: 'dim', text: (grind.get(y.year) || []).length
+      ? (grind.get(y.year) || []).length + ' 隻' : (y.year === 2 ? '不需打怪' : '—') }),
+    el('td', { class: 'dim', text: y.answersOnly ? '僅有答案' : '題目 + 答案' }),
+  ]));
+
+  const yearBlock = y => {
+    const rows = grind.get(y.year) || [];
+    return el('section', { class: 'sy-year', id: 'sy-' + y.year }, [
+      el('h3', {}, [`${y.year} 學年`, el('span', { class: 'en', text: num(y.fee) + ' 利比' })]),
+      rows.length ? el('p', { class: 'lead wrap' }, ['所需怪物：', ...rows.flatMap((r, i) => [
+        i ? '、' : '', el('span', {}, [
+          el('span', { class: 'dim', text: 'Lv' + r.level + ' ' }),
+          mon(r.name, r.monsterId),
+          r.oldName && r.oldName !== r.name ? el('span', { class: 'dim', text: '（舊名 ' + r.oldName + '）' }) : null,
+          r.maps.length ? el('span', { class: 'dim', text: ' ' + r.maps.join('、') }) : null,
+        ]),
+      ])]) : el('p', { class: 'lead dim', text: y.year === 2 ? '不需打怪即可考。' : '' }),
+      y.answersOnly
+        ? el('p', { class: 'lead wrap' }, ['答案：', ...y.questions.flatMap((q, i) => [
+            i ? '、' : '',
+            el('span', {}, [
+              q.level ? el('span', { class: 'dim', text: 'Lv' + q.level + ' ' }) : null,
+              mon(q.answer, q.monsterId, q.currentName),
+            ]),
+          ]), el('span', { class: 'dim', text: '（來源未記題目）' })])
+        : el('div', { class: 'tw' }, [el('table', {}, [
+            el('thead', {}, [el('tr', {}, ['題目', '簡短問法', '解答'].map(h => el('th', { text: h })))]),
+            el('tbody', {}, y.questions.map(q => el('tr', {}, [
+              el('td', { class: 'wrap dim', text: q.desc }),
+              el('td', { class: 'wrap', text: q.short }),
+              el('td', { class: 'wrap' }, [
+                q.level ? el('span', { class: 'dim', text: 'Lv' + q.level + ' ' }) : null,
+                el('b', {}, [mon(q.answer, q.monsterId, q.currentName)]),
+                q.currentName && q.currentName !== q.answer
+                  ? el('span', { class: 'dim', text: '（攻略寫 ' + q.answer + '）' }) : null,
+                q.maps && q.maps.length ? el('span', { class: 'dim', text: ' ' + q.maps.join('、') }) : null,
+              ]),
+            ]))),
+          ])]),
+    ]);
+  };
+
+  return frag([
+    el('h1', {}, [d.title, el('span', { class: 'en', text: d.en })]),
+    el('p', { class: 'sub', text: '升學年的費用、所需怪物與完整題庫。' }),
+    el('p', { class: 'lead', text: d.intro }),
+
+    el('p', { class: 'lead' }, ['專攻點的其他來源看 ', el('a', { href: '#/merit', text: '功勳' }),
+      '，點數怎麼花看 ', el('a', { href: '#/major', text: '專業技能' }), '。']),
+
+    el('h2', { text: '費用一覽' }),
+    el('p', { class: 'lead', text: d.verify }),
+    el('div', { class: 'tw' }, [el('table', {}, [
+      el('thead', {}, [el('tr', {}, ['學年', '考試費用', '所需怪物', '題庫'].map(h => el('th', { text: h })))]),
+      el('tbody', {}, feeRows),
+    ])]),
+
+    el('h2', { text: '逐學年題庫' }),
+    el('p', { class: 'lead', text: d.naming }),
+    el('p', { class: 'jump' }, d.years.flatMap((y, i) => [
+      i ? ' ' : '', el('a', { href: '#sy-' + y.year, text: y.year }),
+    ])),
+    ...d.years.map(yearBlock),
+
+    el('h2', { text: '資料落差' }),
+    el('ul', {}, d.gaps.map(t => el('li', { class: 'wrap', text: t }))),
+
+    el('h2', { text: '用語' }),
+    el('div', { class: 'tw' }, [el('table', {}, [
+      el('thead', {}, [el('tr', {}, ['站上用字', '別名', '說明'].map(h => el('th', { text: h })))]),
+      el('tbody', {}, d.terms.map(t => el('tr', {}, [
+        el('td', {}, [el('b', { text: t.site })]),
+        el('td', { text: t.aka.join('、') }),
+        el('td', { class: 'wrap', text: t.note }),
+      ]))),
+    ])]),
+
+    el('h2', { text: '資料來源' }),
+    el('div', { class: 'defs' }, d.sources.map(x => el('div', { class: 'def' }, [
+      el('b', { text: x.title }),
+      el('p', {}, [el('span', { class: 'wrap dim', text: `${x.author}・${x.date}　${x.use}` })]),
+    ]))),
+  ]);
+};
+
 const NAV_GROUPS = [
   [['', '首頁'], ['monsters', '怪物'], ['maps', '地圖'], ['equips', '裝備'],
               ['fashion', '時裝'], ['items', '道具'], ['recipes', '製作'],
               ['quests', '任務'], ['npcs', 'NPC'], ['pets', '寵物']],
   [['grind', '練功'], ['skills', '技能'], ['major', '專業技能'],
-                  ['character', '角色'], ['dungeons', '副本'], ['social', '社群'], ['merit', '功勳'],
+                  ['character', '角色'], ['dungeons', '副本'], ['social', '社群'], ['merit', '功勳'], ['schoolyear', '學年考試'],
                   ['badges', '徽章'], ['system', '系統'], ['notes', '玩家筆記']],
 ];
 const NAV = NAV_GROUPS.flat();
 
 const ROUTE = {
-  '': V.home, grind: V.grind, major: V.major, character: V.character, dungeons: V.dungeons, social: V.social, merit: V.merit,
+  '': V.home, grind: V.grind, major: V.major, character: V.character, dungeons: V.dungeons, social: V.social, merit: V.merit, schoolyear: V.schoolyear,
   monsters: V.monsters, maps: V.maps, equips: V.equips, fashion: V.fashion,
   items: V.items, recipes: V.recipes, quests: V.quests, npcs: V.npcs,
   pets: V.pets, skills: V.skills, badges: V.badges, system: V.system, notes: V.notes,

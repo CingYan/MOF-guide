@@ -171,3 +171,7 @@ h1 .en { color: var(--dim); font-size: .55em; font-weight: normal; margin-left: 
 
 /* 排除頭目後掉很多的效率，標色提醒那個數字是被頭目撐起來的 */
 b.warn { color: #e0a33a }
+
+/* 學年考試：每學年一個區塊，需要明確分隔才不會疊成一坨 */
+.sy-year{margin:22px 0 0;padding-top:14px;border-top:1px solid var(--line,#2a2f3a)}
+.sy-year h3{margin:0 0 8px}
