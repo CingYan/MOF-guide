@@ -1793,7 +1793,12 @@ V.schoolyear = async () => {
                   ? el('span', { class: 'dim', text: '（攻略寫 ' + q.answer + '）' }) : null,
                 q.maps && q.maps.length ? el('span', { class: 'dim', text: ' ' + q.maps.join('、') }) : null,
               ]),
-              el('td', { class: 'wrap', text: q.monsterDesc || '—' }),
+              el('td', { class: 'wrap' }, [
+                q.realDesc ? el('b', { text: q.realDesc + '／' + q.realShort }) : null,
+                q.realDesc ? el('span', { class: 'tag-ok', text: '實測題目' }) : null,
+                q.realDesc ? el('br', {}) : null,
+                el('span', { class: q.realDesc ? 'dim' : '', text: q.monsterDesc || '—' }),
+              ]),
               el('td', { class: 'wrap dim', text: q.desc + '／' + q.short }),
             ]))),
           ])]),
