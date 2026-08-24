@@ -1782,17 +1782,19 @@ V.schoolyear = async () => {
             ]),
           ]), el('span', { class: 'dim', text: '（來源未記題目）' })])
         : el('div', { class: 'tw' }, [el('table', {}, [
-            el('thead', {}, [el('tr', {}, ['題目', '簡短問法', '解答'].map(h => el('th', { text: h })))]),
+            el('thead', {}, [el('tr', {}, ['解答', '現行圖鑑描述（認題用這欄）', '2007 攻略的題目']
+              .map(h => el('th', { text: h })))]),
             el('tbody', {}, y.questions.map(q => el('tr', {}, [
-              el('td', { class: 'wrap dim', text: q.desc }),
-              el('td', { class: 'wrap', text: q.short }),
               el('td', { class: 'wrap' }, [
                 q.level ? el('span', { class: 'dim', text: 'Lv' + q.level + ' ' }) : null,
-                el('b', {}, [mon(q.answer, q.monsterId, q.currentName)]),
-                q.currentName && q.currentName !== q.answer
+                el('b', {}, [mon(q.answer, q.monsterId, q.siteName || q.currentName)]),
+                q.guideLevel ? el('span', { class: 'dim', text: '（攻略誤植 Lv' + q.guideLevel + '）' }) : null,
+                (q.siteName && q.siteName !== q.answer)
                   ? el('span', { class: 'dim', text: '（攻略寫 ' + q.answer + '）' }) : null,
                 q.maps && q.maps.length ? el('span', { class: 'dim', text: ' ' + q.maps.join('、') }) : null,
               ]),
+              el('td', { class: 'wrap', text: q.monsterDesc || '—' }),
+              el('td', { class: 'wrap dim', text: q.desc + '／' + q.short }),
             ]))),
           ])]),
     ]);
@@ -1803,6 +1805,7 @@ V.schoolyear = async () => {
     el('p', { class: 'sub', text: '升學年的費用、所需怪物與完整題庫。' }),
     el('p', { class: 'lead', text: d.intro }),
 
+    el('p', { class: 'lead wrap', text: d.howto.replace(/\*\*/g, '') }),
     el('p', { class: 'lead' }, ['專攻點的其他來源看 ', el('a', { href: '#/merit', text: '功勳' }),
       '，點數怎麼花看 ', el('a', { href: '#/major', text: '專業技能' }), '。']),
 
@@ -1815,6 +1818,7 @@ V.schoolyear = async () => {
     ])]),
 
     el('h2', { text: '逐學年題庫' }),
+    el('p', { class: 'lead wrap', text: d.questionNote.replace(/\*\*/g, '') }),
     el('p', { class: 'lead', text: d.naming }),
     el('p', { class: 'jump' }, d.years.flatMap((y, i) => [
       i ? ' ' : '', el('a', { href: '#sy-' + y.year, text: y.year }),
