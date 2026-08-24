@@ -175,3 +175,8 @@ b.warn { color: #e0a33a }
 /* 學年考試：每學年一個區塊，需要明確分隔才不會疊成一坨 */
 .sy-year{margin:22px 0 0;padding-top:14px;border-top:1px solid var(--line,#2a2f3a)}
 .sy-year h3{margin:0 0 8px}
+
+/* 實測值與未驗證的攻略值必須一眼分得出來——目前抽驗 2 筆 2 筆都錯，
+   兩者長得一樣的話等於把不可信的數字借了可信的外觀。 */
+.tag-ok{margin-left:6px;padding:1px 6px;border-radius:999px;background:#1f4d33;color:#cdebd8;font-size:.72rem}
+.fee-verified td{background:rgba(31,77,51,.10)}

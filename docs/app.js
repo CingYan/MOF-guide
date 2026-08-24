@@ -1741,22 +1741,30 @@ V.schoolyear = async () => {
     ? el('a', { href: '#/monsters/' + id, text: cur || name })
     : el('span', { text: name });
 
-  const feeRows = d.years.map(y => el('tr', {}, [
-    el('td', {}, [el('b', { text: y.year + ' 學年' })]),
-    el('td', {}, [
-      el('span', { text: num(y.fee) + ' 利比' }),
-      y.feeSource === 'verified' ? el('span', { class: 'dim', text: '（實測）' }) : null,
-    ]),
-    el('td', { class: 'dim', text: (grind.get(y.year) || []).length
-      ? (grind.get(y.year) || []).length + ' 隻' : (y.year === 2 ? '不需打怪' : '—') }),
-    el('td', { class: 'dim', text: y.answersOnly ? '僅有答案' : '題目 + 答案' }),
-  ]));
+  /* 費用分兩欄：實測過的才是數字，其餘一律標成未驗證的攻略值。
+     目前抽驗 2 筆、2 筆都跟攻略不符，所以不能讓兩者看起來一樣可信。 */
+  const feeRows = d.years.map(y => {
+    const ok = y.feeSource === 'verified';
+    return el('tr', { class: ok ? 'fee-verified' : '' }, [
+      el('td', {}, [el('b', { text: y.year + ' 學年' })]),
+      el('td', {}, [
+        el('b', { text: num(y.fee) + ' 利比' }),
+        ok ? el('span', { class: 'tag-ok', text: '實測' }) : null,
+      ]),
+      el('td', { class: 'dim wrap', text: ok
+        ? (y.bahaFee && y.bahaFee !== y.fee ? '攻略寫 ' + num(y.bahaFee) + '，錯' : '—')
+        : '未驗證，取自 2007 攻略' }),
+      el('td', { class: 'dim', text: (grind.get(y.year) || []).length
+        ? (grind.get(y.year) || []).length + ' 隻' : (y.year === 2 ? '不需打怪' : '—') }),
+      el('td', { class: 'dim', text: y.answersOnly ? '僅有答案' : '題目 + 答案' }),
+    ]);
+  });
 
   const yearBlock = y => {
     const rows = grind.get(y.year) || [];
     return el('section', { class: 'sy-year', id: 'sy-' + y.year }, [
       el('h3', {}, [`${y.year} 學年`, el('span', { class: 'en',
-        text: num(y.fee) + ' 利比' + (y.feeSource === 'verified' ? '（實測）' : '') })]),
+        text: num(y.fee) + ' 利比' + (y.feeSource === 'verified' ? '（實測）' : '（未驗證）') })]),
       rows.length ? el('p', { class: 'lead wrap' }, ['所需怪物：', ...rows.flatMap((r, i) => [
         i ? '、' : '', el('span', {}, [
           el('span', { class: 'dim', text: 'Lv' + r.level + ' ' }),
@@ -1801,7 +1809,8 @@ V.schoolyear = async () => {
     el('h2', { text: '費用一覽' }),
     el('p', { class: 'lead', text: d.verify }),
     el('div', { class: 'tw' }, [el('table', {}, [
-      el('thead', {}, [el('tr', {}, ['學年', '考試費用', '所需怪物', '題庫'].map(h => el('th', { text: h })))]),
+      el('thead', {}, [el('tr', {}, ['學年', '考試費用', '資料狀態', '所需怪物', '題庫']
+        .map(h => el('th', { text: h })))]),
       el('tbody', {}, feeRows),
     ])]),
 
