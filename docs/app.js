@@ -1796,6 +1796,8 @@ V.schoolyear = async () => {
               el('td', { class: 'wrap' }, [
                 q.realDesc ? el('b', { text: q.realDesc + '／' + q.realShort }) : null,
                 q.realDesc ? el('span', { class: 'tag-ok', text: '實測題目' }) : null,
+                (!q.realDesc && q.playerConfirmed)
+                  ? el('span', { class: 'tag-ok', text: '玩家確認攻略無誤' }) : null,
                 q.realDesc ? el('br', {}) : null,
                 el('span', { class: q.realDesc ? 'dim' : '', text: q.monsterDesc || '—' }),
               ]),
@@ -1829,6 +1831,17 @@ V.schoolyear = async () => {
       i ? ' ' : '', el('a', { href: '#sy-' + y.year, text: y.year }),
     ])),
     ...d.years.map(yearBlock),
+
+    d.renames && d.renames.length ? frag([
+      el('h2', { text: '攻略舊譯名對照' }),
+      el('p', { class: 'lead', text: '實測比對出來的改譯。攻略的句型多半沒錯，換掉名詞就能對上。' }),
+      el('div', { class: 'tw' }, [el('table', {}, [
+        el('thead', {}, [el('tr', {}, ['2007 攻略', '現行遊戲'].map(h => el('th', { text: h })))]),
+        el('tbody', {}, d.renames.map(r => el('tr', {}, [
+          el('td', { class: 'dim', text: r.old }), el('td', {}, [el('b', { text: r.new })]),
+        ]))),
+      ])]),
+    ]) : null,
 
     el('h2', { text: '資料落差' }),
     el('ul', {}, d.gaps.map(t => el('li', { class: 'wrap', text: t }))),
