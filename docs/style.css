@@ -180,3 +180,15 @@ b.warn { color: #e0a33a }
    兩者長得一樣的話等於把不可信的數字借了可信的外觀。 */
 .tag-ok{margin-left:6px;padding:1px 6px;border-radius:999px;background:#1f4d33;color:#cdebd8;font-size:.72rem}
 .fee-verified td{background:rgba(31,77,51,.10)}
+
+/* 製作樹：靠左側細線表達層級，收合用原生 details，不另外做狀態管理 */
+ul.ct{list-style:none;margin:0;padding-left:18px;border-left:1px solid #2a2f3a}
+ul.ct-root{padding-left:0;border-left:0}
+ul.ct>li{margin:2px 0}
+ul.ct details>summary{cursor:pointer;list-style:none}
+ul.ct details>summary::-webkit-details-marker{display:none}
+ul.ct details>summary::before{content:"▸";display:inline-block;width:1em;color:#7c8598}
+ul.ct details[open]>summary::before{content:"▾"}
+.ct-row{display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap}
+.ct-qty{color:#e8c37a}
+.ct-leaf{padding-left:1em}

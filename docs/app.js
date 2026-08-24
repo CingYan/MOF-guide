@@ -734,6 +734,59 @@ V.recipe = async id => {
   ]);
 };
 
+/* 樹狀展開：看「誰吃誰」。
+   注意這裡的數字跟下面的「完整材料展開」算的不是同一件事 ——
+   樹上每個節點是「這一條分支需要多少」（毛額），同一種材料出現在多條分支
+   就會重複列出；下面那張表才是加總去重後的實際採購量（淨額）。
+   兩個都要，因為前者回答「怎麼做」，後者回答「要準備多少」。 */
+function craftTreeNode(ing, count, index, path, depth) {
+  const name = ing.name;
+  const rec = index.get(name);
+  const cyclic = path.has(name);
+  const canCraft = rec && !cyclic && depth < 12;
+  const per = canCraft ? (rec.result.count || 1) : 1;
+  const crafts = canCraft ? Math.ceil(count / per) : 0;
+
+  const head = el('span', { class: 'ct-row' }, [
+    itemCell(ing),
+    el('b', { class: 'ct-qty', text: '×' + num(count) }),
+    canCraft
+      ? el('span', { class: 'dim', text: `　做 ${num(crafts)} 次` + (per > 1 ? `（單次產出 ${per}）` : '') })
+      : el('span', { class: 'tag', text: cyclic ? '升級用舊件' : '底層材料' }),
+  ]);
+
+  if (!canCraft) return el('li', { class: 'ct-leaf' }, [head]);
+
+  const nextPath = new Set(path); nextPath.add(name);
+  const kids = rec.ingredients
+    .filter(g => g.name !== name)
+    .map(g => craftTreeNode(g, g.count * crafts, index, nextPath, depth + 1));
+
+  return el('li', {}, [
+    el('details', { open: '' }, [
+      el('summary', {}, [head]),
+      el('ul', { class: 'ct' }, kids),
+    ]),
+  ]);
+}
+
+function craftTreeNodes(root, qty, index) {
+  const path = new Set([root.result.name]);
+  return el('ul', { class: 'ct ct-root' }, [
+    el('li', {}, [
+      el('details', { open: '' }, [
+        el('summary', {}, [el('span', { class: 'ct-row' }, [
+          itemCell(root.result),
+          el('b', { class: 'ct-qty', text: '×' + num((root.result.count || 1) * qty) }),
+        ])]),
+        el('ul', { class: 'ct' }, root.ingredients
+          .filter(g => g.name !== root.result.name)
+          .map(g => craftTreeNode(g, g.count * qty, index, path, 1))),
+      ]),
+    ]),
+  ]);
+}
+
 /* 展開到底的材料清單：中間物要做幾次、最底層要準備多少 */
 function craftPlan(root, recipes) {
   if (!root.ingredients || !root.ingredients.length) return null;
@@ -746,6 +799,12 @@ function craftPlan(root, recipes) {
     const qty = Math.max(1, Number(qtyInput.value) || 1);
     const { intermediates, leaves } = craftTotals(root, qty, index);
     host.textContent = '';
+
+    host.appendChild(el('h3', { text: '製作樹' }));
+    host.appendChild(el('p', { class: 'sub', text:
+      '每一層是由什麼組成的。樹上的數字是「這條分支要多少」，同一種材料出現在多條分支會各自列出；'
+      + '底下兩張表才是加總去重後的實際數量。' }));
+    host.appendChild(craftTreeNodes(root, qty, index));
     summary.textContent = `中間物 ${intermediates.length} 種 · 底層材料 ${leaves.length} 種`;
 
     if (intermediates.length) {
