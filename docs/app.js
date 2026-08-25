@@ -407,16 +407,39 @@ V.map = async id => {
   const [maps, ms] = await Promise.all([data('maps'), data('monsters')]);
   const p = byId(maps, id);
   if (!p) return el('p', { class: 'empty', text: '找不到這張地圖。' });
-  const full = p.monsters.map(x => Object.assign({}, byId(ms, x.id) || {}, x));
+  let full = p.monsters.map(x => Object.assign({}, byId(ms, x.id) || {}, x));
+
+  /* 副本房間的怪物不在 maps.json 裡 —— 那份資料只記野外圖，
+     副本是照「一整場」記在 dungeons.json 的 runs[] 底下，用 mapId 對應。
+     沒有這段的話，點進任何副本房間都只會看到一片空白。 */
+  let dungeonNote = null;
+  if (!full.length) {
+    const dun = (await data('dungeons')).dungeons;
+    for (const g of dun.groups || []) {
+      for (const run of g.runs || []) {
+        if (!(run.maps || []).some(x => x.mapId === id)) continue;
+        const list = (run.monsters || []).slice();
+        if (run.boss) list.push(Object.assign({}, run.boss, { boss: true }));
+        full = list.map(x => Object.assign({}, byId(ms, x.monsterId) || {}, {
+          id: x.monsterId, name: x.name, level: x.level, count: x.count, boss: x.boss }));
+        dungeonNote = `${run.typeName}${g.name}`;
+      }
+    }
+  }
   return frag([
     back('#/maps', '地圖列表'),
     el('h1', { text: p.name }),
     tags([[p.region, 'a'], p.capsLabel, p.levelReq ? `需求等級 ${p.levelReq}` : null]),
     p.minimap ? el('p', {}, [el('img', { src: p.minimap, alt: p.name + ' 小地圖',
         style: 'max-width:100%;border:1px solid var(--line);border-radius:8px;background:var(--bg2)' })]) : null,
+    dungeonNote ? el('p', { class: 'sub' }, ['這是副本房間，怪物資料取自「',
+      el('a', { href: '#/dungeons', text: dungeonNote }), '」整場配置。']) : null,
     section('出沒怪物', full, [
-      { h: '怪物', c: m => itemCell(m, 'monsters') },
+      { h: '怪物', c: m => el('span', { class: 'nm' }, [itemCell(m, 'monsters'),
+          m.boss ? el('span', { class: 'tag r', text: '頭目' }) : null]) },
       { h: '等級', n: true, v: m => m.level, c: m => m.level },
+      { h: '隻數', n: true, v: m => m.count ?? -1,
+        c: m => m.count ? num(m.count) + ' 隻' : (dungeonNote ? '無限湧出' : '') },
       { h: 'HP', n: true, v: m => m.hp, c: m => num(m.hp) },
       { h: '經驗', n: true, v: m => m.exp, c: m => num(m.exp) },
       { h: '屬性', c: m => T.element[m.element] || '' },
@@ -997,6 +1020,9 @@ V.grind = async () => {
     + `先用「平均等級」篩出打得動的範圍，再看效率。`
     + `鑰匙副本以「一整場」為單位（你進去是打完整場，不是打單一房間），`
     + `所以另給整場總量；無限型怪物無限湧出、沒有總量，只給效率。`
+    + `三種口徑要分清楚：有隻數的副本依隻數加權；無限型沒有隻數，效率只用雜怪算`
+    + `（頭目只有一隻，跟無限湧出的雜怪等權會把數字灌爆）；`
+    + `野外圖原始資料沒有隻數，只能各種怪等權平均，所以罕見高經驗怪會把該圖撐高。`
     + `頭目 HP 動輒上萬、經驗也高，混進平均會把效率撐歪（本城登基廳 8.66 → 排除後 2.63），`
     + `所以另給一欄「排除頭目」的效率，也可以直接用「頭目」篩選器只看沒有頭目的地圖。`,
     rows, [

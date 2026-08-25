@@ -55,12 +55,18 @@ for group in dung["groups"]:
             total_exp += bsrc["exp"]
             total_hp += boss["hp"]
 
-        # 效率用「每點 HP 換到多少經驗」，跟一般地圖同口徑；有隻數就依隻數加權
-        w = [(m, m.get("count", 1)) for m in mlist]
+        # 效率用「每點 HP 換到多少經驗」，跟一般地圖同口徑；有隻數就依隻數加權。
+        # 無限型沒有隻數：雜怪無限湧出、頭目只有一隻，若用 count 預設 1 讓兩者等權，
+        # 單一頭目的高經驗會把整場效率灌爆（無限暗黑樹林曾因此排到全站第一）。
+        # 所以隻數不全時，效率只用雜怪算；頭目仍留在清單裡，另由排除頭目欄處理。
+        regs = [m for m in mlist if not m.get("boss")]
+        weighted = bool(regs) and all(m.get("count") for m in regs)
+        pool = mlist if weighted else (regs or mlist)
+        w = [(m, m.get("count", 1)) for m in pool]
         exp = sum(m["exp"] * c for m, c in w) / sum(c for _, c in w)
         hp = sum(m["hp"] * c for m, c in w) / sum(c for _, c in w)
         money = sum((mons[m["id"]].get("money") or {}).get("amount", 0) * c for m, c in w) / sum(c for _, c in w)
-        aggr = sum(1 for m in mlist if (mons.get(m["id"]) or {}).get("aggressive"))
+        aggr = sum(1 for m in pool if (mons.get(m["id"]) or {}).get("aggressive"))
 
         row = {
             "id": (run.get("maps") or [{}])[0].get("mapId", group["id"]),
@@ -71,6 +77,7 @@ for group in dung["groups"]:
             "kinds": len(mlist),
             "exp": round(exp), "hp": round(hp), "eff": round(exp / hp, 3) if hp else 0,
             "money": round(money), "aggressive": aggr,
+            "effBasis": "counted" if weighted else "trash",
             "monsters": mlist,
         }
         if counted and total_hp:
