@@ -347,11 +347,25 @@ V.monsters = async () => {
   ], { sort: 1, desc: false });
 };
 
+/* 從怪物反查任務：討伐直接比對怪物 id；蒐集則比對這隻怪物的掉落物 id。
+   任務資料是唯一來源，避免依名稱猜測而把同名怪物／道具錯誤連在一起。 */
+async function questsForMonster(m) {
+  const quests = await data('quests');
+  const dropIds = new Set((m.drops || []).map(d => d.id));
+  return quests.flatMap(q => [
+    ...(q.hunt || []).filter(h => h.target && h.target.id === m.id)
+      .map(h => ({ type: '討伐', target: h.target, count: h.count, quest: q })),
+    ...(q.collect || []).filter(c => c.target && dropIds.has(c.target.id))
+      .map(c => ({ type: '蒐集', target: c.target, count: c.count, quest: q })),
+  ]);
+}
+
 V.monster = async id => {
   const [ms, maps] = await Promise.all([data('monsters'), data('maps')]);
   const m = byId(ms, id);
   if (!m) return el('p', { class: 'empty', text: '找不到這隻怪物。' });
   const here = maps.filter(p => p.monsters.some(x => x.id === id));
+  const taskRows = await questsForMonster(m);
   return frag([
     back('#/monsters', '怪物列表'),
     hero(m,
@@ -370,6 +384,12 @@ V.monster = async id => {
       { h: '區域', c: p => p.region },
       { h: '類型', c: p => p.capsLabel },
       { h: '需求等級', n: true, v: p => p.levelReq, c: p => p.levelReq || '—' },
+    ]),
+    section('相關任務需求', taskRows, [
+      { h: '需求', c: r => r.type },
+      { h: '任務', c: r => itemCell(r.quest, 'quests') },
+      { h: '任務內容', wrap: true, c: r => itemCell(r.target, r.type === '討伐' ? 'monsters' : 'items') },
+      { h: '數量', n: true, v: r => r.count || 0, c: r => r.count || '' },
     ]),
   ]);
 };
