@@ -141,6 +141,16 @@ kbd { border: 1px solid var(--line, #2a3140); border-radius: 4px; padding: 1px 6
 .chips { display: flex; flex-wrap: wrap; gap: 4px 10px }
 .run { border-top: 1px solid var(--line, #2a3140); margin-top: 10px; padding-top: 8px }
 
+/* 組隊 EXP 計算器 */
+.party-members{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:10px;margin:16px 0}
+.party-member{display:flex;flex-wrap:wrap;gap:6px;align-items:center;border:1px solid var(--line);border-radius:8px;padding:10px;background:var(--bg2)}
+.party-member strong{width:100%;font-size:14px}
+.party-member input[type=text],.party-member input[type=number],.party-member select,.party-filters input,.party-filters select{min-width:0;padding:6px 7px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--fg);font:inherit;font-size:12px}
+.party-member input[type=text]{flex:1;width:100%}.party-member input[type=number]{width:64px}.party-member select{max-width:130px}
+.party-check{display:inline-flex;align-items:center;gap:3px;color:var(--dim);font-size:11px}
+.party-filters{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}.party-filters input{width:220px}
+.party-table{display:block;overflow-x:auto;white-space:nowrap}.party-table small{display:block;color:var(--dim);font-size:11px;white-space:normal;max-width:260px}.party-table td.num,.party-table th:not(:first-child){text-align:right}.party-table td,.party-table th{vertical-align:top}
+
 /* NPC 個人檔案 */
 .profile { margin: 0 0 18px }
 .profile dl { display: grid; grid-template-columns: max-content 1fr; gap: 4px 14px; margin: 10px 0 0 }

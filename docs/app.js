@@ -1059,6 +1059,114 @@ V.grind = async () => {
     ], { sort: 3 });
 };
 
+/* ───────── 組隊經驗計算器 ─────────
+   副本／怪物是共通資料；角色欄位全部由使用者自行填寫。
+   空白等級不算隊員，因此不會強迫湊滿五人。 */
+V.partyExp = async () => {
+  const [maps, monsters] = await Promise.all([data('maps'), data('monsters')]);
+  const byMonster = new Map(monsters.map(m => [m.id, m]));
+  const rows = maps.filter(m => m.capsGroup === 'DUNGEON' && m.monsters.length)
+    .map(m => Object.assign({}, m, { region: m.region || '未分類' }));
+  const regions = [...new Set(rows.map(m => m.region))];
+  const state = { region: '', q: '' };
+  const members = Array.from({ length: 5 }, (_, i) => ({
+    name: `隊員 ${i + 1}`, level: '', role: i === 0 ? 'hitter' : 'support',
+    month: false, guild: false, married: false, badge: 0, mall: 0,
+    saint: 0, saintSelf: false,
+  }));
+  const input = (type, value, attrs = {}) => el('input', Object.assign({ type, value }, attrs));
+  const select = (value, options, attrs = {}) => el('select', attrs,
+    options.map(([v, t]) => el('option', { value: v, text: t, selected: String(v) === String(value) })));
+  const pct = n => `${(n * 100).toFixed(1)}%`;
+  const calc = (map, active) => {
+    const valid = active.filter(m => Number.isFinite(m.level));
+    const n = valid.length;
+    if (!n) return { avg: null, total: 0, values: [] };
+    const avg = Math.floor(valid.reduce((s, m) => s + m.level, 0) / n);
+    const teamFactor = n > 1 ? 1 + (n - 1) * 0.1 : 1;
+    const hitters = valid.filter(m => m.role === 'hitter');
+    const hitter = hitters[0] || valid[0];
+    const base = map.monsters.reduce((sum, x) => {
+      const m = byMonster.get(x.id);
+      const occ = m && (m.maps || []).find(o => o.id === map.id);
+      if (!m || !Number.isFinite(occ?.count) || !Number.isFinite(m.exp)) return sum;
+      const d = m.level - avg;
+      const diff = d >= 7 ? 1.3 : d >= 5 ? 1.2 : d >= 3 ? 1.1 : 1;
+      return sum + m.exp * occ.count * teamFactor * diff;
+    }, 0);
+    const values = members.map(m => {
+      if (!Number.isFinite(m.level)) return null;
+      let personal = (m.month ? 1.5 : 1) * (m.guild ? 1.15 : 1) * (m.married ? 1.1 : 1)
+        * (1 + Number(m.badge || 0) / 100) * (1 + Number(m.mall || 0) / 100);
+      if (m.saint) personal *= 1 + Number(m.saint) / 100 * (m.saintSelf ? 2 : 1);
+      const share = m === hitter ? 0.7 : (n > 1 ? 0.3 / (n - 1) : 0);
+      return base * personal * share;
+    });
+    return { avg, total: base, values };
+  };
+  const root = el('div');
+  const redraw = () => {
+    const active = members.filter(m => Number.isFinite(m.level));
+    const avg = active.length ? Math.floor(active.reduce((s, m) => s + m.level, 0) / active.length) : null;
+    const shown = rows.filter(m => (!state.region || m.region === state.region)
+      && (!state.q || m.name.toLowerCase().includes(state.q.toLowerCase())));
+    root.querySelector('.party-summary').textContent = active.length
+      ? `目前 ${active.length} 人隊伍，平均等級 ${avg}；空白欄位不計入。攻略 EXP 已含經驗 ×3。`
+      : '尚未填寫隊員；請自行輸入 1～5 人，空白欄位不會計入。';
+    const tbody = root.querySelector('tbody');
+    tbody.textContent = '';
+    for (const map of shown) {
+      const c = calc(map, active);
+      const known = map.monsters.filter(x => {
+        const m = byMonster.get(x.id), o = m && (m.maps || []).find(z => z.id === map.id);
+        return Number.isFinite(m?.exp) && Number.isFinite(o?.count);
+      }).length;
+      const detail = map.monsters.map(x => {
+        const m = byMonster.get(x.id), o = m && (m.maps || []).find(z => z.id === map.id);
+        return m && Number.isFinite(o?.count) ? `${m.name} ×${o.count}` : `${x.name}（無數量）`;
+      }).join('、');
+      tbody.appendChild(el('tr', {}, [
+        el('td', {}, [el('a', { href: `#/maps/${map.id}`, text: map.name }), el('small', { class: 'dim', text: `${map.region}｜${detail}` })]),
+        el('td', { class: 'num' }, c.avg === null ? '—' : num(Math.round(c.total))),
+        ...members.map((m, i) => el('td', { class: 'num' }, c.values[i] === undefined ? '—' : num(Math.round(c.values[i])))),
+        el('td', { class: 'dim' }, `${known}/${map.monsters.length}`),
+      ]));
+    }
+  };
+  root.appendChild(el('h1', { text: '組隊經驗計算器' }));
+  root.appendChild(el('p', { class: 'sub', text: '副本分地圖 × 怪物配置 × 個人加成。可只填一人，也可填至五人；不會強迫組滿。' }));
+  const memberGrid = el('div', { class: 'party-members' });
+  members.forEach((m, i) => {
+    const card = el('div', { class: 'party-member' });
+    const name = input('text', m.name, { 'aria-label': `第 ${i + 1} 位名稱` });
+    const level = input('number', '', { min: 1, max: 999, placeholder: '等級', 'aria-label': `第 ${i + 1} 位等級` });
+    const role = select(m.role, [['hitter', '打手 70%'], ['support', 'C% 隊員']], { 'aria-label': '分配角色' });
+    const badge = select(0, [['0', '徽章 0%'], ['1', '徽章 +1%'], ['2', '徽章 +2%'], ['3', '徽章 +3%']], { 'aria-label': '徽章' });
+    const mall = input('number', 0, { min: 0, max: 1000, step: 1, class: 'num-input', title: '商城經驗加成百分比' });
+    const saint = select(0, [['0', '聖徒 Buff 0%'], ['2', '聖徒 Buff +2%'], ['4', '聖徒 Buff +4%'], ['6', '聖徒 Buff +6%'], ['8', '聖徒 Buff +8%'], ['10', '聖徒 Buff +10%']], { 'aria-label': '聖徒 Buff' });
+    const bind = (node, key, transform = v => v) => { node.addEventListener('input', () => { m[key] = transform(node.value); redraw(); }); node.addEventListener('change', () => { m[key] = transform(node.value); redraw(); }); };
+    bind(name, 'name'); bind(level, 'level', v => v === '' ? '' : Number(v)); bind(role, 'role'); bind(badge, 'badge', Number); bind(mall, 'mall', Number); bind(saint, 'saint', Number);
+    [['月卡', 'month'], ['公會', 'guild'], ['結婚', 'married'], ['聖徒本人', 'saintSelf']].forEach(([label, key]) => {
+      const check = input('checkbox', '', { 'aria-label': label }); check.addEventListener('change', () => { m[key] = check.checked; redraw(); });
+      card.appendChild(el('label', { class: 'party-check' }, [check, label]));
+    });
+    card.prepend(el('strong', { text: `成員 ${i + 1}` }), name, level, role, badge, mall, saint);
+    memberGrid.appendChild(card);
+  });
+  root.appendChild(memberGrid);
+  root.appendChild(el('p', { class: 'party-summary lead' }));
+  const filters = el('div', { class: 'party-filters' });
+  const search = input('search', '', { placeholder: '篩選地圖名稱' });
+  search.addEventListener('input', () => { state.q = search.value; redraw(); });
+  const region = select('', [['', '全部區域'], ...regions.map(r => [r, r])]); region.addEventListener('change', () => { state.region = region.value; redraw(); });
+  filters.append(search, region); root.appendChild(filters);
+  const table = el('table', { class: 'party-table' }, [el('thead', {}, [el('tr', {}, ['分地圖', '隊伍總量', ...members.map(m => m.name), '資料'].map(t => el('th', { text: t })))]), el('tbody')]);
+  root.appendChild(table);
+  root.appendChild(el('p', { class: 'lead', text: '隊伍總量為套用組隊加成與怪物等差加成後的全隊 EXP；各角色欄再套用個人狀態與 70%／C% 分配。EXP 數值沿用目前攻略資料的 ×3 版本；寶箱或缺少數量的項目不計入。' }));
+  redraw();
+  return root;
+};
+
 /* ───────── 寵物 ─────────
    逐等級效果來自舊版社群資料，中文名稱與道具說明來自現行資料。
    下面這份職業建議是本站的判斷，不是遊戲內建資料，判斷依據都寫在頁面上。 */
@@ -1953,14 +2061,14 @@ const NAV_GROUPS = [
   [['', '首頁'], ['monsters', '怪物'], ['maps', '地圖'], ['equips', '裝備'],
               ['fashion', '時裝'], ['items', '道具'], ['recipes', '製作'],
               ['quests', '任務'], ['npcs', 'NPC'], ['pets', '寵物']],
-  [['grind', '練功'], ['skills', '技能'], ['major', '專業技能'],
+  [['grind', '練功'], ['party-exp', '組隊 EXP'], ['skills', '技能'], ['major', '專業技能'],
                   ['character', '角色'], ['dungeons', '副本'], ['social', '社群'], ['merit', '功勳'], ['schoolyear', '學年考試'],
                   ['badges', '徽章'], ['system', '系統'], ['notes', '玩家筆記']],
 ];
 const NAV = NAV_GROUPS.flat();
 
 const ROUTE = {
-  '': V.home, grind: V.grind, major: V.major, character: V.character, dungeons: V.dungeons, social: V.social, merit: V.merit, schoolyear: V.schoolyear,
+  '': V.home, grind: V.grind, 'party-exp': V.partyExp, major: V.major, character: V.character, dungeons: V.dungeons, social: V.social, merit: V.merit, schoolyear: V.schoolyear,
   monsters: V.monsters, maps: V.maps, equips: V.equips, fashion: V.fashion,
   items: V.items, recipes: V.recipes, quests: V.quests, npcs: V.npcs,
   pets: V.pets, skills: V.skills, badges: V.badges, system: V.system, notes: V.notes,
