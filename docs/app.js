@@ -305,8 +305,10 @@ const tags = list => el('div', { class: 'tags' }, list.filter(Boolean).map(t =>
 
 /* 圖示 + 名稱 + 描述的頁首 */
 function hero(o, extra) {
+  // 怪物資料使用 image，其他資料類型多半使用 icon；兩者都要支援。
+  const image = o.image || o.icon;
   return el('div', { class: 'hero' }, [
-    o.icon ? el('img', { src: o.icon, alt: '' }) : null,
+    image ? el('img', { src: image, alt: '' }) : null,
     el('div', {}, [el('h1', { text: o.name }), extra || null,
                    o.desc ? el('p', { class: 'desc', text: o.desc }) : null]),
   ]);
@@ -364,7 +366,12 @@ V.monster = async id => {
   const [ms, maps] = await Promise.all([data('monsters'), data('maps')]);
   const m = byId(ms, id);
   if (!m) return el('p', { class: 'empty', text: '找不到這隻怪物。' });
-  const here = maps.filter(p => p.monsters.some(x => x.id === id));
+  // 怪物資料的 maps 才包含該怪物在各圖的數量與重生時間；
+  // maps.json 的 monsters 只是地圖索引，不能拿來取代這個欄位。
+  const here = m.maps?.length
+    ? m.maps.map(o => Object.assign({}, byId(maps, o.id) || {}, o))
+    // 舊資料若沒有怪物端 maps，仍保留地圖反查；但不虛構數量／重生時間。
+    : maps.filter(p => p.monsters.some(x => x.id === id));
   const taskRows = await questsForMonster(m);
   return frag([
     back('#/monsters', '怪物列表'),
@@ -383,6 +390,8 @@ V.monster = async id => {
       { h: '地圖', c: p => itemCell(p, 'maps') },
       { h: '區域', c: p => p.region },
       { h: '類型', c: p => p.capsLabel },
+      { h: '數量', n: true, v: p => p.count, c: p => p.count ?? '—' },
+      { h: '重生時間', n: true, v: p => p.regenSec, c: p => p.regenSec == null ? '—' : `${p.regenSec} 秒` },
       { h: '需求等級', n: true, v: p => p.levelReq, c: p => p.levelReq || '—' },
     ]),
     section('相關任務需求', taskRows, [
