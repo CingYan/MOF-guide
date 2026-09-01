@@ -385,6 +385,7 @@ V.monster = async id => {
         ['行為', aiLabel(m.ai, m.aggressive)],
         ['掉錢', m.money && m.money.amount ? `${num(m.money.amount)}（${rate(m.money.rate)}）` : ''],
         ['每點 HP 換經驗', (m.exp / m.hp).toFixed(2)]]),
+    el('p', { class: 'lead' }, ['戰鬥欄位與公式說明：', el('a', { href: '#/combat', text: '戰鬥數值 →' })]),
     section('掉落物', m.drops, dropCols, { sort: 1 }),
     section('出沒地圖', here, [
       { h: '地圖', c: p => itemCell(p, 'maps') },
@@ -400,6 +401,27 @@ V.monster = async id => {
       { h: '任務內容', wrap: true, c: r => itemCell(r.target, r.type === '討伐' ? 'monsters' : 'items') },
       { h: '數量', n: true, v: r => r.count || 0, c: r => r.count || '' },
     ]),
+  ]);
+};
+
+/* 戰鬥數值：公式與伺服器解算口徑；資料內容獨立於怪物資料，避免把模型常數當成實測值。 */
+V.combat = async () => {
+  const d = await data('combat-numbers');
+  const makeTable = values => el('div', { class: 'tw' }, [el('table', {}, [
+    el('thead', {}, [el('tr', {}, ['項目', '公式／說明', '狀態'].map(h => el('th', { text: h })))]),
+    el('tbody', {}, values.map(row => el('tr', {}, row.map((value, i) => el('td', { class: i === 1 ? 'wrap' : '' }, [
+      i === 2 ? el('span', { class: value.includes('未') || value.includes('暫') ? 'tag r' : value.includes('自訂') || value.includes('近似') ? 'tag a' : 'tag g', text: value }) : value
+    ]))))),
+  ])]);
+  return el('div', { class: 'combat-page' }, [
+    el('h1', { text: d.title }),
+    el('p', { class: 'lead', text: d.intro }),
+    el('p', { class: 'sub', text: d.sourceNote }),
+    el('nav', { class: 'jump' }, d.sections.map(s => el('a', { href: '#combat-' + s.id, text: s.title }))),
+    frag(d.sections.map(s => el('section', { id: 'combat-' + s.id }, [
+      el('h2', { text: s.title }), s.note ? el('p', { class: 'lead', text: s.note }) : null, makeTable(s.rows)
+    ]))),
+    el('p', { class: 'lead' }, ['想看單一怪物的實際欄位，請回到 ', el('a', { href: '#/monsters', text: '怪物列表' }), '。'])
   ]);
 };
 
@@ -1581,6 +1603,7 @@ V.home = async () => {
   const c = meta.counts;
   const cards = [
     ['grind', '練功地圖', `${meta.grind} 張排行`],
+    ['combat', '戰鬥數值', '玩家公式 · 怪物解算'],
     ['monsters', '怪物', `${c.monsters} 種 · 完整掉落`],
     ['maps', '地圖', `${c.maps} 張`],
     ['equips', '戰鬥裝備', `${num(c.equips)} 件`],
@@ -2090,7 +2113,7 @@ const NAV_GROUPS = [
   [['', '首頁'], ['monsters', '怪物'], ['maps', '地圖'], ['equips', '裝備'],
               ['fashion', '時裝'], ['items', '道具'], ['recipes', '製作'],
               ['quests', '任務'], ['npcs', 'NPC'], ['pets', '寵物']],
-  [['grind', '練功'], ['party-exp', '組隊 EXP'], ['skills', '技能'], ['major', '專業技能'],
+  [['grind', '練功'], ['party-exp', '組隊 EXP'], ['combat', '戰鬥數值'], ['skills', '技能'], ['major', '專業技能'],
                   ['character', '角色'], ['dungeons', '副本'], ['social', '社群'], ['merit', '功勳'], ['schoolyear', '學年考試'],
                   ['badges', '徽章'], ['system', '系統'], ['notes', '玩家筆記']],
 ];
@@ -2100,7 +2123,7 @@ const ROUTE = {
   '': V.home, grind: V.grind, 'party-exp': V.partyExp, major: V.major, character: V.character, dungeons: V.dungeons, social: V.social, merit: V.merit, schoolyear: V.schoolyear,
   monsters: V.monsters, maps: V.maps, equips: V.equips, fashion: V.fashion,
   items: V.items, recipes: V.recipes, quests: V.quests, npcs: V.npcs,
-  pets: V.pets, skills: V.skills, badges: V.badges, system: V.system, notes: V.notes,
+  pets: V.pets, combat: V.combat, skills: V.skills, badges: V.badges, system: V.system, notes: V.notes,
 };
 const ROUTE1 = {
   monsters: V.monster, maps: V.map, equips: V.equip, fashion: V.fashionItem,

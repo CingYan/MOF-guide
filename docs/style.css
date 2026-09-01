@@ -169,6 +169,9 @@ kbd { border: 1px solid var(--line, #2a3140); border-radius: 4px; padding: 1px 6
         padding-bottom: 12px; border-bottom: 1px solid var(--line, #2a3140) }
 .jump a { color: var(--fg-dim, #9aa4b2); text-decoration: none }
 .jump a:hover { color: inherit; text-decoration: underline }
+.combat-page .tw { margin-bottom: 18px }
+.combat-page td.wrap { min-width: min(520px, 58vw); line-height: 1.7 }
+.combat-page .tag { display: inline-block; margin: 0 }
 h2 .en, h4 { color: var(--fg-dim, #9aa4b2) }
 h2 .en { font-size: .7em; font-weight: normal; margin-left: 8px }
 h4 { margin: 16px 0 6px; font-size: 1em }
