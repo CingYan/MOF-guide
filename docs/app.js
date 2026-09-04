@@ -1480,8 +1480,8 @@ V.questPlan = async () => {
   const root = el('div', { class: 'quest-plan' });
   const summary = el('p', { class: 'lead' });
   const list = el('div', { class: 'quest-plan-list' });
-  const search = input('search', '', { placeholder: '篩選怪物、道具、NPC 或任務' });
-  const onlyOpen = input('checkbox', '', { 'aria-label': '只看未完成' });
+  const search = el('input', { type: 'search', placeholder: '篩選怪物、道具、NPC 或任務' });
+  const onlyOpen = el('input', { type: 'checkbox', 'aria-label': '只看未完成' });
   function draw() {
     const qtext = search.value.trim().toLocaleLowerCase();
     list.textContent = '';
@@ -1494,7 +1494,7 @@ V.questPlan = async () => {
       visible++;
       if (finished) completed++;
       const taskRows = g.quests.slice().sort((a, b) => depth(a) - depth(b) || a.levelReq - b.levelReq).map(q => {
-        const check = input('checkbox', '', { checked: !!done[q.id], 'aria-label': `標記任務 ${q.name} 完成` });
+        const check = el('input', { type: 'checkbox', checked: !!done[q.id], 'aria-label': `標記任務 ${q.name} 完成` });
         check.onchange = () => { done[q.id] = check.checked; localStorage.setItem('mof-quest-plan-done', JSON.stringify(done)); draw(); };
         const prereq = (q.prereq || []).map(p => p.name).join('、');
         return el('li', { class: 'quest-plan-task' }, [el('label', {}, [check, el('a', { href: '#/quests/' + q.id, text: q.name }),
