@@ -1474,7 +1474,7 @@ V.questPlan = async () => {
   });
   const done = JSON.parse(localStorage.getItem('mof-quest-plan-done') || '{}');
   const rows = [...groups.values()].sort((a, b) => {
-    const da = Math.min(...a.quests.map(depth)), db = Math.min(...b.quests.map(depth));
+    const da = Math.min(...a.quests.map(q => depth(q))), db = Math.min(...b.quests.map(q => depth(q)));
     return da - db || a.type.localeCompare(b.type, 'zh-Hant') || a.target.name.localeCompare(b.target.name, 'zh-Hant');
   });
   const root = el('div', { class: 'quest-plan' });
