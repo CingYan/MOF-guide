@@ -1521,8 +1521,9 @@ V.questPlan = async () => {
    先按前置深度分段，再按區域整理「接取 → 一次完成 → 回報」；
    同區域同一目標只列一次，避免把可一起完成的目標拆散。 */
 V.questRoute = async () => {
-  const [quests, monsters] = await Promise.all([data('quests'), data('monsters')]);
+  const [quests, monsters, npcs] = await Promise.all([data('quests'), data('monsters'), data('npcs')]);
   const byQuest = new Map(quests.map(q => [q.id, q])), memo = new Map();
+  const npcOrder = new Map(npcs.flatMap(n => (n.quests || []).map((q, i) => [q.id + ':' + n.id, i])));
   function depth(q, trail = new Set()) {
     if (memo.has(q.id)) return memo.get(q.id);
     if (trail.has(q.id)) return 0;
@@ -1539,14 +1540,16 @@ V.questRoute = async () => {
   const phases = new Map();
   quests.filter(q => (q.hunt || []).length || (q.collect || []).length || (q.delivery || []).length || (q.indun || []).length)
     .forEach(q => {
-      const key = depth(q) + ':' + areaOf(q);
-      if (!phases.has(key)) phases.set(key, { depth: depth(q), area: areaOf(q), quests: [] });
+      const level = Number(q.levelReq) || 0, key = level + ':' + areaOf(q);
+      if (!phases.has(key)) phases.set(key, { level, area: areaOf(q), quests: [] });
       phases.get(key).quests.push(q);
     });
   const done = JSON.parse(localStorage.getItem('mof-quest-route-done') || '{}');
   const root = el('div', { class: 'quest-route' });
   const list = el('div', { class: 'quest-route-list' });
   const search = el('input', { type: 'search', placeholder: '篩選區域、NPC、怪物或任務' });
+  const fromLevel = el('input', { type: 'number', min: 1, max: 110, value: 60, 'aria-label': '目前等級' });
+  const toLevel = el('input', { type: 'number', min: 1, max: 110, value: 110, 'aria-label': '目標等級' });
   const onlyOpen = el('input', { type: 'checkbox', 'aria-label': '只看未完成' });
   const summary = el('p', { class: 'lead' });
   function objectiveRows(qs) {
@@ -1566,21 +1569,37 @@ V.questRoute = async () => {
     return [...out.values()];
   }
   function draw() {
-    const needle = search.value.trim().toLocaleLowerCase(); list.textContent = '';
+    const needle = search.value.trim().toLocaleLowerCase();
+    const start = Math.max(1, Number(fromLevel.value) || 1), end = Math.max(start, Number(toLevel.value) || 110);
+    list.textContent = '';
     let shown = 0, finished = 0, total = 0;
-    [...phases.values()].sort((a, b) => a.depth - b.depth || a.area.localeCompare(b.area, 'zh-Hant')).forEach(p => {
-      const qs = p.quests.slice().sort((a, b) => depth(a) - depth(b) || (a.levelReq || 0) - (b.levelReq || 0));
+    [...phases.values()].sort((a, b) => a.level - b.level || a.area.localeCompare(b.area, 'zh-Hant')).forEach(p => {
+      if (p.level < start || p.level > end) return;
+      const qs = p.quests.slice().sort((a, b) => {
+        const an = (a.npcs || []).map(n => npcOrder.get(a.id + ':' + n.id) ?? 999999), bn = (b.npcs || []).map(n => npcOrder.get(b.id + ':' + n.id) ?? 999999);
+        return (an[0] || 999999) - (bn[0] || 999999) || depth(a) - depth(b) || a.name.localeCompare(b.name, 'zh-Hant');
+      });
       const hay = [p.area, ...qs.flatMap(q => [q.name, ...(q.npcs || []).map(n => n.name), ...(q.hunt || []).map(x => x.target.name), ...(q.collect || []).map(x => x.target.name)])].join(' ').toLocaleLowerCase();
       const allDone = qs.every(q => done[q.id]); total += qs.length; if (allDone) finished++;
       if ((needle && !hay.includes(needle)) || (onlyOpen.checked && allDone)) return;
       shown++;
-      const checks = qs.map(q => {
+      const makeCheck = q => {
         const c = el('input', { type: 'checkbox', checked: !!done[q.id], 'aria-label': `標記任務 ${q.name} 完成` });
         c.onchange = () => { done[q.id] = c.checked; localStorage.setItem('mof-quest-route-done', JSON.stringify(done)); draw(); };
         return el('li', { class: 'quest-route-task' }, [el('label', {}, [c, el('a', { href: '#/quests/' + q.id, text: q.name }),
           el('span', { class: 'dim', text: `（Lv.${q.levelReq || 0}｜${(q.npcs || []).map(n => n.name).join('、') || '無 NPC'}）` })]),
           (q.prereq || []).length ? el('span', { class: 'quest-route-meta', text: '前置：' + q.prereq.map(x => x.name).join('、') }) : null]);
+      };
+      const chains = new Map();
+      qs.forEach(q => {
+        const npc = (q.npcs || [])[0] || { id: 'none', name: '未標示 NPC' };
+        if (!chains.has(npc.id)) chains.set(npc.id, { npc, quests: [] });
+        chains.get(npc.id).quests.push(q);
       });
+      const checks = [...chains.values()].map(chain => el('section', { class: 'quest-route-chain' }, [
+        el('h4', { text: chain.npc.name + ' 任務鏈（完成並回報後再接下一個）' }),
+        el('ol', { class: 'quest-route-tasks' }, chain.quests.map(makeCheck)),
+      ]));
       const objectives = objectiveRows(qs).map(o => {
         const src = o.type === '蒐集' ? (drops.get(o.target.id) || []) : [];
         return el('li', {}, [el('span', { class: 'tag ' + (o.type === '討伐' ? 'r' : 'a'), text: o.type }), ' ',
@@ -1589,17 +1608,17 @@ V.questRoute = async () => {
       });
       const npcNames = [...new Set(qs.flatMap(q => (q.npcs || []).map(n => n.name)))];
       list.appendChild(el('article', { class: 'quest-route-phase' }, [
-        el('h2', { text: `第 ${p.depth + 1} 階段｜${p.area}` }),
-        el('h3', { text: '① 先接／確認任務' }), el('ol', { class: 'quest-route-tasks' }, checks),
-        objectives.length ? frag([el('h3', { text: '② 同一趟完成目標' }), el('ul', {}, objectives)]) : null,
-        el('h3', { text: '③ 回 NPC 交任務' }), el('p', { class: 'quest-route-meta', text: npcNames.length ? npcNames.join('、') : '依任務頁說明確認回報對象' }),
+        el('h2', { text: `Lv.${p.level} 層段｜${p.area}` }),
+        el('h3', { text: '① 依 NPC 任務鏈逐個接取／完成' }), el('div', { class: 'quest-route-chains' }, checks),
+        objectives.length ? frag([el('h3', { text: '② 這個層段的順手目標' }), el('p', { class: 'quest-route-meta', text: '先依上方順序接到任務；同區域狩獵時順手累積以下討伐／掉落／遞送／副本目標。' }), el('ul', {}, objectives)]) : null,
+        el('h3', { text: '③ 回 NPC 交任務，再接該 NPC 下一個' }), el('p', { class: 'quest-route-meta', text: npcNames.length ? npcNames.join('、') : '依任務頁說明確認回報對象' }),
       ]));
     });
-    summary.textContent = `目前顯示 ${shown} 個路線區段；${finished} 段所屬任務全部完成（共 ${total} 個任務）。階段依資料中的前置任務排序，實際接取仍受等級、職業與任務欄限制。`;
+    summary.textContent = `目前顯示 Lv.${start}～Lv.${end} 的 ${shown} 個等級層段；${finished} 段所屬任務全部完成（共 ${total} 個任務）。任務依等級與 NPC 任務鏈排序，實際接取仍受前置、職業與任務欄限制。`;
   }
-  search.oninput = draw; onlyOpen.onchange = draw;
-  root.append(el('h1', { text: '任務路線' }), el('p', { class: 'sub', text: '依前置任務與區域安排：先接／確認任務，再把同區域的討伐、蒐集、遞送與副本目標集中完成，最後回 NPC 交任務。NPC 依原始資料中的相關 NPC 顯示，若未區分接取與回報對象請點進任務明細確認。完成狀態只儲存在本機瀏覽器。' }),
-    el('div', { class: 'filters quest-route-filters' }, [search, el('label', {}, [onlyOpen, '只看未完成'])]), summary, list);
+  search.oninput = draw; onlyOpen.onchange = draw; fromLevel.oninput = draw; toLevel.oninput = draw;
+  root.append(el('h1', { text: '任務路線' }), el('p', { class: 'sub', text: '先輸入目前等級與目標等級。頁面會逐層列出可接任務；同一層段的目標集中顯示，但同一 NPC 仍必須完成前一個任務、回報後，才能接下一個。' }),
+    el('div', { class: 'filters quest-route-filters' }, [el('label', {}, ['目前 Lv.', fromLevel]), el('label', {}, ['目標 Lv.', toLevel]), search, el('label', {}, [onlyOpen, '只看未完成'])]), summary, list);
   draw(); return root;
 };
 
