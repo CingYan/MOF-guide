@@ -196,6 +196,11 @@ h4 { margin: 16px 0 6px; font-size: 1em }
 .quest-route-filters label{display:inline-flex;align-items:center;gap:5px;color:var(--dim);font-size:13px}
 .quest-route-list{display:grid;gap:16px}
 .quest-route-phase{border:1px solid var(--line);border-radius:8px;background:var(--bg2);padding:14px 16px}
+.quest-route-area{border:1px solid var(--line);border-radius:8px;background:var(--bg2);padding:12px 14px}
+.quest-route-monster-list{display:grid;gap:10px;margin-top:10px}
+.quest-route-monster{border:1px solid var(--line);border-radius:6px;padding:8px 10px}
+.quest-route-monster-summary{cursor:pointer;color:var(--fg);font-weight:600}
+.quest-route-variants{margin:5px 0;color:var(--dim)}
 .quest-route-phase h2{margin:0 0 12px}
 .quest-route-phase h3{margin:14px 0 6px;color:var(--fg);font-size:15px}
 .quest-route-tasks{margin:0;padding-left:24px}

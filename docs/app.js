@@ -1583,8 +1583,24 @@ V.questRoute = async () => {
       const selected = g.quests.filter(q => (Number(q.levelReq) || 0) >= start && (Number(q.levelReq) || 0) <= end);
       return { ...g, selected };
     }).filter(g => g.selected.length);
-    groups.sort((a, b) => (a.monster.level || 0) - (b.monster.level || 0) || a.monster.name.localeCompare(b.monster.name, 'zh-Hant'));
+    const areaGroups = new Map();
     groups.forEach(g => {
+      const area = g.selected.find(q => q.regions?.some(Boolean))?.regions?.find(Boolean) || g.monster.regions?.find(Boolean) || '未分類區域';
+      if (!areaGroups.has(area)) areaGroups.set(area, []);
+      areaGroups.get(area).push(g);
+    });
+    [...areaGroups.values()].forEach(gs => gs.sort((a, b) => (a.monster.level || 0) - (b.monster.level || 0) || a.monster.name.localeCompare(b.monster.name, 'zh-Hant')));
+    const areaMinLevel = new Map();
+    quests.forEach(q => (q.regions || []).filter(Boolean).forEach(area => {
+      const level = Number(q.levelReq) || 0;
+      areaMinLevel.set(area, Math.min(areaMinLevel.get(area) ?? Infinity, level));
+    }));
+    const orderedAreas = [...areaGroups.entries()].sort(([, a], [, b]) =>
+      (areaMinLevel.get(a[0]) ?? Math.min(...a.flatMap(g => g.selected.map(q => Number(q.levelReq) || 0)))) -
+      (areaMinLevel.get(b[0]) ?? Math.min(...b.flatMap(g => g.selected.map(q => Number(q.levelReq) || 0)))));
+    orderedAreas.forEach(([area, areaMonsterGroups]) => {
+      const areaList = el('div', { class: 'quest-route-monster-list' });
+      areaMonsterGroups.forEach(g => {
       const qs = g.selected.slice().sort((a, b) => (a.levelReq || 0) - (b.levelReq || 0) || depth(a) - depth(b) || a.name.localeCompare(b.name, 'zh-Hant'));
       const hay = [g.monster.name, ...(g.monster.regions || []), ...(g.monster.maps || []).map(m => m.name), ...qs.flatMap(q => [q.name, ...(q.npcs || []).map(n => n.name), ...(q.hunt || []).map(x => x.target.name), ...(q.collect || []).map(x => x.target.name)])].join(' ').toLocaleLowerCase();
       const allDone = qs.every(q => done[q.id]); total += qs.length; if (allDone) finished++;
@@ -1628,13 +1644,20 @@ V.questRoute = async () => {
           itemCell(o.target, o.type === '討伐' ? 'monsters' : null), ` × ${num(o.count)}`]));
       const variants = [...g.monsters.values()];
       const maps = [...new Set(variants.flatMap(m => (m.maps || []).map(x => x.name)))];
-      const variantText = variants.length > 1 ? `｜變體：${variants.map(m => m.name).join('、')}` : '';
-      list.appendChild(el('details', { class: 'quest-route-phase', open: !!needle }, [
-        el('summary', { class: 'quest-route-area-summary', text: `${g.monster.name}（Lv.${Math.min(...variants.map(m => m.level || 0))}）${variantText}｜${maps.join('、') || '出沒地圖未記錄'}｜${qs.length} 個相關任務` }),
+      const variantText = variants.length > 1 ? `變體：${variants.map(m => m.name).join('、')}` : '';
+      areaList.appendChild(el('details', { class: 'quest-route-monster', open: !!needle }, [
+        el('summary', { class: 'quest-route-monster-summary', text: `${g.monster.name}（Lv.${Math.min(...variants.map(m => m.level || 0))}）｜${maps.join('、') || '出沒地圖未記錄'}｜${qs.length} 個相關任務` }),
+        variantText ? el('p', { class: 'quest-route-meta quest-route-variants', text: variantText }) : null,
         el('p', { class: 'quest-route-meta quest-route-hunt-guide', text: '建議：先接下方目前能接的任務；同一趟狩獵完成討伐，並順便累積所有已接的掉落物任務。未達等級的任務不會計算，等解鎖後再補狩獵。' }),
         el('details', { class: 'quest-route-objectives', open: true }, [el('summary', { text: '本群總需求（已合併）' }), el('ul', {}, objectiveList)]),
         el('h3', { text: '相關任務（依可接等級排序）' }),
         el('ol', { class: 'quest-route-tasks' }, qs.map(makeCheck)),
+      ]));
+      });
+      if (!areaList.childNodes.length) return;
+      list.appendChild(el('details', { class: 'quest-route-area', open: !!needle }, [
+        el('summary', { class: 'quest-route-area-summary', text: `${area}｜${areaMonsterGroups.length} 個怪物群` }),
+        areaList,
       ]));
     });
     const areaOf = q => (q.regions || [])[0] || '未分類區域';
