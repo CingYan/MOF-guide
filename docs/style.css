@@ -202,6 +202,9 @@ h4 { margin: 16px 0 6px; font-size: 1em }
 .quest-route-chains{display:grid;gap:10px}
 .quest-route-chain{border:1px solid var(--line);border-radius:6px;padding:8px 10px}
 .quest-route-chain h4{margin:0 0 4px;color:var(--fg-dim, #9aa4b2);font-size:13px}
+.quest-route-levels{display:grid;gap:10px}
+.quest-route-level{border-top:1px solid var(--line);padding-top:8px}
+.quest-route-level h3{margin:0 0 6px;color:var(--gold)}
 .quest-route-task{padding:5px 0;border-top:1px solid var(--line);list-style-position:outside}
 .quest-route-task label{display:flex;align-items:center;gap:6px}
 .quest-route-task label input{flex:none}
