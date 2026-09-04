@@ -201,6 +201,8 @@ h4 { margin: 16px 0 6px; font-size: 1em }
 .quest-route-monster{border:1px solid var(--line);border-radius:6px;padding:8px 10px}
 .quest-route-monster-summary{cursor:pointer;color:var(--fg);font-weight:600}
 .quest-route-variants{margin:5px 0;color:var(--dim)}
+.quest-route-other{margin-top:10px;padding-top:8px;border-top:1px dashed var(--line)}
+.quest-route-other h3{margin:0 0 6px;color:var(--fg-dim, #9aa4b2);font-size:14px}
 .quest-route-phase h2{margin:0 0 12px}
 .quest-route-phase h3{margin:14px 0 6px;color:var(--fg);font-size:15px}
 .quest-route-tasks{margin:0;padding-left:24px}

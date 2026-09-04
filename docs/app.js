@@ -1561,8 +1561,12 @@ V.questRoute = async () => {
   };
   quests.forEach(q => {
     (q.hunt || []).forEach(x => addMonsterQuest(monsterById.get(x.target?.id), q, { type: '討伐', target: x.target, count: x.count }));
-    (q.collect || []).forEach(x => (drops.get(x.target?.id) || []).forEach(m =>
-      addMonsterQuest(m, q, { type: '蒐集', target: x.target, count: x.count })));
+    (q.collect || []).forEach(x => {
+      // 同一掉落物可能有多個來源；任務只放入第一個來源群，避免玩家看到重複任務。
+      // 其他來源仍可由道具頁查看，實際狩獵時可自行選擇。
+      const source = (drops.get(x.target?.id) || [])[0];
+      if (source) addMonsterQuest(source, q, { type: '蒐集', target: x.target, count: x.count });
+    });
   });
   const npcChains = new Map();
   quests.forEach((q, index) => (q.npcs || []).forEach(n => {
@@ -1598,6 +1602,7 @@ V.questRoute = async () => {
     const orderedAreas = [...areaGroups.entries()].sort(([, a], [, b]) =>
       (areaMinLevel.get(a[0]) ?? Math.min(...a.flatMap(g => g.selected.map(q => Number(q.levelReq) || 0)))) -
       (areaMinLevel.get(b[0]) ?? Math.min(...b.flatMap(g => g.selected.map(q => Number(q.levelReq) || 0)))));
+    const areaDetails = new Map();
     orderedAreas.forEach(([area, areaMonsterGroups]) => {
       const areaList = el('div', { class: 'quest-route-monster-list' });
       areaMonsterGroups.forEach(g => {
@@ -1655,10 +1660,12 @@ V.questRoute = async () => {
       ]));
       });
       if (!areaList.childNodes.length) return;
-      list.appendChild(el('details', { class: 'quest-route-area', open: !!needle }, [
+      const areaDetail = el('details', { class: 'quest-route-area', open: !!needle }, [
         el('summary', { class: 'quest-route-area-summary', text: `${area}｜${areaMonsterGroups.length} 個怪物群` }),
         areaList,
-      ]));
+      ]);
+      areaDetails.set(area, { detail: areaDetail, content: areaList });
+      list.appendChild(areaDetail);
     });
     const areaOf = q => (q.regions || [])[0] || '未分類區域';
     const otherAreas = new Map();
@@ -1671,7 +1678,9 @@ V.questRoute = async () => {
       const qs = areaQuests.filter(q => (Number(q.levelReq) || 0) >= start && (Number(q.levelReq) || 0) <= end)
         .sort((a, b) => (a.levelReq || 0) - (b.levelReq || 0) || a.name.localeCompare(b.name, 'zh-Hant'));
       const hay = [area, ...qs.flatMap(q => [q.name, ...(q.npcs || []).map(n => n.name)])].join(' ').toLocaleLowerCase();
-      if (!qs.length || (needle && !hay.includes(needle))) return;
+      const allDone = qs.length > 0 && qs.every(q => done[q.id]);
+      total += qs.length; if (allDone) finished++;
+      if (!qs.length || (needle && !hay.includes(needle)) || (onlyOpen.checked && allDone)) return;
       shown++;
       const rows = qs.map(q => {
         const c = el('input', { type: 'checkbox', checked: !!done[q.id], 'aria-label': `標記任務 ${q.name} 完成` });
@@ -1685,13 +1694,23 @@ V.questRoute = async () => {
           el('span', { class: 'quest-route-condition quest-route-muted', text: actions.join('；') || '條件：劇情／對話' }),
           (q.prereq || []).length ? el('span', { class: 'quest-route-meta', text: '明確前置：' + q.prereq.map(x => x.name).join('、') }) : null]);
       });
-      list.appendChild(el('details', { class: 'quest-route-phase', open: !!needle }, [
-        el('summary', { class: 'quest-route-area-summary', text: `${area}｜其他任務（${qs.length}）` }),
+      const otherSection = el('section', { class: 'quest-route-other' }, [
+        el('h3', { text: `其他任務（${qs.length}）` }),
         el('p', { class: 'quest-route-meta', text: '這些任務沒有可連回野外怪物的討伐／掉落條件，仍可能是遞送、副本或 NPC 劇情前置。' }),
         el('ol', { class: 'quest-route-tasks' }, rows),
-      ]));
+      ]);
+      if (areaDetails.has(area)) {
+        areaDetails.get(area).content.appendChild(otherSection);
+      } else {
+        const content = el('div', { class: 'quest-route-monster-list' }, [otherSection]);
+        const detail = el('details', { class: 'quest-route-area', open: !!needle }, [
+          el('summary', { class: 'quest-route-area-summary', text: `${area}｜其他任務` }), content,
+        ]);
+        areaDetails.set(area, { detail, content });
+        list.appendChild(detail);
+      }
     });
-    summary.textContent = `目前以怪物為主軸顯示 ${shown} 個狩獵群；篩選範圍 Lv.${start}～Lv.${end}，涵蓋 ${total} 個相關任務。等級只代表解鎖條件；同 NPC 任務須完成並回報前一個後才能接下一個。`;
+    summary.textContent = `目前顯示 ${shown} 個任務內容區塊；篩選範圍 Lv.${start}～Lv.${end}，共 ${total} 個任務、${finished} 個已完成區塊。以怪物為主軸集中狩獵；等級只代表解鎖條件，同 NPC 任務須完成並回報前一個後才能接下一個。`;
   }
   search.oninput = draw; onlyOpen.onchange = draw; fromLevel.oninput = draw; toLevel.oninput = draw;
   root.append(el('h1', { text: '任務路線' }), el('p', { class: 'sub', text: '以怪物為主軸串起討伐與掉落任務；同一怪物集中完成，等級只作為任務解鎖條件。每個任務後直接顯示需求；同 NPC 任務須完成並回報前一個後才能接下一個。' }),
