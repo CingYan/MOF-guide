@@ -1563,7 +1563,6 @@ V.questRoute = async () => {
     qs.forEach(q => {
       (q.hunt || []).forEach(x => add('討伐', x.target, x.count));
       (q.collect || []).forEach(x => add('蒐集', x.target, x.count));
-      (q.delivery || []).forEach(x => add('遞送', x.item, 1));
       (q.indun || []).forEach(x => add('副本', { id: 'DUNGEON:' + x.dungeon, name: x.dungeon }, 1));
     });
     return [...out.values()];
@@ -1593,15 +1592,17 @@ V.questRoute = async () => {
           el('span', { class: 'dim', text: `（Lv.${q.levelReq || 0}｜${(q.npcs || []).map(n => n.name).join('、') || '無 NPC'}）` })]),
           (q.prereq || []).length ? el('span', { class: 'quest-route-meta', text: '前置：' + q.prereq.map(x => x.name).join('、') }) : null]);
       };
-      const objectives = objectiveRows(qs).map(o => {
-        const src = o.type === '蒐集' ? (drops.get(o.target.id) || []) : [];
-        return el('li', {}, [el('span', { class: 'tag ' + (o.type === '討伐' ? 'r' : 'a'), text: o.type }), ' ',
-          itemCell(o.target, o.type === '討伐' ? 'monsters' : null), ` × ${num(o.count)}`,
-          src.length ? el('span', { class: 'quest-route-meta', text: '（可掉落：' + [...new Set(src.map(m => m.name))].join('、') + '）' }) : null]);
-      });
+      const targetLevels = new Map();
+      p.quests.forEach(q => [...(q.hunt || []), ...(q.collect || [])].forEach(x => {
+        if (!x.target || !x.target.id) return;
+        if (!targetLevels.has(x.target.id)) targetLevels.set(x.target.id, new Set());
+        targetLevels.get(x.target.id).add(Number(q.levelReq) || 0);
+      }));
       const levelBlocks = [...levels.entries()].sort((a, b) => a[0] - b[0]).map(([level, levelQs]) => {
         const chains = new Map();
-        levelQs.slice().sort((a, b) => {
+        const normalQs = levelQs.filter(q => !(q.indun || []).length);
+        const dungeonQs = levelQs.filter(q => (q.indun || []).length);
+        normalQs.slice().sort((a, b) => {
           const an = (a.npcs || []).map(n => npcOrder.get(a.id + ':' + n.id) ?? 999999), bn = (b.npcs || []).map(n => npcOrder.get(b.id + ':' + n.id) ?? 999999);
           return (an[0] || 999999) - (bn[0] || 999999) || a.name.localeCompare(b.name, 'zh-Hant');
         }).forEach(q => {
@@ -1613,17 +1614,29 @@ V.questRoute = async () => {
           el('h4', { text: chain.npc.name + ' 任務鏈（完成並回報後再接下一個）' }),
           el('ol', { class: 'quest-route-tasks' }, chain.quests.map(makeCheck)),
         ]));
+        if (dungeonQs.length) checks.push(el('section', { class: 'quest-route-chain quest-route-dungeon-chain' }, [
+          el('h4', { text: '副本任務鏈（獨立計算，不併入 NPC 任務鏈）' }),
+          el('ol', { class: 'quest-route-tasks' }, dungeonQs.map(makeCheck)),
+        ]));
         const npcNames = [...new Set(levelQs.flatMap(q => (q.npcs || []).map(n => n.name)))];
+        const levelObjectives = objectiveRows(levelQs).map(o => {
+          const src = o.type === '蒐集' ? (drops.get(o.target.id) || []) : [];
+          const later = [...(targetLevels.get(o.target.id) || [])].filter(x => x > level).sort((a, b) => a - b);
+          return el('li', {}, [el('span', { class: 'tag ' + (o.type === '討伐' ? 'r' : 'a'), text: o.type }), ' ',
+            itemCell(o.target, o.type === '討伐' ? 'monsters' : null), ` × ${num(o.count)}`,
+            src.length ? el('span', { class: 'quest-route-meta', text: '（可掉落：' + [...new Set(src.map(m => m.name))].join('、') + '）' }) : null,
+            later.length ? el('span', { class: 'quest-route-meta', text: `（Lv.${later.join('、')} 還有同目標任務，達等級後再接取）` }) : null]);
+        });
         return el('section', { class: 'quest-route-level' }, [
           el('h3', { text: `Lv.${level} 層段` }),
           el('div', { class: 'quest-route-chains' }, checks),
+          levelObjectives.length ? el('details', { class: 'quest-route-objectives', open: true }, [el('summary', { text: `本層段目標（${levelObjectives.length} 項）` }), el('ul', {}, levelObjectives)]) : null,
           el('p', { class: 'quest-route-meta', text: '完成並回報：' + (npcNames.length ? npcNames.join('、') : '依任務頁確認回報對象') }),
         ]);
       });
       list.appendChild(el('article', { class: 'quest-route-phase' }, [
         el('h2', { text: `區域｜${p.area}` }),
-        objectives.length ? frag([el('h3', { text: '① 本區域合併目標' }), el('p', { class: 'quest-route-meta', text: '同一怪物／掉落只列一次；各任務仍須依下方等級層段逐一接取，接到後在本區域順手累積。' }), el('ul', {}, objectives)]) : null,
-        el('h3', { text: '② 依等級與 NPC 任務鏈執行' }), el('div', { class: 'quest-route-levels' }, levelBlocks),
+        el('h3', { text: '依等級與 NPC 任務鏈執行' }), el('div', { class: 'quest-route-levels' }, levelBlocks),
       ]));
     });
     summary.textContent = `目前顯示 Lv.${start}～Lv.${end} 的 ${shown} 個區域路線；${finished} 區所屬任務全部完成（共 ${total} 個任務）。上方目標已按區域合併，實際接取仍受前置、職業與任務欄限制。`;
