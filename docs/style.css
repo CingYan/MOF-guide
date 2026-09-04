@@ -213,6 +213,10 @@ h4 { margin: 16px 0 6px; font-size: 1em }
 .quest-route-task label{display:flex;align-items:center;gap:6px}
 .quest-route-task label input{flex:none}
 .quest-route-meta{display:block;margin-left:24px;color:var(--dim);font-size:12px;line-height:1.5}
+.quest-route-action{display:block;margin-left:24px;color:var(--gold);font-size:12px;line-height:1.5}
+.quest-route-area-summary{cursor:pointer;padding:2px 0;font-size:16px;font-weight:600;color:var(--fg)}
+.quest-route-hunting-index{margin:0 0 10px;padding-left:24px}
+.quest-route-index-detail{color:var(--dim);font-size:12px}
 .quest-route-phase ul{margin:0;padding-left:24px}
 .quest-route-phase li{padding:4px 0}
 

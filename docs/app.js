@@ -1600,6 +1600,18 @@ V.questRoute = async () => {
         if (!targetLevels.has(x.target.id)) targetLevels.set(x.target.id, new Set());
         targetLevels.get(x.target.id).add(Number(q.levelReq) || 0);
       }));
+      const huntingGroups = new Map();
+      const addHuntRef = (monster, ref) => {
+        if (!huntingGroups.has(monster.id)) huntingGroups.set(monster.id, { monster, refs: [] });
+        huntingGroups.get(monster.id).refs.push(ref);
+      };
+      qs.forEach(q => {
+        (q.hunt || []).forEach(x => addHuntRef(x.target, `Lv.${q.levelReq} 討伐×${num(x.count)}`));
+        (q.collect || []).forEach(x => (drops.get(x.target.id) || []).forEach(m => addHuntRef(m, `Lv.${q.levelReq} 掉落「${x.target.name}」×${num(x.count)}`)));
+      });
+      const huntingIndex = [...huntingGroups.values()].sort((a, b) => a.monster.name.localeCompare(b.monster.name, 'zh-Hant')).map(g =>
+        el('li', {}, [itemCell(g.monster, 'monsters'), '｜', el('span', { class: 'quest-route-index-detail', text: [...new Set(g.refs)].join('、') }),
+          g.refs.length > 1 ? el('span', { class: 'quest-route-meta', text: '建議：先接到對應任務，再集中狩獵。' }) : null]));
       const levelBlocks = [...levels.entries()].sort((a, b) => a[0] - b[0]).map(([level, levelQs]) => {
         const chains = new Map();
         const normalQs = levelQs.filter(q => !(q.indun || []).length);
@@ -1625,7 +1637,9 @@ V.questRoute = async () => {
         const npcNames = [...new Set(levelQs.flatMap(q => (q.npcs || []).map(n => n.name)))];
         const levelObjectives = objectiveRows(levelQs).map(o => {
           const src = o.type === '蒐集' ? (drops.get(o.target.id) || []) : [];
-          const later = [...(targetLevels.get(o.target.id) || [])].filter(x => x > level).sort((a, b) => a - b);
+          const sourceIds = o.type === '討伐' ? [o.target.id] : (drops.get(o.target.id) || []).map(m => m.id);
+          const related = new Set(sourceIds.flatMap(id => [...(targetLevels.get(id) || [])]));
+          const later = [...related].filter(x => x > level).sort((a, b) => a - b);
           return el('li', {}, [el('span', { class: 'tag ' + (o.type === '討伐' ? 'r' : 'a'), text: o.type }), ' ',
             itemCell(o.target, o.type === '討伐' ? 'monsters' : null), ` × ${num(o.count)}`,
             src.length ? el('span', { class: 'quest-route-meta', text: '（可掉落：' + [...new Set(src.map(m => m.name))].join('、') + '）' }) : null,
@@ -1639,15 +1653,16 @@ V.questRoute = async () => {
           el('p', { class: 'quest-route-meta', text: '完成並回報：' + (npcNames.length ? npcNames.join('、') : '依任務頁確認回報對象') }),
         ]);
       });
-      list.appendChild(el('article', { class: 'quest-route-phase' }, [
-        el('h2', { text: `區域｜${p.area}` }),
+      list.appendChild(el('details', { class: 'quest-route-phase', open: !!needle }, [
+        el('summary', { class: 'quest-route-area-summary', text: `區域｜${p.area}（${levels.size} 個等級層段／${selected.length} 個任務）` }),
+        huntingIndex.length ? frag([el('h3', { text: '狩獵群總覽' }), el('ul', { class: 'quest-route-hunting-index' }, huntingIndex)]) : null,
         el('h3', { text: '依等級與 NPC 任務鏈執行' }), el('div', { class: 'quest-route-levels' }, levelBlocks),
       ]));
     });
-    summary.textContent = `目前顯示 Lv.${start}～Lv.${end} 的 ${shown} 個區域路線；${finished} 區所屬任務全部完成（共 ${total} 個任務）。上方目標已按區域合併，實際接取仍受前置、職業與任務欄限制。`;
+    summary.textContent = `目前顯示 Lv.${start}～Lv.${end} 的 ${shown} 個區域；${finished} 區任務全部完成（共 ${total} 個任務）。狩獵群會串起同怪物的討伐與掉落物；任務仍須達等級並先接取才會計算。`;
   }
   search.oninput = draw; onlyOpen.onchange = draw; fromLevel.oninput = draw; toLevel.oninput = draw;
-  root.append(el('h1', { text: '任務路線' }), el('p', { class: 'sub', text: '可輸入目前等級與目標等級；留白則不限制該端。頁面先按區域聚攏共同狩獵／掉落目標，再按等級列出 NPC 任務鏈。同一 NPC 必須完成前一個任務、回報後，才能接下一個。' }),
+  root.append(el('h1', { text: '任務路線' }), el('p', { class: 'sub', text: '可輸入目前等級與目標等級；留白則查看全部。先看區域的狩獵群總覽，再展開等級層段；同一 NPC 完成並回報前一個任務後，才能接下一個，副本任務獨立排列。' }),
     el('div', { class: 'filters quest-route-filters' }, [el('label', {}, ['目前 Lv.', fromLevel]), el('label', {}, ['目標 Lv.', toLevel]), search, el('label', {}, [onlyOpen, '只看未完成'])]), summary, list);
   draw(); return root;
 };
