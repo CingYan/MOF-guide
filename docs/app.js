@@ -1563,7 +1563,6 @@ V.questRoute = async () => {
     qs.forEach(q => {
       (q.hunt || []).forEach(x => add('討伐', x.target, x.count));
       (q.collect || []).forEach(x => add('蒐集', x.target, x.count));
-      (q.indun || []).forEach(x => add('副本', { id: 'DUNGEON:' + x.dungeon, name: x.dungeon }, 1));
     });
     return [...out.values()];
   }
@@ -1588,9 +1587,12 @@ V.questRoute = async () => {
       const makeCheck = q => {
         const c = el('input', { type: 'checkbox', checked: !!done[q.id], 'aria-label': `標記任務 ${q.name} 完成` });
         c.onchange = () => { done[q.id] = c.checked; localStorage.setItem('mof-quest-route-done', JSON.stringify(done)); draw(); };
+        const actions = (q.delivery || []).map(d =>
+          `遞送：${d.item?.name || '指定物品'}${d.to?.name ? ` → ${d.to.name}` : ''}`);
         return el('li', { class: 'quest-route-task' }, [el('label', {}, [c, el('a', { href: '#/quests/' + q.id, text: q.name }),
           el('span', { class: 'dim', text: `（Lv.${q.levelReq || 0}｜${(q.npcs || []).map(n => n.name).join('、') || '無 NPC'}）` })]),
-          (q.prereq || []).length ? el('span', { class: 'quest-route-meta', text: '前置：' + q.prereq.map(x => x.name).join('、') }) : null]);
+          (q.prereq || []).length ? el('span', { class: 'quest-route-meta', text: '前置：' + q.prereq.map(x => x.name).join('、') }) : null,
+          actions.length ? el('span', { class: 'quest-route-meta quest-route-action', text: actions.join('；') }) : null]);
       };
       const targetLevels = new Map();
       p.quests.forEach(q => [...(q.hunt || []), ...(q.collect || [])].forEach(x => {
@@ -1614,10 +1616,12 @@ V.questRoute = async () => {
           el('h4', { text: chain.npc.name + ' 任務鏈（完成並回報後再接下一個）' }),
           el('ol', { class: 'quest-route-tasks' }, chain.quests.map(makeCheck)),
         ]));
-        if (dungeonQs.length) checks.push(el('section', { class: 'quest-route-chain quest-route-dungeon-chain' }, [
-          el('h4', { text: '副本任務鏈（獨立計算，不併入 NPC 任務鏈）' }),
-          el('ol', { class: 'quest-route-tasks' }, dungeonQs.map(makeCheck)),
-        ]));
+        dungeonQs.forEach(q => checks.push(el('section', { class: 'quest-route-chain quest-route-dungeon-chain' }, [
+          el('h4', { text: `副本任務鏈｜${q.name}` }),
+          el('ol', { class: 'quest-route-tasks' }, [makeCheck(q)]),
+          ...(q.indun || []).map(d => el('p', { class: 'quest-route-meta', text:
+            `進入副本：${d.dungeon}${d.entryItem?.name ? `｜入場道具：${d.entryItem.name}` : ''}` })),
+        ])));
         const npcNames = [...new Set(levelQs.flatMap(q => (q.npcs || []).map(n => n.name)))];
         const levelObjectives = objectiveRows(levelQs).map(o => {
           const src = o.type === '蒐集' ? (drops.get(o.target.id) || []) : [];
@@ -1630,7 +1634,8 @@ V.questRoute = async () => {
         return el('section', { class: 'quest-route-level' }, [
           el('h3', { text: `Lv.${level} 層段` }),
           el('div', { class: 'quest-route-chains' }, checks),
-          levelObjectives.length ? el('details', { class: 'quest-route-objectives', open: true }, [el('summary', { text: `本層段目標（${levelObjectives.length} 項）` }), el('ul', {}, levelObjectives)]) : null,
+          levelObjectives.length ? el('details', { class: 'quest-route-objectives', open: true }, [el('summary', { text: `本層段目標（${levelObjectives.length} 項）` }), el('ul', {}, levelObjectives)]) :
+            el('p', { class: 'quest-route-empty', text: '本層段沒有需要討伐或蒐集的目標；依任務動作完成即可。' }),
           el('p', { class: 'quest-route-meta', text: '完成並回報：' + (npcNames.length ? npcNames.join('、') : '依任務頁確認回報對象') }),
         ]);
       });
