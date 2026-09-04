@@ -1517,6 +1517,92 @@ V.questPlan = async () => {
   draw(); return root;
 };
 
+/* 任務路線：給玩家實際照著跑的版本。
+   先按前置深度分段，再按區域整理「接取 → 一次完成 → 回報」；
+   同區域同一目標只列一次，避免把可一起完成的目標拆散。 */
+V.questRoute = async () => {
+  const [quests, monsters] = await Promise.all([data('quests'), data('monsters')]);
+  const byQuest = new Map(quests.map(q => [q.id, q])), memo = new Map();
+  function depth(q, trail = new Set()) {
+    if (memo.has(q.id)) return memo.get(q.id);
+    if (trail.has(q.id)) return 0;
+    trail.add(q.id);
+    const d = (q.prereq || []).reduce((n, p) => Math.max(n, depth(byQuest.get(p.id), trail) + 1), 0);
+    trail.delete(q.id); memo.set(q.id, d); return d;
+  }
+  const drops = new Map();
+  monsters.forEach(m => (m.drops || []).forEach(d => {
+    if (!drops.has(d.id)) drops.set(d.id, []);
+    drops.get(d.id).push(m);
+  }));
+  const areaOf = q => (q.regions || [])[0] || (q.npcs || []).flatMap(n => (n.maps || []).map(m => m.name))[0] || '未分類區域';
+  const phases = new Map();
+  quests.filter(q => (q.hunt || []).length || (q.collect || []).length || (q.delivery || []).length || (q.indun || []).length)
+    .forEach(q => {
+      const key = depth(q) + ':' + areaOf(q);
+      if (!phases.has(key)) phases.set(key, { depth: depth(q), area: areaOf(q), quests: [] });
+      phases.get(key).quests.push(q);
+    });
+  const done = JSON.parse(localStorage.getItem('mof-quest-route-done') || '{}');
+  const root = el('div', { class: 'quest-route' });
+  const list = el('div', { class: 'quest-route-list' });
+  const search = el('input', { type: 'search', placeholder: '篩選區域、NPC、怪物或任務' });
+  const onlyOpen = el('input', { type: 'checkbox', 'aria-label': '只看未完成' });
+  const summary = el('p', { class: 'lead' });
+  function objectiveRows(qs) {
+    const out = new Map();
+    const add = (type, target, count) => {
+      if (!target || !target.id) return;
+      const key = type + ':' + target.id;
+      if (!out.has(key)) out.set(key, { type, target, count: 0 });
+      out.get(key).count += Number(count) || 0;
+    };
+    qs.forEach(q => {
+      (q.hunt || []).forEach(x => add('討伐', x.target, x.count));
+      (q.collect || []).forEach(x => add('蒐集', x.target, x.count));
+      (q.delivery || []).forEach(x => add('遞送', x.item, 1));
+      (q.indun || []).forEach(x => add('副本', { id: 'DUNGEON:' + x.dungeon, name: x.dungeon }, 1));
+    });
+    return [...out.values()];
+  }
+  function draw() {
+    const needle = search.value.trim().toLocaleLowerCase(); list.textContent = '';
+    let shown = 0, finished = 0, total = 0;
+    [...phases.values()].sort((a, b) => a.depth - b.depth || a.area.localeCompare(b.area, 'zh-Hant')).forEach(p => {
+      const qs = p.quests.slice().sort((a, b) => depth(a) - depth(b) || (a.levelReq || 0) - (b.levelReq || 0));
+      const hay = [p.area, ...qs.flatMap(q => [q.name, ...(q.npcs || []).map(n => n.name), ...(q.hunt || []).map(x => x.target.name), ...(q.collect || []).map(x => x.target.name)])].join(' ').toLocaleLowerCase();
+      const allDone = qs.every(q => done[q.id]); total += qs.length; if (allDone) finished++;
+      if ((needle && !hay.includes(needle)) || (onlyOpen.checked && allDone)) return;
+      shown++;
+      const checks = qs.map(q => {
+        const c = el('input', { type: 'checkbox', checked: !!done[q.id], 'aria-label': `標記任務 ${q.name} 完成` });
+        c.onchange = () => { done[q.id] = c.checked; localStorage.setItem('mof-quest-route-done', JSON.stringify(done)); draw(); };
+        return el('li', { class: 'quest-route-task' }, [el('label', {}, [c, el('a', { href: '#/quests/' + q.id, text: q.name }),
+          el('span', { class: 'dim', text: `（Lv.${q.levelReq || 0}｜${(q.npcs || []).map(n => n.name).join('、') || '無 NPC'}）` })]),
+          (q.prereq || []).length ? el('span', { class: 'quest-route-meta', text: '前置：' + q.prereq.map(x => x.name).join('、') }) : null]);
+      });
+      const objectives = objectiveRows(qs).map(o => {
+        const src = o.type === '蒐集' ? (drops.get(o.target.id) || []) : [];
+        return el('li', {}, [el('span', { class: 'tag ' + (o.type === '討伐' ? 'r' : 'a'), text: o.type }), ' ',
+          itemCell(o.target, o.type === '討伐' ? 'monsters' : null), ` × ${num(o.count)}`,
+          src.length ? el('span', { class: 'quest-route-meta', text: '（可掉落：' + [...new Set(src.map(m => m.name))].join('、') + '）' }) : null]);
+      });
+      const npcNames = [...new Set(qs.flatMap(q => (q.npcs || []).map(n => n.name)))];
+      list.appendChild(el('article', { class: 'quest-route-phase' }, [
+        el('h2', { text: `第 ${p.depth + 1} 階段｜${p.area}` }),
+        el('h3', { text: '① 先接／確認任務' }), el('ol', { class: 'quest-route-tasks' }, checks),
+        objectives.length ? frag([el('h3', { text: '② 同一趟完成目標' }), el('ul', {}, objectives)]) : null,
+        el('h3', { text: '③ 回 NPC 交任務' }), el('p', { class: 'quest-route-meta', text: npcNames.length ? npcNames.join('、') : '依任務頁說明確認回報對象' }),
+      ]));
+    });
+    summary.textContent = `目前顯示 ${shown} 個路線區段；${finished} 段所屬任務全部完成（共 ${total} 個任務）。階段依資料中的前置任務排序，實際接取仍受等級、職業與任務欄限制。`;
+  }
+  search.oninput = draw; onlyOpen.onchange = draw;
+  root.append(el('h1', { text: '任務路線' }), el('p', { class: 'sub', text: '依前置任務與區域安排：先接／確認任務，再把同區域的討伐、蒐集、遞送與副本目標集中完成，最後回 NPC 交任務。NPC 依原始資料中的相關 NPC 顯示，若未區分接取與回報對象請點進任務明細確認。完成狀態只儲存在本機瀏覽器。' }),
+    el('div', { class: 'filters quest-route-filters' }, [search, el('label', {}, [onlyOpen, '只看未完成'])]), summary, list);
+  draw(); return root;
+};
+
 /* ───────── wiki 補充：技能 / 徽章 / 系統 ───────── */
 V.skills = async () => {
   const w = await data('wiki');
@@ -2188,7 +2274,7 @@ V.schoolyear = async () => {
 const NAV_GROUPS = [
   [['', '首頁'], ['monsters', '怪物'], ['maps', '地圖'], ['equips', '裝備'],
               ['fashion', '時裝'], ['items', '道具'], ['recipes', '製作'],
-              ['quests', '任務'], ['quest-plan', '任務規劃'], ['npcs', 'NPC'], ['pets', '寵物']],
+              ['quests', '任務'], ['quest-route', '任務路線'], ['npcs', 'NPC'], ['pets', '寵物']],
   [['grind', '練功'], ['party-exp', '組隊 EXP'], ['combat', '戰鬥數值'], ['skills', '技能'], ['major', '專業技能'],
                   ['character', '角色'], ['dungeons', '副本'], ['social', '社群'], ['merit', '功勳'], ['schoolyear', '學年考試'],
                   ['badges', '徽章'], ['system', '系統'], ['notes', '玩家筆記']],
@@ -2198,7 +2284,7 @@ const NAV = NAV_GROUPS.flat();
 const ROUTE = {
   '': V.home, grind: V.grind, 'party-exp': V.partyExp, major: V.major, character: V.character, dungeons: V.dungeons, social: V.social, merit: V.merit, schoolyear: V.schoolyear,
   monsters: V.monsters, maps: V.maps, equips: V.equips, fashion: V.fashion,
-  items: V.items, recipes: V.recipes, quests: V.quests, 'quest-plan': V.questPlan, npcs: V.npcs,
+  items: V.items, recipes: V.recipes, quests: V.quests, 'quest-plan': V.questPlan, 'quest-route': V.questRoute, npcs: V.npcs,
   pets: V.pets, combat: V.combat, skills: V.skills, badges: V.badges, system: V.system, notes: V.notes,
 };
 const ROUTE1 = {
