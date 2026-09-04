@@ -1538,12 +1538,12 @@ V.questRoute = async () => {
   }));
   const areaOf = q => (q.regions || [])[0] || (q.npcs || []).flatMap(n => (n.maps || []).map(m => m.name))[0] || '未分類區域';
   const phases = new Map();
-  quests.filter(q => (q.hunt || []).length || (q.collect || []).length || (q.delivery || []).length || (q.indun || []).length)
-    .forEach(q => {
-      const key = areaOf(q);
-      if (!phases.has(key)) phases.set(key, { area: key, quests: [] });
-      phases.get(key).quests.push(q);
-    });
+  // 保留無狩獵／蒐集目標的劇情與前置任務，否則 NPC 任務鏈會斷掉。
+  quests.forEach(q => {
+    const key = areaOf(q);
+    if (!phases.has(key)) phases.set(key, { area: key, quests: [] });
+    phases.get(key).quests.push(q);
+  });
   const done = JSON.parse(localStorage.getItem('mof-quest-route-done') || '{}');
   const root = el('div', { class: 'quest-route' });
   const list = el('div', { class: 'quest-route-list' });
@@ -1566,6 +1566,12 @@ V.questRoute = async () => {
     });
     return [...out.values()];
   }
+  const monsterLevels = new Map();
+  quests.forEach(q => {
+    const addLevel = id => { if (!id) return; if (!monsterLevels.has(id)) monsterLevels.set(id, new Set()); monsterLevels.get(id).add(Number(q.levelReq) || 0); };
+    (q.hunt || []).forEach(x => addLevel(x.target?.id));
+    (q.collect || []).forEach(x => (drops.get(x.target?.id) || []).forEach(m => addLevel(m.id)));
+  });
   function draw() {
     const needle = search.value.trim().toLocaleLowerCase();
     const start = Math.max(1, Number(fromLevel.value) || 1), end = Math.max(start, Number(toLevel.value) || 110);
@@ -1594,12 +1600,6 @@ V.questRoute = async () => {
           (q.prereq || []).length ? el('span', { class: 'quest-route-meta', text: '前置：' + q.prereq.map(x => x.name).join('、') }) : null,
           actions.length ? el('span', { class: 'quest-route-meta quest-route-action', text: actions.join('；') }) : null]);
       };
-      const targetLevels = new Map();
-      p.quests.forEach(q => [...(q.hunt || []), ...(q.collect || [])].forEach(x => {
-        if (!x.target || !x.target.id) return;
-        if (!targetLevels.has(x.target.id)) targetLevels.set(x.target.id, new Set());
-        targetLevels.get(x.target.id).add(Number(q.levelReq) || 0);
-      }));
       const levelBlocks = [...levels.entries()].sort((a, b) => a[0] - b[0]).map(([level, levelQs]) => {
         const chains = new Map();
         const normalQs = levelQs.filter(q => !(q.indun || []).length);
@@ -1626,12 +1626,13 @@ V.questRoute = async () => {
         const levelObjectives = objectiveRows(levelQs).map(o => {
           const src = o.type === '蒐集' ? (drops.get(o.target.id) || []) : [];
           const sourceIds = o.type === '討伐' ? [o.target.id] : (drops.get(o.target.id) || []).map(m => m.id);
-          const related = new Set(sourceIds.flatMap(id => [...(targetLevels.get(id) || [])]));
+          const related = new Set(sourceIds.flatMap(id => [...(monsterLevels.get(id) || [])]));
           const later = [...related].filter(x => x > level).sort((a, b) => a - b);
           return el('li', {}, [el('span', { class: 'tag ' + (o.type === '討伐' ? 'r' : 'a'), text: o.type }), ' ',
             itemCell(o.target, o.type === '討伐' ? 'monsters' : null), ` × ${num(o.count)}`,
             src.length ? el('span', { class: 'quest-route-meta', text: '（可掉落：' + [...new Set(src.map(m => m.name))].join('、') + '）' }) : null,
-            later.length ? el('span', { class: 'quest-route-meta', text: `（Lv.${later.join('、')} 還有同目標任務，達等級後再接取）` }) : null]);
+            !src.length && o.type === '蒐集' ? el('span', { class: 'quest-route-meta quest-route-warning', text: '（掉落來源未確認）' }) : null,
+            later.length ? el('span', { class: 'quest-route-meta quest-route-warning', text: `（同怪物另有 Lv.${later.join('、')} 任務；等接齊後再集中狩獵）` }) : null]);
         });
         return el('section', { class: 'quest-route-level' }, [
           el('h3', { text: `Lv.${level} 層段` }),
