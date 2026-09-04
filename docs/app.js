@@ -1581,6 +1581,9 @@ V.questRoute = async () => {
   function draw() {
     const needle = search.value.trim().toLocaleLowerCase();
     const start = Math.max(1, Number(fromLevel.value) || 1), end = Math.max(start, Number(toLevel.value) || 110);
+    const openState = new Map([...list.querySelectorAll('details[data-route-key]')]
+      .map(node => [node.dataset.routeKey, node.open]));
+    const isOpen = key => openState.has(key) ? openState.get(key) : !!needle;
     list.textContent = '';
     let shown = 0, finished = 0, total = 0;
     const groups = [...monsterGroups.values()].map(g => {
@@ -1650,7 +1653,7 @@ V.questRoute = async () => {
       const variants = [...g.monsters.values()];
       const maps = [...new Set(variants.flatMap(m => (m.maps || []).map(x => x.name)))];
       const variantText = variants.length > 1 ? `變體：${variants.map(m => m.name).join('、')}` : '';
-      areaList.appendChild(el('details', { class: 'quest-route-monster', open: !!needle }, [
+      areaList.appendChild(el('details', { class: 'quest-route-monster', 'data-route-key': `monster:${area}:${g.monster.id}`, open: isOpen(`monster:${area}:${g.monster.id}`) }, [
         el('summary', { class: 'quest-route-monster-summary', text: `${g.monster.name}（Lv.${Math.min(...variants.map(m => m.level || 0))}）｜${maps.join('、') || '出沒地圖未記錄'}｜${qs.length} 個相關任務` }),
         variantText ? el('p', { class: 'quest-route-meta quest-route-variants', text: variantText }) : null,
         el('p', { class: 'quest-route-meta quest-route-hunt-guide', text: '建議：先接下方目前能接的任務；同一趟狩獵完成討伐，並順便累積所有已接的掉落物任務。未達等級的任務不會計算，等解鎖後再補狩獵。' }),
@@ -1660,7 +1663,7 @@ V.questRoute = async () => {
       ]));
       });
       if (!areaList.childNodes.length) return;
-      const areaDetail = el('details', { class: 'quest-route-area', open: !!needle }, [
+      const areaDetail = el('details', { class: 'quest-route-area', 'data-route-key': `area:${area}`, open: isOpen(`area:${area}`) }, [
         el('summary', { class: 'quest-route-area-summary', text: `${area}｜${areaMonsterGroups.length} 個怪物群` }),
         areaList,
       ]);
@@ -1703,7 +1706,7 @@ V.questRoute = async () => {
         areaDetails.get(area).content.appendChild(otherSection);
       } else {
         const content = el('div', { class: 'quest-route-monster-list' }, [otherSection]);
-        const detail = el('details', { class: 'quest-route-area', open: !!needle }, [
+        const detail = el('details', { class: 'quest-route-area', 'data-route-key': `area:${area}`, open: isOpen(`area:${area}`) }, [
           el('summary', { class: 'quest-route-area-summary', text: `${area}｜其他任務` }), content,
         ]);
         areaDetails.set(area, { detail, content });
