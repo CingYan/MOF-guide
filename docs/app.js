@@ -1441,6 +1441,82 @@ V.pet = async name => {
   ]);
 };
 
+/* 任務規劃：把相同目標集中，避免先解一個任務、之後又回頭重打同一種怪。
+   數量只合併「同一個任務目標」；蒐集品另外列出可掉落怪物，避免把多個來源重複計算。 */
+V.questPlan = async () => {
+  const [quests, monsters] = await Promise.all([data('quests'), data('monsters')]);
+  const orderMemo = new Map();
+  const byQuest = new Map(quests.map(q => [q.id, q]));
+  function depth(q, trail = new Set()) {
+    if (orderMemo.has(q.id)) return orderMemo.get(q.id);
+    if (trail.has(q.id)) return 0;
+    trail.add(q.id);
+    const d = (q.prereq || []).reduce((n, p) => Math.max(n, depth(byQuest.get(p.id), trail) + 1), 0);
+    trail.delete(q.id); orderMemo.set(q.id, d); return d;
+  }
+  const dropSources = new Map();
+  monsters.forEach(m => (m.drops || []).forEach(d => {
+    if (!dropSources.has(d.id)) dropSources.set(d.id, []);
+    dropSources.get(d.id).push(m);
+  }));
+  const groups = new Map();
+  const add = (q, type, target, count, sources) => {
+    if (!target || !target.id) return;
+    const key = type + ':' + target.id;
+    if (!groups.has(key)) groups.set(key, { type, target, total: 0, quests: [], sources: sources || [] });
+    const g = groups.get(key); g.total += Number(count) || 0;
+    if (sources) g.sources = [...new Map([...g.sources, ...sources].map(m => [m.id, m])).values()];
+    g.quests.push(q);
+  };
+  quests.forEach(q => {
+    (q.hunt || []).forEach(x => add(q, '討伐', x.target, x.count));
+    (q.collect || []).forEach(x => add(q, '蒐集', x.target, x.count, dropSources.get(x.target.id) || []));
+  });
+  const done = JSON.parse(localStorage.getItem('mof-quest-plan-done') || '{}');
+  const rows = [...groups.values()].sort((a, b) => {
+    const da = Math.min(...a.quests.map(depth)), db = Math.min(...b.quests.map(depth));
+    return da - db || a.type.localeCompare(b.type, 'zh-Hant') || a.target.name.localeCompare(b.target.name, 'zh-Hant');
+  });
+  const root = el('div', { class: 'quest-plan' });
+  const summary = el('p', { class: 'lead' });
+  const list = el('div', { class: 'quest-plan-list' });
+  const search = input('search', '', { placeholder: '篩選怪物、道具、NPC 或任務' });
+  const onlyOpen = input('checkbox', '', { 'aria-label': '只看未完成' });
+  function draw() {
+    const qtext = search.value.trim().toLocaleLowerCase();
+    list.textContent = '';
+    let visible = 0, completed = 0;
+    rows.forEach((g, gi) => {
+      const hay = [g.target.name, ...g.sources.map(m => m.name), ...g.quests.flatMap(q => [q.name, ...(q.npcs || []).map(n => n.name)])].join(' ').toLocaleLowerCase();
+      const finished = g.quests.length && g.quests.every(q => done[q.id]);
+      if (qtext && !hay.includes(qtext)) return;
+      if (onlyOpen.checked && finished) return;
+      visible++;
+      if (finished) completed++;
+      const taskRows = g.quests.slice().sort((a, b) => depth(a) - depth(b) || a.levelReq - b.levelReq).map(q => {
+        const check = input('checkbox', '', { checked: !!done[q.id], 'aria-label': `標記任務 ${q.name} 完成` });
+        check.onchange = () => { done[q.id] = check.checked; localStorage.setItem('mof-quest-plan-done', JSON.stringify(done)); draw(); };
+        const prereq = (q.prereq || []).map(p => p.name).join('、');
+        return el('li', { class: 'quest-plan-task' }, [el('label', {}, [check, el('a', { href: '#/quests/' + q.id, text: q.name }),
+          el('span', { class: 'dim', text: ` × ${g.type === '蒐集' ? (q.collect.find(x => x.target.id === g.target.id) || {}).count || 0 : (q.hunt.find(x => x.target.id === g.target.id) || {}).count || 0}` })]),
+          el('span', { class: 'quest-plan-meta', text: `Lv.${q.levelReq || 0}｜${(q.npcs || []).map(n => n.name).join('、') || '無 NPC'}${prereq ? '｜前置：' + prereq : ''}` })]);
+      });
+      const sourceText = g.type === '蒐集' ? (g.sources.length ? '建議優先確認掉落：' + g.sources.map(m => m.name).join('、') : '資料未記錄掉落來源') : '';
+      list.appendChild(el('article', { class: 'quest-plan-group' }, [
+        el('h3', {}, [el('span', { class: 'tag ' + (g.type === '討伐' ? 'r' : 'a'), text: g.type }), ' ', itemCell(g.target, g.type === '討伐' ? 'monsters' : null), el('span', { class: 'quest-plan-total', text: `共 ${num(g.total)} 件` })]),
+        sourceText ? el('p', { class: 'sub', text: sourceText }) : null,
+        el('ol', {}, taskRows),
+      ]));
+    });
+    summary.textContent = `共 ${visible} 個目標群，${completed} 群所屬任務全部標記完成。相同目標已集中；但仍須依等級、職業與前置任務判斷實際接取順序。`;
+  }
+  search.oninput = draw; onlyOpen.onchange = draw;
+  root.append(el('h1', { text: '任務規劃' }),
+    el('p', { class: 'sub', text: '把相同怪物或蒐集品的任務集中，先在同一趟完成可疊加的目標，減少重工。完成狀態只儲存在本機瀏覽器。' }),
+    el('div', { class: 'filters quest-plan-filters' }, [search, el('label', {}, [onlyOpen, '只看未完成'])]), summary, list);
+  draw(); return root;
+};
+
 /* ───────── wiki 補充：技能 / 徽章 / 系統 ───────── */
 V.skills = async () => {
   const w = await data('wiki');
@@ -2112,7 +2188,7 @@ V.schoolyear = async () => {
 const NAV_GROUPS = [
   [['', '首頁'], ['monsters', '怪物'], ['maps', '地圖'], ['equips', '裝備'],
               ['fashion', '時裝'], ['items', '道具'], ['recipes', '製作'],
-              ['quests', '任務'], ['npcs', 'NPC'], ['pets', '寵物']],
+              ['quests', '任務'], ['quest-plan', '任務規劃'], ['npcs', 'NPC'], ['pets', '寵物']],
   [['grind', '練功'], ['party-exp', '組隊 EXP'], ['combat', '戰鬥數值'], ['skills', '技能'], ['major', '專業技能'],
                   ['character', '角色'], ['dungeons', '副本'], ['social', '社群'], ['merit', '功勳'], ['schoolyear', '學年考試'],
                   ['badges', '徽章'], ['system', '系統'], ['notes', '玩家筆記']],
@@ -2122,7 +2198,7 @@ const NAV = NAV_GROUPS.flat();
 const ROUTE = {
   '': V.home, grind: V.grind, 'party-exp': V.partyExp, major: V.major, character: V.character, dungeons: V.dungeons, social: V.social, merit: V.merit, schoolyear: V.schoolyear,
   monsters: V.monsters, maps: V.maps, equips: V.equips, fashion: V.fashion,
-  items: V.items, recipes: V.recipes, quests: V.quests, npcs: V.npcs,
+  items: V.items, recipes: V.recipes, quests: V.quests, 'quest-plan': V.questPlan, npcs: V.npcs,
   pets: V.pets, combat: V.combat, skills: V.skills, badges: V.badges, system: V.system, notes: V.notes,
 };
 const ROUTE1 = {
