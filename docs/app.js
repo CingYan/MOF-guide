@@ -1684,13 +1684,39 @@ V.questRoute = async () => {
       areaList.appendChild(el('details', { class: 'quest-route-monster', 'data-route-key': `monster:${area}:${g.monster.id}`, open: isOpen(`monster:${area}:${g.monster.id}`) }, [
         el('summary', { class: 'quest-route-monster-summary', text: `${g.monster.name}（Lv.${Math.min(...variants.map(m => m.level || 0))}）｜${maps.join('、') || '出沒地圖未記錄'}｜${qs.length} 個相關任務` }),
         variantText ? el('p', { class: 'quest-route-meta quest-route-variants', text: variantText }) : null,
-        el('p', { class: 'quest-route-meta quest-route-hunt-guide', text: '建議：先接下方目前能接的任務；同一趟狩獵完成討伐，並順便累積所有已接的掉落物任務。未達等級的任務不會計算，等解鎖後再補狩獵。' }),
+        el('p', { class: 'quest-route-meta quest-route-hunt-guide', text: '以下依任務解鎖條件排列：先接取本批任務，再依「本批狩獵目標」一次完成，最後回報並進入下一批。之後才解鎖的任務不會提前計入。' }),
         el('details', { class: 'quest-route-objectives', open: true }, [el('summary', { text: '本群總需求（已合併）' }), el('ul', {}, objectiveList)]),
-        el('h3', { text: '任務時間軸（先接取，再依批次狩獵）' }),
+        el('h3', { text: '任務時間軸（接取 → 狩獵 → 回報）' }),
         frag(batches.map(([level, batch], batchIndex) => el('section', { class: 'quest-route-batch' }, [
           el('h4', { text: `第 ${batchIndex + 1} 批｜Lv.${level} 可接任務` }),
-          el('p', { class: 'quest-route-meta', text: '先完成本批任務並回報；同一怪物的討伐與蒐集條件可在同一次狩獵中一起處理。' }),
+          el('strong', { class: 'quest-route-step-label', text: '① 先接取' }),
           el('ol', { class: 'quest-route-tasks' }, batch.sort((a, b) => depth(a) - depth(b) || a.name.localeCompare(b.name, 'zh-Hant')).map(makeCheck)),
+          (() => {
+            const batchObjectives = new Map();
+            batch.forEach(q => {
+              (q.hunt || []).filter(x => g.monsters.has(x.target?.id)).forEach(x => {
+                const key = '討伐:' + x.target.id;
+                batchObjectives.set(key, { type: '討伐', target: x.target, count: (batchObjectives.get(key)?.count || 0) + (Number(x.count) || 0) });
+              });
+              (q.collect || []).filter(x => (drops.get(x.target?.id) || []).some(m => g.monsters.has(m.id))).forEach(x => {
+                const key = '蒐集:' + x.target.id;
+                batchObjectives.set(key, { type: '蒐集', target: x.target, count: (batchObjectives.get(key)?.count || 0) + (Number(x.count) || 0) });
+              });
+            });
+            const objectives = [...batchObjectives.values()].map(o => {
+              if (o.type === '討伐') return el('li', {}, [el('span', { class: 'tag r', text: '討伐' }), ' ', itemCell(o.target, 'monsters'), ` ×${num(o.count)}`]);
+              const owned = Math.min(Math.max(Number(collected[o.target.id]) || 0, 0), o.count);
+              return el('li', {}, [el('span', { class: 'tag a', text: '蒐集' }), ' ', itemCell(o.target, 'items'),
+                ` ×${num(o.count)}｜目前尚缺 ${num(Math.max(0, o.count - owned))}`]);
+            });
+            const npcs = [...new Set(batch.flatMap(q => (q.npcs || []).map(n => n.name)))];
+            return frag([
+              el('strong', { class: 'quest-route-step-label', text: '② 前往狩獵' }),
+              objectives.length ? el('ul', { class: 'quest-route-batch-objectives' }, objectives) : el('p', { class: 'quest-route-meta quest-route-muted', text: '本批沒有討伐／蒐集目標，完成任務動作即可。' }),
+              el('strong', { class: 'quest-route-step-label', text: '③ 完成並回報' }),
+              el('p', { class: 'quest-route-meta quest-route-action', text: npcs.length ? `回報：${npcs.join('、')}；回報後才進入下一批。` : '本批沒有記錄回報 NPC。' }),
+            ]);
+          })(),
         ]))),
       ]));
       });
