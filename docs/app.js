@@ -1558,6 +1558,7 @@ V.questTimeline = async () => {
   const collected = JSON.parse(localStorage.getItem('mof-quest-route-collected') || '{}');
   const saveCollected = () => localStorage.setItem('mof-quest-route-collected', JSON.stringify(collected));
   const baseName = name => String(name || '').replace(/^\[[^\]]+\]\s*/, '').trim();
+  const collectSources = item => drops.get(item?.id) || [];
   const root = el('div', { class: 'quest-timeline' });
   const list = el('div', { class: 'quest-timeline-list' });
   const search = el('input', { type: 'search', placeholder: '篩選區域、任務、NPC 或怪物' });
@@ -1584,7 +1585,7 @@ V.questTimeline = async () => {
     const nodes = [];
     (q.hunt || []).forEach(x => nodes.push(el('span', {}, ['討伐 ', itemCell(x.target, 'monsters'), ` ×${num(x.count)}`])));
     (q.collect || []).forEach(x => {
-      const sources = drops.get(x.target?.id) || [];
+      const sources = collectSources(x.target);
       nodes.push(el('span', {}, ['蒐集 ', itemCell(x.target, 'items'), ` ×${num(x.count)}`, ...(sources.length ? ['（掉落：', ...sources.flatMap((m, i) => [i ? '、' : '', itemCell(m, 'monsters')]), '）'] : [])]));
     });
     (q.delivery || []).forEach(x => nodes.push(el('span', {}, ['遞送 ', x.item ? itemCell(x.item, 'items') : '指定物品', x.to?.name ? ` → ${x.to.name}` : ''])));
@@ -1641,8 +1642,10 @@ V.questTimeline = async () => {
           });
           (q.collect || []).forEach(x => {
             const key = 'collect:' + x.target?.id;
-            if (!objectiveMap.has(key)) objectiveMap.set(key, { type: '蒐集', target: x.target, count: 0 });
-            objectiveMap.get(key).count += Number(x.count) || 0;
+            if (!objectiveMap.has(key)) objectiveMap.set(key, { type: '蒐集', target: x.target, count: 0, sources: new Map() });
+            const o = objectiveMap.get(key);
+            o.count += Number(x.count) || 0;
+            collectSources(x.target).forEach(m => o.sources.set(m.id, m));
           });
         });
         const autoCollected = itemId => batch.reduce((n, q) => done[q.id]
@@ -1666,7 +1669,8 @@ V.questTimeline = async () => {
           amount.onchange = () => { collected[o.target.id] = Math.min(Math.max((Number(amount.value) || 0) - autoCollected(o.target.id), 0), o.count); saveCollected(); draw(); };
           const check = el('input', { type: 'checkbox', checked: owned >= o.count, 'aria-label': `完成蒐集 ${o.target.name}` });
           check.onchange = () => { collected[o.target.id] = check.checked ? Math.max(0, o.count - autoCollected(o.target.id)) : 0; saveCollected(); draw(); };
-          return el('li', {}, [el('span', { class: 'tag a', text: '蒐集' }), ' ', itemCell(o.target, 'items'), ` 共 ${num(o.count)}｜尚缺 ${num(Math.max(0, o.count - owned))} `, amount, el('label', { class: 'quest-route-progress-check' }, [check, '完成'])]);
+          const sources = o.sources.size ? `｜掉落怪物：${[...o.sources.values()].map(m => m.name).join('、')}` : '｜掉落來源未記錄';
+          return el('li', {}, [el('span', { class: 'tag a', text: '蒐集' }), ' ', itemCell(o.target, 'items'), ` 共 ${num(o.count)}｜尚缺 ${num(Math.max(0, o.count - owned))} `, amount, el('label', { class: 'quest-route-progress-check' }, [check, '完成']), el('span', { class: 'dim', text: sources })]);
         });
         const report = [...new Set(batch.flatMap(q => (q.npcs || []).map(n => n.name)))];
         const nextEntry = orderedStages[index + 1];
@@ -1682,8 +1686,10 @@ V.questTimeline = async () => {
             });
             (q.collect || []).forEach(x => {
               const key = 'collect:' + x.target?.id;
-              if (!nextMap.has(key)) nextMap.set(key, { type: '蒐集', target: x.target, count: 0 });
-              nextMap.get(key).count += Number(x.count) || 0;
+              if (!nextMap.has(key)) nextMap.set(key, { type: '蒐集', target: x.target, count: 0, sources: new Map() });
+              const o = nextMap.get(key);
+              o.count += Number(x.count) || 0;
+              collectSources(x.target).forEach(m => o.sources.set(m.id, m));
             });
           });
           nextMap.forEach(o => {
@@ -1691,7 +1697,7 @@ V.questTimeline = async () => {
               const variants = [...o.variants.entries()].map(([id, count], i) => `${i ? '、' : ''}${monsterById.get(id)?.name?.startsWith('[') ? monsterById.get(id).name.match(/^\[([^\]]+)\]/)?.[1] || '變體' : '普通'} ×${num(count)}`).join('');
               nextObjectives.push(el('span', {}, [itemCell(o.target, 'monsters'), `（${variants}）`]));
             } else {
-              nextObjectives.push(el('span', {}, [itemCell(o.target, 'items'), ` ×${num(o.count)}`]));
+              nextObjectives.push(el('span', {}, [itemCell(o.target, 'items'), ` ×${num(o.count)}`, o.sources.size ? `（掉落：${[...o.sources.values()].map(m => m.name).join('、')}）` : '（掉落來源未記錄）']));
             }
           });
         }
@@ -1740,7 +1746,7 @@ V.questTimeline = async () => {
           const earliestCollectionLevel = collects.length ? Math.min(...collects.map(x => Number(x.q.levelReq) || 0)) : latestHuntLevel;
           const huntRows = hunts.map(({ q, objectives }) => el('li', {}, [el('a', { href: '#/quests/' + q.id, text: q.name }), `（Lv.${q.levelReq || 0}｜${(q.npcs || []).map(n => n.name).join('、') || '無 NPC'}）`, ...objectives.filter(x => x.kind === '討伐').map(({ objective }) => `｜${objective.target.name} ×${num(objective.count)}`)]));
           const collectRows = collects.flatMap(({ q, objectives }) => objectives.filter(x => x.kind === '蒐集').map(({ objective }) => {
-            const sources = drops.get(objective.target?.id) || [];
+            const sources = collectSources(objective.target);
             return el('li', {}, [el('a', { href: '#/quests/' + q.id, text: q.name }), `（Lv.${q.levelReq || 0}｜${(q.npcs || []).map(n => n.name).join('、') || '無 NPC'}）｜`, el('a', { href: '#/items/' + objective.target.id, text: objective.target.name }), ` ×${num(objective.count)}（可提前準備）`, sources.length ? `｜掉落怪物：${sources.map(m => m.name).join('、')}` : '｜掉落來源未記錄']);
           }));
           const taskNames = tasks.map(x => x.q.name).join('、');
