@@ -1675,6 +1675,23 @@ V.questTimeline = async () => {
         ...(q.prereq || []).map(p => byQuest.get(p.id)),
         npcPrevious.get(q.id),
       ].filter(Boolean);
+      /* 任務鏈排序必須以依賴圖為準，不能讓怪物分組、名稱或等級覆蓋前置順序。
+       * 這個序號只用於任務鏈顯示；狩獵批次仍在下方獨立計算。 */
+      const topoOrder = new Map();
+      let topoSerial = 0;
+      const topoVisiting = new Set();
+      const topoVisited = new Set();
+      const visitQuest = q => {
+        if (!q || topoVisited.has(q.id)) return;
+        if (topoVisiting.has(q.id)) return; // 資料循環交由後面的循環保護處理
+        topoVisiting.add(q.id);
+        depsOf(q).forEach(visitQuest);
+        topoVisiting.delete(q.id);
+        topoVisited.add(q.id);
+        topoOrder.set(q.id, topoSerial++);
+      };
+      quests.forEach(visitQuest);
+      const questOrder = q => topoOrder.has(q.id) ? topoOrder.get(q.id) : Number.MAX_SAFE_INTEGER;
       const stageTuple = key => {
         const [band, depth] = String(key).split(':').map(Number);
         return [Number.isFinite(band) ? band : 0, Number.isFinite(depth) ? depth : 0];
@@ -1684,7 +1701,9 @@ V.questTimeline = async () => {
         const batch = stages.get(key) || [];
         const levels = batch.map(q => Number(q.levelReq) || 0);
         const depths = batch.map(q => routeDepth(q));
-        return [Math.min(...levels, 0), Math.min(...depths, 0), Math.min(...batch.map(q => initialBatchFor.get(q.id)?.stage ? stageTuple(initialBatchFor.get(q.id).stage)[0] : 0), 0)];
+        return [Math.min(...batch.map(questOrder), Number.MAX_SAFE_INTEGER),
+          Math.min(...levels, 0), Math.min(...depths, 0),
+          Math.min(...batch.map(q => initialBatchFor.get(q.id)?.stage ? stageTuple(initialBatchFor.get(q.id).stage)[0] : 0), 0)];
       };
       let splitSerial = 0;
       /* 若某批的高等級討伐任務會因前置邊被迫提前，先把該討伐任務
@@ -1789,7 +1808,9 @@ V.questTimeline = async () => {
         const [levelBand, stage] = stageKey.split(':').map(Number);
         batch = batch.filter(q => !onlyOpen.checked || !done[q.id]);
         if (!batch.length) return;
-        batch.sort((a, b) => (a.levelReq || 0) - (b.levelReq || 0) || a.name.localeCompare(b.name, 'zh-Hant'));
+        batch.sort((a, b) => questOrder(a) - questOrder(b)
+            || (a.levelReq || 0) - (b.levelReq || 0)
+            || a.name.localeCompare(b.name, 'zh-Hant'));
         const levelText = tasks => {
           const levels = [...new Set(tasks.map(q => Number(q.levelReq) || 0))].sort((a, b) => a - b);
           if (!levels.length) return `Lv.${levelBand}～${levelBand + 9}`;
