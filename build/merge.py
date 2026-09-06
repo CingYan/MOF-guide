@@ -10,6 +10,10 @@ DOMAINS = ['monsters','maps','equips','fashion','items','recipes','quests','npcs
 counts = {}
 for d in DOMAINS:
     data = json.load(open(f'{SRC}/{d}.json'))
+    if d == 'equips':
+        # 原始資料把「北歐」誤植成 loon；遊戲內 +5/+6 實際仍沿用裝備本名。
+        for equip in data:
+            equip['name'] = equip.get('name', '').replace('loon 細工', '北歐細工').replace('loon細工', '北歐細工')
     counts[d] = len(data)
     json.dump(data, open(f'{OUT}/{d}.json','w'), ensure_ascii=False, separators=(',',':'))
 

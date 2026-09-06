@@ -45,7 +45,7 @@ const T = {
           atkBeast: '對動物攻擊', atkDemon: '對惡魔攻擊', atkUndead: '對不死攻擊',
           atkMonster: '對怪物攻擊', defBeast: '對動物防禦', defDemon: '對惡魔防禦',
           defUndead: '對不死防禦', defMonster: '對怪物防禦' },
-  enchant: { 1: '強化的', 2: '精緻的', 3: '精煉的', 4: '完美的', 5: '無瑕的', 6: '極緻的' },
+  enchant: { 1: '強化的', 2: '精緻的', 3: '精煉的', 4: '完美的', 5: '改造的', 6: '熟練的' },
   pctStat: new Set(['atkPct', 'skillAtkPct', 'defPct', 'maxHpPct', 'maxMpPct',
                     'atkBeast', 'atkDemon', 'atkUndead', 'atkMonster',
                     'defBeast', 'defDemon', 'defUndead', 'defMonster']),
@@ -529,7 +529,7 @@ const roleCell = o => el('span', { class: 'tags inline' },
 /* 裝備 / 時裝 / 道具共用一套明細 */
 /* 同一件裝備的強化階梯：列表預設只顯示未強化的本體，
    所以明細頁要把六個階級的數值一次攤開，資訊才沒少 */
-const ENCHANT_PRE = ['強化的', '精緻的', '精煉的', '完美的', '無瑕的', '極緻的'];
+const ENCHANT_PRE = ['強化的', '精緻的', '精煉的', '完美的', '改造的', '熟練的'];
 const baseName = n => {
   for (const p of ENCHANT_PRE) if (n.startsWith(p)) return n.slice(p.length);
   return n;
