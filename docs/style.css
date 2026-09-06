@@ -258,6 +258,7 @@ h4 { margin: 16px 0 6px; font-size: 1em }
 .quest-timeline-dungeons{margin-top:12px;padding-top:10px;border-top:1px dashed var(--line)}
 .quest-timeline-dungeon-title{margin:0 0 8px;color:var(--gold);font-size:14px}
 .quest-timeline-dungeon{border-color:var(--gold)}
+.quest-timeline-next{margin-top:10px;padding:7px 9px;border-top:1px dashed var(--line);color:var(--gold);font-size:12px}
 
 td.dim, .dim { color: var(--dim) }
 h1 .en { color: var(--dim); font-size: .55em; font-weight: normal; margin-left: 10px }

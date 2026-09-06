@@ -1891,10 +1891,11 @@ V.questTimeline = async () => {
         stages.get(stage).push(q);
       });
       const content = el('div', { class: 'quest-timeline-stages' });
-      [...stages.entries()].sort((a, b) => {
+      const orderedStages = [...stages.entries()].sort((a, b) => {
         const [al, as] = a[0].split(':').map(Number), [bl, bs] = b[0].split(':').map(Number);
         return al - bl || as - bs;
-      }).forEach(([stageKey, batch], index) => {
+      });
+      orderedStages.forEach(([stageKey, batch], index) => {
         const [levelBand, stage] = stageKey.split(':').map(Number);
         batch = batch.filter(q => !onlyOpen.checked || !done[q.id]);
         if (!batch.length) return;
@@ -1936,10 +1937,36 @@ V.questTimeline = async () => {
           return el('li', {}, [el('span', { class: 'tag a', text: '蒐集' }), ' ', itemCell(o.target, 'items'), ` 共 ${num(o.count)}｜尚缺 ${num(Math.max(0, o.count - owned))} `, amount, el('label', { class: 'quest-route-progress-check' }, [check, '完成'])]);
         });
         const report = [...new Set(batch.flatMap(q => (q.npcs || []).map(n => n.name)))];
+        const nextEntry = orderedStages[index + 1];
+        const nextLevelBand = nextEntry ? Number(nextEntry[0].split(':')[0]) : 0;
+        const nextObjectives = [];
+        if (nextEntry) {
+          const nextMap = new Map();
+          nextEntry[1].forEach(q => {
+            (q.hunt || []).forEach(x => {
+              const key = 'hunt:' + baseName(x.target?.name);
+              if (!nextMap.has(key)) nextMap.set(key, { type: '狩獵', target: x.target, variants: new Map() });
+              const o = nextMap.get(key); o.variants.set(x.target.id, (o.variants.get(x.target.id) || 0) + (Number(x.count) || 0));
+            });
+            (q.collect || []).forEach(x => {
+              const key = 'collect:' + x.target?.id;
+              if (!nextMap.has(key)) nextMap.set(key, { type: '蒐集', target: x.target, count: 0 });
+              nextMap.get(key).count += Number(x.count) || 0;
+            });
+          });
+          nextMap.forEach(o => {
+            if (o.type === '狩獵') {
+              const variants = [...o.variants.entries()].map(([id, count], i) => `${i ? '、' : ''}${monsterById.get(id)?.name?.startsWith('[') ? monsterById.get(id).name.match(/^\[([^\]]+)\]/)?.[1] || '變體' : '普通'} ×${num(count)}`).join('');
+              nextObjectives.push(el('span', {}, [itemCell(o.target, 'monsters'), `（${variants}）`]));
+            } else {
+              nextObjectives.push(el('span', {}, [itemCell(o.target, 'items'), ` ×${num(o.count)}`]));
+            }
+          });
+        }
         const stageTitle = `第 ${index + 1} 批｜任務鏈第 ${stage + 1} 階｜Lv.${levelBand}～${levelBand + 9}`;
         content.appendChild(el('details', { class: 'quest-timeline-stage-fold', 'data-timeline-key': `stage:${area}:${stageKey}`, open: isOpen(`stage:${area}:${stageKey}`) }, [
           el('summary', { class: 'quest-timeline-stage-summary', text: stageTitle }),
-          el('section', { class: 'quest-timeline-stage' }, [el('strong', { class: 'quest-timeline-step', text: '① 先接取' }), el('ol', { class: 'quest-route-tasks' }, taskRows), el('strong', { class: 'quest-timeline-step', text: '② 執行同批任務' }), objectiveRows.length ? el('ul', { class: 'quest-timeline-objectives' }, objectiveRows) : el('p', { class: 'quest-timeline-meta', text: '本批沒有狩獵／蒐集目標，依任務動作執行。' }), el('strong', { class: 'quest-timeline-step', text: '③ 回報並解鎖下一批' }), el('p', { class: 'quest-timeline-meta', text: report.length ? `完成後回報：${report.join('、')}。回報完成後才進入下一批。` : '本批沒有記錄回報 NPC。' })]),
+          el('section', { class: 'quest-timeline-stage' }, [el('strong', { class: 'quest-timeline-step', text: '① 先接取' }), el('ol', { class: 'quest-route-tasks' }, taskRows), el('strong', { class: 'quest-timeline-step', text: '② 執行同批任務' }), objectiveRows.length ? el('ul', { class: 'quest-timeline-objectives' }, objectiveRows) : el('p', { class: 'quest-timeline-meta', text: '本批沒有狩獵／蒐集目標，依任務動作執行。' }), el('strong', { class: 'quest-timeline-step', text: '③ 回報並解鎖下一批' }), el('p', { class: 'quest-timeline-meta', text: report.length ? `完成後回報：${report.join('、')}。回報完成後才進入下一批。` : '本批沒有記錄回報 NPC。' }), nextObjectives.length ? el('div', { class: 'quest-timeline-next' }, [el('strong', { text: `下一階段預告｜Lv.${nextLevelBand}～${nextLevelBand + 9}（不計入本階段）` }), el('p', { class: 'quest-timeline-meta' }, ['下一批新增：', ...nextObjectives.flatMap((x, i) => [i ? '、' : '', x])])]) : null]),
         ]));
       });
       if (dungeonQuests.length) {
