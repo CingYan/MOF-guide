@@ -1883,9 +1883,18 @@ V.questTimeline = async () => {
       const hay = [area, ...areaQuests.flatMap(q => [q.name, ...(q.npcs || []).map(n => n.name), ...(q.hunt || []).map(x => x.target?.name), ...(q.collect || []).map(x => x.target?.name)])].join(' ').toLocaleLowerCase();
       if (needle && !hay.includes(needle)) return;
       const stages = new Map();
-      areaQuests.forEach(q => { const stage = routeDepth(q); if (!stages.has(stage)) stages.set(stage, []); stages.get(stage).push(q); });
+      areaQuests.forEach(q => {
+        const levelBand = Math.floor((Number(q.levelReq) || 0) / 10) * 10;
+        const stage = `${routeDepth(q)}:${levelBand}`;
+        if (!stages.has(stage)) stages.set(stage, []);
+        stages.get(stage).push(q);
+      });
       const content = el('div', { class: 'quest-timeline-stages' });
-      [...stages.entries()].sort((a, b) => a[0] - b[0]).forEach(([stage, batch], index) => {
+      [...stages.entries()].sort((a, b) => {
+        const [as, al] = a[0].split(':').map(Number), [bs, bl] = b[0].split(':').map(Number);
+        return as - bs || al - bl;
+      }).forEach(([stageKey, batch], index) => {
+        const [stage, levelBand] = stageKey.split(':').map(Number);
         batch = batch.filter(q => !onlyOpen.checked || !done[q.id]);
         if (!batch.length) return;
         batch.sort((a, b) => (a.levelReq || 0) - (b.levelReq || 0) || a.name.localeCompare(b.name, 'zh-Hant'));
@@ -1902,6 +1911,8 @@ V.questTimeline = async () => {
             objectiveMap.get(key).count += Number(x.count) || 0;
           });
         });
+        const autoCollected = itemId => batch.reduce((n, q) => done[q.id]
+          ? n + (q.collect || []).filter(x => x.target?.id === itemId).reduce((m, x) => m + (Number(x.count) || 0), 0) : n, 0);
         const taskRows = batch.map(q => {
           const c = el('input', { type: 'checkbox', checked: !!done[q.id], 'aria-label': `標記任務 ${q.name} 完成` });
           c.onchange = () => { done[q.id] = c.checked; localStorage.setItem('mof-quest-route-done', JSON.stringify(done)); draw(); };
@@ -1916,15 +1927,19 @@ V.questTimeline = async () => {
             const maps = [...new Set([...o.variants.keys()].flatMap(id => (monsterById.get(id)?.maps || []).map(m => m.name)))];
             return el('li', {}, [el('span', { class: 'tag r', text: '狩獵' }), ' ', itemCell(o.target, 'monsters'), `（${variants}）`, maps.length ? el('span', { class: 'dim', text: `｜${maps.join('、')}` }) : null]);
           }
-          const owned = Math.min(Math.max(Number(collected[o.target.id]) || 0, 0), o.count);
+          const owned = Math.min(Math.max((Number(collected[o.target.id]) || 0) + autoCollected(o.target.id), 0), o.count);
           const amount = el('input', { type: 'number', min: 0, max: o.count, value: owned, class: 'quest-route-progress-input', 'aria-label': `${o.target.name} 已取得數量` });
-          amount.onchange = () => { collected[o.target.id] = Math.min(Math.max(Number(amount.value) || 0, 0), o.count); saveCollected(); draw(); };
+          amount.onchange = () => { collected[o.target.id] = Math.min(Math.max((Number(amount.value) || 0) - autoCollected(o.target.id), 0), o.count); saveCollected(); draw(); };
           const check = el('input', { type: 'checkbox', checked: owned >= o.count, 'aria-label': `完成蒐集 ${o.target.name}` });
-          check.onchange = () => { collected[o.target.id] = check.checked ? o.count : 0; saveCollected(); draw(); };
+          check.onchange = () => { collected[o.target.id] = check.checked ? Math.max(0, o.count - autoCollected(o.target.id)) : 0; saveCollected(); draw(); };
           return el('li', {}, [el('span', { class: 'tag a', text: '蒐集' }), ' ', itemCell(o.target, 'items'), ` 共 ${num(o.count)}｜尚缺 ${num(Math.max(0, o.count - owned))} `, amount, el('label', { class: 'quest-route-progress-check' }, [check, '完成'])]);
         });
         const report = [...new Set(batch.flatMap(q => (q.npcs || []).map(n => n.name)))];
-        content.appendChild(el('section', { class: 'quest-timeline-stage' }, [el('h3', { text: `第 ${index + 1} 批｜任務鏈第 ${stage + 1} 階（解鎖 Lv.${[...new Set(batch.map(q => q.levelReq || 0))].sort((a, b) => a - b).join('、')}）` }), el('strong', { class: 'quest-timeline-step', text: '① 先接取' }), el('ol', { class: 'quest-route-tasks' }, taskRows), el('strong', { class: 'quest-timeline-step', text: '② 執行同批任務' }), objectiveRows.length ? el('ul', { class: 'quest-timeline-objectives' }, objectiveRows) : el('p', { class: 'quest-timeline-meta', text: '本批沒有狩獵／蒐集目標，依任務動作執行。' }), el('strong', { class: 'quest-timeline-step', text: '③ 回報並解鎖下一批' }), el('p', { class: 'quest-timeline-meta', text: report.length ? `完成後回報：${report.join('、')}。回報完成後才進入下一批。` : '本批沒有記錄回報 NPC。' })]));
+        const stageTitle = `第 ${index + 1} 批｜任務鏈第 ${stage + 1} 階｜Lv.${levelBand}～${levelBand + 9}`;
+        content.appendChild(el('details', { class: 'quest-timeline-stage-fold', 'data-timeline-key': `stage:${area}:${stageKey}`, open: isOpen(`stage:${area}:${stageKey}`) }, [
+          el('summary', { class: 'quest-timeline-stage-summary', text: stageTitle }),
+          el('section', { class: 'quest-timeline-stage' }, [el('strong', { class: 'quest-timeline-step', text: '① 先接取' }), el('ol', { class: 'quest-route-tasks' }, taskRows), el('strong', { class: 'quest-timeline-step', text: '② 執行同批任務' }), objectiveRows.length ? el('ul', { class: 'quest-timeline-objectives' }, objectiveRows) : el('p', { class: 'quest-timeline-meta', text: '本批沒有狩獵／蒐集目標，依任務動作執行。' }), el('strong', { class: 'quest-timeline-step', text: '③ 回報並解鎖下一批' }), el('p', { class: 'quest-timeline-meta', text: report.length ? `完成後回報：${report.join('、')}。回報完成後才進入下一批。` : '本批沒有記錄回報 NPC。' })]),
+        ]));
       });
       shown += areaQuests.length;
       list.appendChild(el('details', { class: 'quest-timeline-area', 'data-timeline-key': `area:${area}`, open: isOpen(`area:${area}`) }, [el('summary', { class: 'quest-route-area-summary', text: `${area}｜${areaQuests.length} 個任務` }), content]));

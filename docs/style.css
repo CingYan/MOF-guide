@@ -241,6 +241,9 @@ h4 { margin: 16px 0 6px; font-size: 1em }
 .quest-timeline-area{border:1px solid var(--line);border-radius:8px;background:var(--bg2);padding:12px 14px}
 .quest-timeline-area summary{cursor:pointer}
 .quest-timeline-stages{display:grid;gap:10px;margin-top:10px}
+.quest-timeline-stage-fold{border:1px solid var(--line);border-radius:6px;background:var(--bg)}
+.quest-timeline-stage-summary{cursor:pointer;padding:8px 10px;color:var(--gold);font-size:13px;font-weight:600}
+.quest-timeline-stage-fold .quest-timeline-stage{margin:0 8px 8px}
 .quest-timeline-stage{border-left:2px solid var(--gold);padding:8px 10px;background:var(--bg2);border-radius:4px}
 .quest-timeline-stage h3{margin:0 0 6px;color:var(--gold);font-size:14px}
 .quest-timeline-step{display:block;margin-top:8px;color:var(--fg);font-size:12px}
