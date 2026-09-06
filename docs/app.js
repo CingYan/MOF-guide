@@ -1652,6 +1652,11 @@ V.questTimeline = async () => {
         batch = batch.filter(q => !onlyOpen.checked || !done[q.id]);
         if (!batch.length) return;
         batch.sort((a, b) => (a.levelReq || 0) - (b.levelReq || 0) || a.name.localeCompare(b.name, 'zh-Hant'));
+        const levelText = tasks => {
+          const levels = [...new Set(tasks.map(q => Number(q.levelReq) || 0))].sort((a, b) => a - b);
+          if (!levels.length) return `Lv.${levelBand}～${levelBand + 9}`;
+          return levels.length === 1 ? `Lv.${levels[0]}` : `Lv.${levels[0]}～${levels[levels.length - 1]}`;
+        };
         const objectiveMap = new Map();
         batch.forEach(q => {
           (q.hunt || []).forEach(x => {
@@ -1694,7 +1699,6 @@ V.questTimeline = async () => {
         });
         const report = [...new Set(batch.flatMap(q => (q.npcs || []).map(n => n.name)))];
         const nextEntry = orderedStages[index + 1];
-        const nextLevelBand = nextEntry ? Number(nextEntry[0].split(':')[0]) : 0;
         const nextObjectives = [];
         if (nextEntry) {
           const nextMap = new Map();
@@ -1721,10 +1725,10 @@ V.questTimeline = async () => {
             }
           });
         }
-        const stageTitle = `第 ${index + 1} 批｜任務鏈第 ${stage + 1} 階｜Lv.${levelBand}～${levelBand + 9}`;
+        const stageTitle = `第 ${index + 1} 批｜任務鏈第 ${stage + 1} 階｜${levelText(batch)}`;
         content.appendChild(el('details', { class: 'quest-timeline-stage-fold', 'data-timeline-key': `stage:${area}:${stageKey}`, open: isOpen(`stage:${area}:${stageKey}`) }, [
           el('summary', { class: 'quest-timeline-stage-summary', text: stageTitle }),
-          el('section', { class: 'quest-timeline-stage' }, [el('strong', { class: 'quest-timeline-step', text: '① 先接取' }), el('ol', { class: 'quest-route-tasks' }, taskRows), el('strong', { class: 'quest-timeline-step', text: '② 執行同批任務' }), objectiveRows.length ? el('ul', { class: 'quest-timeline-objectives' }, objectiveRows) : el('p', { class: 'quest-timeline-meta', text: '本批沒有狩獵／蒐集目標，依任務動作執行。' }), el('strong', { class: 'quest-timeline-step', text: '③ 回報並解鎖下一批' }), el('p', { class: 'quest-timeline-meta', text: report.length ? `完成後回報：${report.join('、')}。回報完成後才進入下一批。` : '本批沒有記錄回報 NPC。' }), nextObjectives.length ? el('div', { class: 'quest-timeline-next' }, [el('strong', { text: `下一階段預告｜Lv.${nextLevelBand}～${nextLevelBand + 9}（不計入本階段）` }), el('p', { class: 'quest-timeline-meta' }, ['下一批新增：', ...nextObjectives.flatMap((x, i) => [i ? '、' : '', x])])]) : null]),
+          el('section', { class: 'quest-timeline-stage' }, [el('strong', { class: 'quest-timeline-step', text: '① 先接取' }), el('ol', { class: 'quest-route-tasks' }, taskRows), el('strong', { class: 'quest-timeline-step', text: '② 執行同批任務' }), objectiveRows.length ? el('ul', { class: 'quest-timeline-objectives' }, objectiveRows) : el('p', { class: 'quest-timeline-meta', text: '本批沒有狩獵／蒐集目標，依任務動作執行。' }), el('strong', { class: 'quest-timeline-step', text: '③ 回報並解鎖下一批' }), el('p', { class: 'quest-timeline-meta', text: report.length ? `完成後回報：${report.join('、')}。回報完成後才進入下一批。` : '本批沒有記錄回報 NPC。' }), nextObjectives.length ? el('div', { class: 'quest-timeline-next' }, [el('strong', { text: `下一階段預告｜${levelText(nextEntry[1])}（不計入本階段）` }), el('p', { class: 'quest-timeline-meta' }, ['下一批新增：', ...nextObjectives.flatMap((x, i) => [i ? '、' : '', x])])]) : null]),
         ]));
       });
       const huntGroups = new Map();
