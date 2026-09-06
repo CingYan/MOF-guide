@@ -1621,11 +1621,26 @@ V.questTimeline = async () => {
       const fieldQuests = areaQuests.filter(q => !(q.indun || []).length);
       const stageKeyFor = q => `${Math.floor((Number(q.levelReq) || 0) / 10) * 10}:${routeDepth(q)}`;
       const huntByMonster = new Map();
-      fieldQuests.forEach(q => (q.hunt || []).forEach(x => {
-        const key = baseName(x.target?.name);
-        if (!huntByMonster.has(key)) huntByMonster.set(key, []);
-        huntByMonster.get(key).push(q);
-      }));
+      const huntTaskGroupKey = new Map();
+      fieldQuests.forEach(q => {
+        const groupKey = [...new Set((q.hunt || []).map(x => baseName(x.target?.name)))].sort().join('|');
+        if (groupKey) huntTaskGroupKey.set(q.id, groupKey);
+        (q.hunt || []).forEach(x => {
+          const key = baseName(x.target?.name);
+          if (!huntByMonster.has(key)) huntByMonster.set(key, []);
+          huntByMonster.get(key).push(q);
+        });
+      });
+      const executionMonsterKeys = q => {
+        const huntKeys = (q.hunt || []).length ? [huntTaskGroupKey.get(q.id)] : [];
+        const sourceKeys = (q.collect || []).flatMap(x => collectSources(x.target).map(m => baseName(m.name)));
+        const linked = [...new Map(sourceKeys.flatMap(key => (huntByMonster.get(key) || []).map(candidate => [candidate.id, candidate]))).values()];
+        if (!huntKeys.length && linked.length) {
+          linked.sort((a, b) => Number(b.levelReq || 0) - Number(a.levelReq || 0) || routeDepth(b) - routeDepth(a));
+          return [huntTaskGroupKey.get(linked[0].id) || [...new Set(sourceKeys)].sort().join('|')];
+        }
+        return [...new Set([...huntKeys, ...sourceKeys])].filter(Boolean).sort();
+      };
       fieldQuests.forEach(q => {
         let stage = stageKeyFor(q);
         const candidates = (q.collect || []).flatMap(x => collectSources(x.target)
@@ -1639,8 +1654,10 @@ V.questTimeline = async () => {
             executionAlignedTo.set(q.id, finalHunt);
           }
         }
-        if (!stages.has(stage)) stages.set(stage, []);
-        stages.get(stage).push(q);
+        const monsters = executionMonsterKeys(q);
+        const batchKey = `${stage}:${monsters.length ? `monster:${monsters.join('|')}` : 'other'}`;
+        if (!stages.has(batchKey)) stages.set(batchKey, []);
+        stages.get(batchKey).push(q);
       });
       const content = el('div', { class: 'quest-timeline-stages' });
       const orderedStages = [...stages.entries()].sort((a, b) => {
