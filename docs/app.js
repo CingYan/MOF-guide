@@ -1701,8 +1701,11 @@ V.questTimeline = async () => {
         const batch = stages.get(key) || [];
         const levels = batch.map(q => Number(q.levelReq) || 0);
         const depths = batch.map(q => routeDepth(q));
-        return [Math.min(...batch.map(questOrder), Number.MAX_SAFE_INTEGER),
-          Math.min(...levels, 0), Math.min(...depths, 0),
+        /* 拓樸圖已由 indegree 保證依賴先後；這裡只決定「同時可執行」
+         * 批次的顯示順序。等級是玩家可理解的主排序，拓樸序號只能作同級 tie-break，
+         * 不能再讓 DFS 走訪順序把 Lv.63 排到 Lv.65 後面。 */
+        return [Math.min(...levels, 0), Math.min(...depths, 0),
+          Math.min(...batch.map(questOrder), Number.MAX_SAFE_INTEGER),
           Math.min(...batch.map(q => initialBatchFor.get(q.id)?.stage ? stageTuple(initialBatchFor.get(q.id).stage)[0] : 0), 0)];
       };
       let splitSerial = 0;
