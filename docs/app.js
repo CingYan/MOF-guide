@@ -1576,9 +1576,22 @@ V.questRoute = async () => {
     npcChains.get(n.id).push({ q, index });
   }));
   npcChains.forEach(chain => chain.sort((a, b) => (a.q.levelReq || 0) - (b.q.levelReq || 0) || a.index - b.index));
+  const npcPrevious = new Map();
+  npcChains.forEach(chain => chain.forEach((entry, i) => {
+    if (i > 0) npcPrevious.set(entry.q.id, chain[i - 1].q);
+  }));
+  const routeMemo = new Map();
+  function routeDepth(q, trail = new Set()) {
+    if (routeMemo.has(q.id)) return routeMemo.get(q.id);
+    if (trail.has(q.id)) return 0;
+    trail.add(q.id);
+    const deps = [...(q.prereq || []).map(p => byQuest.get(p.id)).filter(Boolean), npcPrevious.get(q.id)].filter(Boolean);
+    const d = deps.reduce((n, p) => Math.max(n, routeDepth(p, trail) + 1), 0);
+    trail.delete(q.id); routeMemo.set(q.id, d); return d;
+  }
   const chainInfo = (q, npc) => {
     const chain = npcChains.get(npc.id) || [], i = chain.findIndex(x => x.q.id === q.id);
-    return i > 0 ? `同 NPC 前一任務：${chain[i - 1].q.name}` : '';
+    return i > 0 ? `NPC 排隊前置：${chain[i - 1].q.name}（完成並回報後才能接）` : '';
   };
   function draw() {
     const needle = search.value.trim().toLocaleLowerCase();
@@ -1611,7 +1624,7 @@ V.questRoute = async () => {
     orderedAreas.forEach(([area, areaMonsterGroups]) => {
       const areaList = el('div', { class: 'quest-route-monster-list' });
       areaMonsterGroups.forEach(g => {
-      const qs = g.selected.slice().sort((a, b) => (a.levelReq || 0) - (b.levelReq || 0) || depth(a) - depth(b) || a.name.localeCompare(b.name, 'zh-Hant'));
+      const qs = g.selected.slice().sort((a, b) => routeDepth(a) - routeDepth(b) || (a.levelReq || 0) - (b.levelReq || 0) || a.name.localeCompare(b.name, 'zh-Hant'));
       const hay = [g.monster.name, ...(g.monster.regions || []), ...(g.monster.maps || []).map(m => m.name), ...qs.flatMap(q => [q.name, ...(q.npcs || []).map(n => n.name), ...(q.hunt || []).map(x => x.target.name), ...(q.collect || []).map(x => x.target.name)])].join(' ').toLocaleLowerCase();
       const allDone = qs.every(q => done[q.id]); total += qs.length; if (allDone) finished++;
       if ((needle && !hay.includes(needle)) || (onlyOpen.checked && allDone)) return;
@@ -1641,8 +1654,11 @@ V.questRoute = async () => {
       const objectiveTotals = new Map();
       qs.forEach(q => {
         (q.hunt || []).filter(x => g.monsters.has(x.target?.id)).forEach(x => {
-          const key = '討伐:' + x.target.id;
-          objectiveTotals.set(key, { type: '討伐', target: x.target, count: (objectiveTotals.get(key)?.count || 0) + (Number(x.count) || 0) });
+          const key = '討伐:' + g.monster.name.replace(/^\[[^\]]+\]\s*/, '').trim();
+          const current = objectiveTotals.get(key) || { type: '討伐', target: g.monster, count: 0, variants: new Map() };
+          current.count += Number(x.count) || 0;
+          current.variants.set(x.target.id, (current.variants.get(x.target.id) || 0) + (Number(x.count) || 0));
+          objectiveTotals.set(key, current);
         });
         (q.collect || []).filter(x => (drops.get(x.target?.id) || []).some(m => g.monsters.has(m.id))).forEach(x => {
           const key = '蒐集:' + x.target.id;
@@ -1651,8 +1667,13 @@ V.questRoute = async () => {
       });
       const objectiveList = [...objectiveTotals.values()].map(o => {
         if (o.type === '討伐') {
+          const variantSummary = [...o.variants.entries()].map(([id, count], i) => {
+            const variant = g.monsters.get(id);
+            const label = variant?.name?.startsWith('[') ? variant.name.match(/^\[([^\]]+)\]/)?.[1] || '變體' : '普通';
+            return `${i ? '、' : ''}${label} ×${num(count)}`;
+          }).join('');
           return el('li', {}, [el('span', { class: 'tag r', text: '討伐' }), ' ',
-            itemCell(o.target, 'monsters'), ` × ${num(o.count)}`]);
+            itemCell(o.target, 'monsters'), `（${variantSummary}；同一狩獵批次）`]);
         }
         const owned = Math.min(Math.max(Number(collected[o.target.id]) || 0, 0), o.count);
         const remain = Math.max(0, o.count - owned);
@@ -1676,21 +1697,25 @@ V.questRoute = async () => {
       const maps = [...new Set(variants.flatMap(m => (m.maps || []).map(x => x.name)))];
       const variantText = variants.length > 1 ? `變體：${variants.map(m => m.name).join('、')}` : '';
       const batches = [...qs.reduce((map, q) => {
-        const level = Number(q.levelReq) || 0;
-        if (!map.has(level)) map.set(level, []);
-        map.get(level).push(q);
+        const stage = routeDepth(q);
+        if (!map.has(stage)) map.set(stage, []);
+        map.get(stage).push(q);
         return map;
       }, new Map()).entries()];
+      const earlyCollections = [...new Map(qs.flatMap(q => (q.collect || [])
+        .filter(x => (drops.get(x.target?.id) || []).some(m => g.monsters.has(m.id)))
+        .map(x => [x.target.id, x.target]))).values()];
       areaList.appendChild(el('details', { class: 'quest-route-monster', 'data-route-key': `monster:${area}:${g.monster.id}`, open: isOpen(`monster:${area}:${g.monster.id}`) }, [
         el('summary', { class: 'quest-route-monster-summary', text: `${g.monster.name}（Lv.${Math.min(...variants.map(m => m.level || 0))}）｜${maps.join('、') || '出沒地圖未記錄'}｜${qs.length} 個相關任務` }),
         variantText ? el('p', { class: 'quest-route-meta quest-route-variants', text: variantText }) : null,
         el('p', { class: 'quest-route-meta quest-route-hunt-guide', text: '以下依任務解鎖條件排列：先接取本批任務，再依「本批狩獵目標」一次完成，最後回報並進入下一批。之後才解鎖的任務不會提前計入。' }),
-        el('details', { class: 'quest-route-objectives', open: true }, [el('summary', { text: '本群總需求（已合併）' }), el('ul', {}, objectiveList)]),
+        el('details', { class: 'quest-route-objectives', open: true }, [el('summary', { text: '本群需求總覽（含後續任務；實際依批次解鎖）' }), el('ul', {}, objectiveList)]),
         el('h3', { text: '任務時間軸（接取 → 狩獵 → 回報）' }),
-        frag(batches.map(([level, batch], batchIndex) => el('section', { class: 'quest-route-batch' }, [
-          el('h4', { text: `第 ${batchIndex + 1} 批｜Lv.${level} 可接任務` }),
+        earlyCollections.length ? el('p', { class: 'quest-route-meta quest-route-prep', text: `可提前準備蒐集品：${earlyCollections.map(x => x.name).join('、')}；即使後續任務尚未解鎖，取得的物品也會記錄在背包。` }) : null,
+        frag(batches.map(([stage, batch], batchIndex) => el('section', { class: 'quest-route-batch' }, [
+          el('h4', { text: `第 ${batchIndex + 1} 批｜任務鏈第 ${stage + 1} 階（解鎖：Lv.${[...new Set(batch.map(q => Number(q.levelReq) || 0))].sort((a, b) => a - b).join('、')}）` }),
           el('strong', { class: 'quest-route-step-label', text: '① 先接取' }),
-          el('ol', { class: 'quest-route-tasks' }, batch.sort((a, b) => depth(a) - depth(b) || a.name.localeCompare(b.name, 'zh-Hant')).map(makeCheck)),
+          el('ol', { class: 'quest-route-tasks' }, batch.sort((a, b) => (a.levelReq || 0) - (b.levelReq || 0) || routeDepth(a) - routeDepth(b) || a.name.localeCompare(b.name, 'zh-Hant')).map(makeCheck)),
           (() => {
             const batchObjectives = new Map();
             batch.forEach(q => {
