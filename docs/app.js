@@ -1704,9 +1704,10 @@ V.questTimeline = async () => {
         /* 拓樸圖已由 indegree 保證依賴先後；這裡只決定「同時可執行」
          * 批次的顯示順序。等級是玩家可理解的主排序，拓樸序號只能作同級 tie-break，
          * 不能再讓 DFS 走訪順序把 Lv.63 排到 Lv.65 後面。 */
-        return [Math.min(...levels, 0), Math.min(...depths, 0),
+        return [Math.min(...levels, Number.MAX_SAFE_INTEGER),
+          Math.min(...depths, Number.MAX_SAFE_INTEGER),
           Math.min(...batch.map(questOrder), Number.MAX_SAFE_INTEGER),
-          Math.min(...batch.map(q => initialBatchFor.get(q.id)?.stage ? stageTuple(initialBatchFor.get(q.id).stage)[0] : 0), 0)];
+          Math.min(...batch.map(q => initialBatchFor.get(q.id)?.stage ? stageTuple(initialBatchFor.get(q.id).stage)[0] : Number.MAX_SAFE_INTEGER), Number.MAX_SAFE_INTEGER)];
       };
       let splitSerial = 0;
       /* 若某批的高等級討伐任務會因前置邊被迫提前，先把該討伐任務
