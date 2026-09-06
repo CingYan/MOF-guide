@@ -255,6 +255,9 @@ h4 { margin: 16px 0 6px; font-size: 1em }
 .quest-timeline-meta{display:block;margin-left:24px;color:var(--dim);font-size:12px;line-height:1.5}
 .quest-timeline-objectives{margin:3px 0 0;padding-left:24px}
 .quest-timeline-objectives li{padding:2px 0;font-size:12px}
+.quest-timeline-dungeons{margin-top:12px;padding-top:10px;border-top:1px dashed var(--line)}
+.quest-timeline-dungeon-title{margin:0 0 8px;color:var(--gold);font-size:14px}
+.quest-timeline-dungeon{border-color:var(--gold)}
 
 td.dim, .dim { color: var(--dim) }
 h1 .en { color: var(--dim); font-size: .55em; font-weight: normal; margin-left: 10px }
