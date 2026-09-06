@@ -1762,8 +1762,14 @@ V.questTimeline = async () => {
           ]));
         });
       if (huntBatchList.childNodes.length) {
-        content.appendChild(el('h3', { class: 'quest-timeline-hunt-title', text: '建議狩獵批次（同一怪物集中執行）' }));
-        content.appendChild(huntBatchList);
+        const supportKey = `support-hunt:${area}`;
+        content.appendChild(el('details', { class: 'quest-timeline-support-fold', 'data-timeline-key': supportKey, open: isOpen(supportKey) && !needle }, [
+          el('summary', { class: 'quest-timeline-support-summary', text: '狩獵／蒐集對照（輔助資訊，點開查看）' }),
+          el('div', { class: 'quest-timeline-support-body' }, [
+            el('p', { class: 'quest-timeline-meta', text: '任務鏈決定接取與回報順序；以下只用來確認同一怪物可一起處理的狩獵與蒐集需求。' }),
+            huntBatchList,
+          ]),
+        ]));
       }
       if (dungeonQuests.length) {
         const dungeonContent = el('div', { class: 'quest-timeline-dungeons' }, [el('h3', { class: 'quest-timeline-dungeon-title', text: '副本任務鏈（獨立流程）' })]);
