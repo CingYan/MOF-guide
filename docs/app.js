@@ -1616,10 +1616,29 @@ V.questTimeline = async () => {
       const hay = [area, ...areaQuests.flatMap(q => [q.name, ...(q.npcs || []).map(n => n.name), ...(q.hunt || []).map(x => x.target?.name), ...(q.collect || []).map(x => x.target?.name)])].join(' ').toLocaleLowerCase();
       if (needle && !hay.includes(needle)) return;
       const stages = new Map();
+      const executionAlignedTo = new Map();
       const dungeonQuests = areaQuests.filter(q => (q.indun || []).length);
-      areaQuests.filter(q => !(q.indun || []).length).forEach(q => {
-        const levelBand = Math.floor((Number(q.levelReq) || 0) / 10) * 10;
-        const stage = `${levelBand}:${routeDepth(q)}`;
+      const fieldQuests = areaQuests.filter(q => !(q.indun || []).length);
+      const stageKeyFor = q => `${Math.floor((Number(q.levelReq) || 0) / 10) * 10}:${routeDepth(q)}`;
+      const huntByMonster = new Map();
+      fieldQuests.forEach(q => (q.hunt || []).forEach(x => {
+        const key = baseName(x.target?.name);
+        if (!huntByMonster.has(key)) huntByMonster.set(key, []);
+        huntByMonster.get(key).push(q);
+      }));
+      fieldQuests.forEach(q => {
+        let stage = stageKeyFor(q);
+        const candidates = (q.collect || []).flatMap(x => collectSources(x.target)
+          .flatMap(m => huntByMonster.get(baseName(m.name)) || []));
+        if (!(q.hunt || []).length && candidates.length) {
+          const finalHunt = [...new Map(candidates.map(candidate => [candidate.id, candidate])).values()]
+            .sort((a, b) => Number(b.levelReq || 0) - Number(a.levelReq || 0) || routeDepth(b) - routeDepth(a))[0];
+          const huntStage = stageKeyFor(finalHunt);
+          if (huntStage !== stage) {
+            stage = huntStage;
+            executionAlignedTo.set(q.id, finalHunt);
+          }
+        }
         if (!stages.has(stage)) stages.set(stage, []);
         stages.get(stage).push(q);
       });
@@ -1656,6 +1675,7 @@ V.questTimeline = async () => {
           const conditions = conditionNodes(q);
           return el('li', { class: 'quest-timeline-task' }, [el('label', {}, [c, el('a', { href: '#/quests/' + q.id, text: q.name }), el('span', { class: 'dim', text: `（Lv.${q.levelReq || 0}｜${(q.npcs || []).map(n => n.name).join('、') || '無 NPC'}）` })]),
             conditions.length ? el('span', { class: 'quest-timeline-condition' }, ['條件：', ...conditions.flatMap((x, i) => [i ? '、' : '', x])]) : el('span', { class: 'quest-timeline-condition dim', text: '條件：劇情／對話或其他任務動作' }),
+            executionAlignedTo.has(q.id) ? el('span', { class: 'quest-timeline-meta', text: `狩獵對齊：${executionAlignedTo.get(q.id).name}（與同一怪物任務一併執行）` }) : null,
             ...previousText(q).map(t => el('span', { class: 'quest-timeline-meta', text: t }))]);
         });
         const objectiveRows = [...objectiveMap.values()].map(o => {
