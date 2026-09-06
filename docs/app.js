@@ -1804,6 +1804,138 @@ V.questRoute = async () => {
   draw(); return root;
 };
 
+/* 任務流程：以任務鏈為主體，將同一批可執行的狩獵目標放在接取步驟下。 */
+V.questTimeline = async () => {
+  const [quests, monsters] = await Promise.all([data('quests'), data('monsters')]);
+  const byQuest = new Map(quests.map(q => [q.id, q]));
+  const monsterById = new Map(monsters.map(m => [m.id, m]));
+  const drops = new Map();
+  monsters.forEach(m => (m.drops || []).forEach(d => {
+    if (!drops.has(d.id)) drops.set(d.id, []);
+    drops.get(d.id).push(m);
+  }));
+  const memo = new Map();
+  function depth(q, trail = new Set()) {
+    if (!q) return 0;
+    if (memo.has(q.id)) return memo.get(q.id);
+    if (trail.has(q.id)) return 0;
+    trail.add(q.id);
+    const d = (q.prereq || []).reduce((n, p) => Math.max(n, depth(byQuest.get(p.id), trail) + 1), 0);
+    trail.delete(q.id); memo.set(q.id, d); return d;
+  }
+  const npcChains = new Map();
+  quests.forEach((q, index) => (q.npcs || []).forEach(n => {
+    if (!npcChains.has(n.id)) npcChains.set(n.id, []);
+    npcChains.get(n.id).push({ q, index });
+  }));
+  npcChains.forEach(c => c.sort((a, b) => (a.q.levelReq || 0) - (b.q.levelReq || 0) || a.index - b.index));
+  const npcPrevious = new Map();
+  npcChains.forEach(c => c.forEach((x, i) => { if (i) npcPrevious.set(x.q.id, c[i - 1].q); }));
+  const routeMemo = new Map();
+  function routeDepth(q, trail = new Set()) {
+    if (!q) return 0;
+    if (routeMemo.has(q.id)) return routeMemo.get(q.id);
+    if (trail.has(q.id)) return 0;
+    trail.add(q.id);
+    const deps = [...(q.prereq || []).map(p => byQuest.get(p.id)), npcPrevious.get(q.id)].filter(Boolean);
+    const d = deps.reduce((n, p) => Math.max(n, routeDepth(p, trail) + 1), 0);
+    trail.delete(q.id); routeMemo.set(q.id, d); return d;
+  }
+  const done = JSON.parse(localStorage.getItem('mof-quest-route-done') || '{}');
+  const collected = JSON.parse(localStorage.getItem('mof-quest-route-collected') || '{}');
+  const saveCollected = () => localStorage.setItem('mof-quest-route-collected', JSON.stringify(collected));
+  const baseName = name => String(name || '').replace(/^\[[^\]]+\]\s*/, '').trim();
+  const root = el('div', { class: 'quest-timeline' });
+  const list = el('div', { class: 'quest-timeline-list' });
+  const search = el('input', { type: 'search', placeholder: '篩選區域、任務、NPC 或怪物' });
+  const fromLevel = el('input', { type: 'number', min: 1, max: 110, placeholder: '目前等級', 'aria-label': '目前等級' });
+  const toLevel = el('input', { type: 'number', min: 1, max: 110, placeholder: '目標等級', 'aria-label': '目標等級' });
+  const onlyOpen = el('input', { type: 'checkbox', 'aria-label': '只看未完成' });
+  const summary = el('p', { class: 'lead' });
+  const areaOf = q => q.regions?.find(Boolean) || '未分類區域';
+  const conditionNodes = q => {
+    const nodes = [];
+    (q.hunt || []).forEach(x => nodes.push(el('span', {}, ['討伐 ', itemCell(x.target, 'monsters'), ` ×${num(x.count)}`])));
+    (q.collect || []).forEach(x => nodes.push(el('span', {}, ['蒐集 ', itemCell(x.target, 'items'), ` ×${num(x.count)}`])));
+    (q.delivery || []).forEach(x => nodes.push(el('span', {}, ['遞送 ', x.item ? itemCell(x.item, 'items') : '指定物品', x.to?.name ? ` → ${x.to.name}` : ''])));
+    (q.indun || []).forEach(x => nodes.push(el('span', {}, ['副本 ', x.dungeon || '未記錄', x.entryItem ? el('span', {}, ['｜入場：', itemCell(x.entryItem, 'items')]) : ''])));
+    return nodes;
+  };
+  const previousText = q => {
+    const explicit = (q.prereq || []).map(p => `明確前置：${p.name}`);
+    const queued = npcPrevious.get(q.id);
+    if (queued) explicit.push(`NPC 排隊前置：${queued.name}（完成並回報後才能接）`);
+    return explicit;
+  };
+  const draw = () => {
+    const needle = search.value.trim().toLocaleLowerCase();
+    const start = Math.max(1, Number(fromLevel.value) || 1);
+    const end = Math.max(start, Number(toLevel.value) || 110);
+    const openState = new Map([...list.querySelectorAll('details[data-timeline-key]')].map(n => [n.dataset.timelineKey, n.open]));
+    const isOpen = key => openState.has(key) ? openState.get(key) : !!needle;
+    list.textContent = '';
+    const visibleQuests = quests.filter(q => (Number(q.levelReq) || 0) >= start && (Number(q.levelReq) || 0) <= end);
+    const areas = new Map();
+    visibleQuests.forEach(q => { const area = areaOf(q); if (!areas.has(area)) areas.set(area, []); areas.get(area).push(q); });
+    const ordered = [...areas.entries()].sort((a, b) => Math.min(...a[1].map(q => q.levelReq || 0)) - Math.min(...b[1].map(q => q.levelReq || 0)));
+    let shown = 0;
+    ordered.forEach(([area, areaQuests]) => {
+      const hay = [area, ...areaQuests.flatMap(q => [q.name, ...(q.npcs || []).map(n => n.name), ...(q.hunt || []).map(x => x.target?.name), ...(q.collect || []).map(x => x.target?.name)])].join(' ').toLocaleLowerCase();
+      if (needle && !hay.includes(needle)) return;
+      const stages = new Map();
+      areaQuests.forEach(q => { const stage = routeDepth(q); if (!stages.has(stage)) stages.set(stage, []); stages.get(stage).push(q); });
+      const content = el('div', { class: 'quest-timeline-stages' });
+      [...stages.entries()].sort((a, b) => a[0] - b[0]).forEach(([stage, batch], index) => {
+        batch = batch.filter(q => !onlyOpen.checked || !done[q.id]);
+        if (!batch.length) return;
+        batch.sort((a, b) => (a.levelReq || 0) - (b.levelReq || 0) || a.name.localeCompare(b.name, 'zh-Hant'));
+        const objectiveMap = new Map();
+        batch.forEach(q => {
+          (q.hunt || []).forEach(x => {
+            const key = 'hunt:' + baseName(x.target?.name);
+            if (!objectiveMap.has(key)) objectiveMap.set(key, { type: '討伐', name: baseName(x.target?.name), variants: new Map(), target: x.target });
+            const o = objectiveMap.get(key); o.variants.set(x.target.id, (o.variants.get(x.target.id) || 0) + (Number(x.count) || 0));
+          });
+          (q.collect || []).forEach(x => {
+            const key = 'collect:' + x.target?.id;
+            if (!objectiveMap.has(key)) objectiveMap.set(key, { type: '蒐集', target: x.target, count: 0 });
+            objectiveMap.get(key).count += Number(x.count) || 0;
+          });
+        });
+        const taskRows = batch.map(q => {
+          const c = el('input', { type: 'checkbox', checked: !!done[q.id], 'aria-label': `標記任務 ${q.name} 完成` });
+          c.onchange = () => { done[q.id] = c.checked; localStorage.setItem('mof-quest-route-done', JSON.stringify(done)); draw(); };
+          const conditions = conditionNodes(q);
+          return el('li', { class: 'quest-timeline-task' }, [el('label', {}, [c, el('a', { href: '#/quests/' + q.id, text: q.name }), el('span', { class: 'dim', text: `（Lv.${q.levelReq || 0}｜${(q.npcs || []).map(n => n.name).join('、') || '無 NPC'}）` })]),
+            conditions.length ? el('span', { class: 'quest-timeline-condition' }, ['條件：', ...conditions.flatMap((x, i) => [i ? '、' : '', x])]) : el('span', { class: 'quest-timeline-condition dim', text: '條件：劇情／對話或其他任務動作' }),
+            ...previousText(q).map(t => el('span', { class: 'quest-timeline-meta', text: t }))]);
+        });
+        const objectiveRows = [...objectiveMap.values()].map(o => {
+          if (o.type === '討伐') {
+            const variants = [...o.variants.entries()].map(([id, count], i) => `${i ? '、' : ''}${monsterById.get(id)?.name?.startsWith('[') ? monsterById.get(id).name.match(/^\[([^\]]+)\]/)?.[1] || '變體' : '普通'} ×${num(count)}`).join('');
+            const maps = [...new Set([...o.variants.keys()].flatMap(id => (monsterById.get(id)?.maps || []).map(m => m.name)))];
+            return el('li', {}, [el('span', { class: 'tag r', text: '狩獵' }), ' ', itemCell(o.target, 'monsters'), `（${variants}）`, maps.length ? el('span', { class: 'dim', text: `｜${maps.join('、')}` }) : null]);
+          }
+          const owned = Math.min(Math.max(Number(collected[o.target.id]) || 0, 0), o.count);
+          const amount = el('input', { type: 'number', min: 0, max: o.count, value: owned, class: 'quest-route-progress-input', 'aria-label': `${o.target.name} 已取得數量` });
+          amount.onchange = () => { collected[o.target.id] = Math.min(Math.max(Number(amount.value) || 0, 0), o.count); saveCollected(); draw(); };
+          const check = el('input', { type: 'checkbox', checked: owned >= o.count, 'aria-label': `完成蒐集 ${o.target.name}` });
+          check.onchange = () => { collected[o.target.id] = check.checked ? o.count : 0; saveCollected(); draw(); };
+          return el('li', {}, [el('span', { class: 'tag a', text: '蒐集' }), ' ', itemCell(o.target, 'items'), ` 共 ${num(o.count)}｜尚缺 ${num(Math.max(0, o.count - owned))} `, amount, el('label', { class: 'quest-route-progress-check' }, [check, '完成'])]);
+        });
+        const report = [...new Set(batch.flatMap(q => (q.npcs || []).map(n => n.name)))];
+        content.appendChild(el('section', { class: 'quest-timeline-stage' }, [el('h3', { text: `第 ${index + 1} 批｜任務鏈第 ${stage + 1} 階（解鎖 Lv.${[...new Set(batch.map(q => q.levelReq || 0))].sort((a, b) => a - b).join('、')}）` }), el('strong', { class: 'quest-timeline-step', text: '① 先接取' }), el('ol', { class: 'quest-route-tasks' }, taskRows), el('strong', { class: 'quest-timeline-step', text: '② 執行同批任務' }), objectiveRows.length ? el('ul', { class: 'quest-timeline-objectives' }, objectiveRows) : el('p', { class: 'quest-timeline-meta', text: '本批沒有狩獵／蒐集目標，依任務動作執行。' }), el('strong', { class: 'quest-timeline-step', text: '③ 回報並解鎖下一批' }), el('p', { class: 'quest-timeline-meta', text: report.length ? `完成後回報：${report.join('、')}。回報完成後才進入下一批。` : '本批沒有記錄回報 NPC。' })]));
+      });
+      shown += areaQuests.length;
+      list.appendChild(el('details', { class: 'quest-timeline-area', 'data-timeline-key': `area:${area}`, open: isOpen(`area:${area}`) }, [el('summary', { class: 'quest-route-area-summary', text: `${area}｜${areaQuests.length} 個任務` }), content]));
+    });
+    summary.textContent = `目前顯示 ${shown} 個任務；按任務鏈前置與同 NPC 排隊限制排列，並將同一批可執行的狩獵／蒐集目標放在一起。範圍 Lv.${start}～Lv.${end}。`;
+  };
+  search.oninput = draw; fromLevel.oninput = draw; toLevel.oninput = draw; onlyOpen.onchange = draw;
+  root.append(el('h1', { text: '任務流程' }), el('p', { class: 'sub', text: '本頁以任務鏈時間軸為主體：先接取 → 執行同批任務 → 回報 → 解鎖下一批。任務路線頁則以怪物為主軸，適合查同一怪物的集中狩獵。' }), el('div', { class: 'filters quest-route-filters' }, [el('label', {}, ['目前 Lv.', fromLevel]), el('label', {}, ['目標 Lv.', toLevel]), search, el('label', {}, [onlyOpen, '只看未完成'])]), summary, list);
+  draw(); return root;
+};
+
 /* ───────── wiki 補充：技能 / 徽章 / 系統 ───────── */
 V.skills = async () => {
   const w = await data('wiki');
@@ -2475,7 +2607,7 @@ V.schoolyear = async () => {
 const NAV_GROUPS = [
   [['', '首頁'], ['monsters', '怪物'], ['maps', '地圖'], ['equips', '裝備'],
               ['fashion', '時裝'], ['items', '道具'], ['recipes', '製作'],
-              ['quests', '任務'], ['quest-route', '任務路線'], ['npcs', 'NPC'], ['pets', '寵物']],
+              ['quests', '任務'], ['quest-route', '任務路線'], ['quest-timeline', '任務流程'], ['npcs', 'NPC'], ['pets', '寵物']],
   [['grind', '練功'], ['party-exp', '組隊 EXP'], ['combat', '戰鬥數值'], ['skills', '技能'], ['major', '專業技能'],
                   ['character', '角色'], ['dungeons', '副本'], ['social', '社群'], ['merit', '功勳'], ['schoolyear', '學年考試'],
                   ['badges', '徽章'], ['system', '系統'], ['notes', '玩家筆記']],
@@ -2485,7 +2617,7 @@ const NAV = NAV_GROUPS.flat();
 const ROUTE = {
   '': V.home, grind: V.grind, 'party-exp': V.partyExp, major: V.major, character: V.character, dungeons: V.dungeons, social: V.social, merit: V.merit, schoolyear: V.schoolyear,
   monsters: V.monsters, maps: V.maps, equips: V.equips, fashion: V.fashion,
-  items: V.items, recipes: V.recipes, quests: V.quests, 'quest-plan': V.questPlan, 'quest-route': V.questRoute, npcs: V.npcs,
+  items: V.items, recipes: V.recipes, quests: V.quests, 'quest-plan': V.questPlan, 'quest-route': V.questRoute, 'quest-timeline': V.questTimeline, npcs: V.npcs,
   pets: V.pets, combat: V.combat, skills: V.skills, badges: V.badges, system: V.system, notes: V.notes,
 };
 const ROUTE1 = {

@@ -236,6 +236,23 @@ h4 { margin: 16px 0 6px; font-size: 1em }
 .quest-route-phase ul{margin:0;padding-left:24px}
 .quest-route-phase li{padding:4px 0}
 
+/* 任務流程：以任務鏈階段為主體，與怪物主軸的任務路線頁並列比較 */
+.quest-timeline-list{display:grid;gap:16px}
+.quest-timeline-area{border:1px solid var(--line);border-radius:8px;background:var(--bg2);padding:12px 14px}
+.quest-timeline-area summary{cursor:pointer}
+.quest-timeline-stages{display:grid;gap:10px;margin-top:10px}
+.quest-timeline-stage{border-left:2px solid var(--gold);padding:8px 10px;background:var(--bg2);border-radius:4px}
+.quest-timeline-stage h3{margin:0 0 6px;color:var(--gold);font-size:14px}
+.quest-timeline-step{display:block;margin-top:8px;color:var(--fg);font-size:12px}
+.quest-timeline-task{padding:5px 0;border-top:1px solid var(--line);list-style-position:outside}
+.quest-timeline-task label{display:flex;align-items:center;gap:6px}
+.quest-timeline-task label input{flex:none}
+.quest-timeline-condition{display:block;margin-left:24px;color:var(--fg);font-size:12px;line-height:1.6}
+.quest-timeline-condition span{margin-right:8px}
+.quest-timeline-meta{display:block;margin-left:24px;color:var(--dim);font-size:12px;line-height:1.5}
+.quest-timeline-objectives{margin:3px 0 0;padding-left:24px}
+.quest-timeline-objectives li{padding:2px 0;font-size:12px}
+
 td.dim, .dim { color: var(--dim) }
 h1 .en { color: var(--dim); font-size: .55em; font-weight: normal; margin-left: 10px }
 
