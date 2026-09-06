@@ -1554,6 +1554,24 @@ V.questTimeline = async () => {
     const d = deps.reduce((n, p) => Math.max(n, routeDepth(p, trail) + 1), 0);
     trail.delete(q.id); routeMemo.set(q.id, d); return d;
   }
+  // 任務鏈批次不能只靠等級與深度；不同 NPC 的獨立任務可能剛好同級同深度。
+  // 用 NPC 鏈／明確前置的根辨識流程來源，避免無關任務被塞進同一批。
+  const flowMemo = new Map();
+  function flowRoots(q, trail = new Set()) {
+    if (!q) return [];
+    if (flowMemo.has(q.id)) return flowMemo.get(q.id);
+    if (trail.has(q.id)) return [`quest:${q.id}`];
+    trail.add(q.id);
+    const deps = [...(q.prereq || []).map(p => byQuest.get(p.id)), npcPrevious.get(q.id)].filter(Boolean);
+    const roots = deps.length
+      ? deps.flatMap(p => flowRoots(p, trail))
+      : (q.npcs || []).map(n => `npc:${n.id}`);
+    trail.delete(q.id);
+    const result = [...new Set(roots.length ? roots : [`quest:${q.id}`])].sort();
+    flowMemo.set(q.id, result);
+    return result;
+  }
+  const flowKey = q => flowRoots(q).join('+');
   const done = JSON.parse(localStorage.getItem('mof-quest-route-done') || '{}');
   const collected = JSON.parse(localStorage.getItem('mof-quest-route-collected') || '{}');
   const saveCollected = () => localStorage.setItem('mof-quest-route-collected', JSON.stringify(collected));
@@ -1618,7 +1636,7 @@ V.questTimeline = async () => {
       const dungeonQuests = areaQuests.filter(q => (q.indun || []).length);
       areaQuests.filter(q => !(q.indun || []).length).forEach(q => {
         const levelBand = Math.floor((Number(q.levelReq) || 0) / 10) * 10;
-        const stage = `${levelBand}:${routeDepth(q)}`;
+        const stage = `${levelBand}:${routeDepth(q)}:${flowKey(q)}`;
         if (!stages.has(stage)) stages.set(stage, []);
         stages.get(stage).push(q);
       });
@@ -1669,7 +1687,8 @@ V.questTimeline = async () => {
           return el('li', {}, [el('span', { class: 'tag a', text: '蒐集' }), ' ', itemCell(o.target, 'items'), ` 共 ${num(o.count)}｜尚缺 ${num(Math.max(0, o.count - owned))} `, amount, el('label', { class: 'quest-route-progress-check' }, [check, '完成'])]);
         });
         const report = [...new Set(batch.flatMap(q => (q.npcs || []).map(n => n.name)))];
-        const nextEntry = orderedStages[index + 1];
+        const currentFlow = stageKey.split(':').slice(2).join(':');
+        const nextEntry = orderedStages.slice(index + 1).find(([key]) => key.split(':').slice(2).join(':') === currentFlow);
         const nextLevelBand = nextEntry ? Number(nextEntry[0].split(':')[0]) : 0;
         const nextObjectives = [];
         if (nextEntry) {
