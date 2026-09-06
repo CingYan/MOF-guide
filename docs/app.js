@@ -1641,6 +1641,7 @@ V.questTimeline = async () => {
         }
         return [...new Set([...huntKeys, ...sourceKeys])].filter(Boolean).sort();
       };
+      const initialBatchFor = new Map();
       fieldQuests.forEach(q => {
         let stage = stageKeyFor(q);
         const candidates = (q.collect || []).flatMap(x => collectSources(x.target)
@@ -1656,14 +1657,134 @@ V.questTimeline = async () => {
         }
         const monsters = executionMonsterKeys(q);
         const batchKey = `${stage}:${monsters.length ? `monster:${monsters.join('|')}` : 'other'}`;
+        initialBatchFor.set(q.id, { key: batchKey, stage });
         if (!stages.has(batchKey)) stages.set(batchKey, []);
         stages.get(batchKey).push(q);
       });
-      const content = el('div', { class: 'quest-timeline-stages' });
-      const orderedStages = [...stages.entries()].sort((a, b) => {
-        const [al, as] = a[0].split(':').map(Number), [bl, bs] = b[0].split(':').map(Number);
-        return al - bl || as - bs;
+      const initialGroupOf = new Map();
+      stages.forEach((batch, key) => batch.forEach(q => initialGroupOf.set(q.id, key)));
+      const initialGroupOrder = new Map([...stages.keys()].map((key, index) => [key, index]));
+
+      /*
+       * 同一怪物的執行群不能凌駕於任務鏈前置：
+       * 例如「侮辱」可與斧頭幽靈任務同場狩獵，但它的 NPC 前置
+       * 「魔力的力量」仍必須先完成。若兩者被分到不同執行群，
+       * 只拆出違反前置的那一筆，保留其他同怪物蒐集任務的集中性。
+       */
+      const depsOf = q => [
+        ...(q.prereq || []).map(p => byQuest.get(p.id)),
+        npcPrevious.get(q.id),
+      ].filter(Boolean);
+      const stageTuple = key => {
+        const [band, depth] = String(key).split(':').map(Number);
+        return [Number.isFinite(band) ? band : 0, Number.isFinite(depth) ? depth : 0];
+      };
+      const compareTuple = (a, b) => a[0] - b[0] || a[1] - b[1] || a[2] - b[2];
+      const batchPriority = key => {
+        const batch = stages.get(key) || [];
+        const levels = batch.map(q => Number(q.levelReq) || 0);
+        const depths = batch.map(q => routeDepth(q));
+        return [Math.min(...levels, 0), Math.min(...depths, 0), Math.min(...batch.map(q => initialBatchFor.get(q.id)?.stage ? stageTuple(initialBatchFor.get(q.id).stage)[0] : 0), 0)];
+      };
+      let splitSerial = 0;
+      /* 若某批的高等級討伐任務會因前置邊被迫提前，先把該討伐任務
+       * 拆出；蒐集任務仍留在原怪物群，狩獵對照區會繼續合併顯示。 */
+      const outgoing = new Map([...stages.keys()].map(key => [key, new Set()]));
+      fieldQuests.forEach(q => {
+        const from = initialGroupOf.get(q.id);
+        if (!from) return;
+        depsOf(q).forEach(dep => {
+          const depGroup = initialGroupOf.get(dep.id);
+          if (depGroup && depGroup !== from) outgoing.get(depGroup)?.add(from);
+        });
       });
+      for (const [key, batch] of [...stages]) {
+        const targets = [...(outgoing.get(key) || [])];
+        if (!targets.length) continue;
+        const highHunts = batch.filter(q => (q.hunt || []).length && targets.some(target => {
+          const targetStage = initialBatchFor.get(stages.get(target)?.[0]?.id)?.stage || '0:0';
+          const sourceStage = initialBatchFor.get(q.id)?.stage || '0:0';
+          const targetHunts = (stages.get(target) || []).filter(x => (x.hunt || []).length);
+          const targetMinHuntLevel = Math.min(...targetHunts.map(x => Number(x.levelReq) || 0), 0);
+          return targetHunts.length && targetStage === sourceStage && (Number(q.levelReq) || 0) > targetMinHuntLevel;
+        }));
+        for (const q of highHunts) {
+          const source = stages.get(key) || [];
+          const target = `${key}:chain-${++splitSerial}`;
+          stages.set(key, source.filter(x => x.id !== q.id));
+          stages.set(target, [q]);
+        }
+      }
+      for (let pass = 0; pass < fieldQuests.length; pass++) {
+        const groupOf = new Map();
+        stages.forEach((batch, key) => batch.forEach(q => groupOf.set(q.id, key)));
+        let changed = false;
+        for (const q of fieldQuests) {
+          const current = groupOf.get(q.id);
+          if (!current) continue;
+          const source = stages.get(current) || [];
+          /* 單一任務已經是最小批次，不可在每輪重複拆分。 */
+          if (source.length <= 1) continue;
+          const initialCurrent = initialGroupOf.get(q.id);
+          const badDependency = depsOf(q).some(dep => {
+            const depGroup = initialGroupOf.get(dep.id);
+            if (!depGroup || depGroup === initialCurrent) return false;
+            const depStage = initialBatchFor.get(dep.id)?.stage || '0:0';
+            const qStage = initialBatchFor.get(q.id)?.stage || '0:0';
+            const stageOrder = compareTuple(stageTuple(depStage), stageTuple(qStage));
+            return stageOrder > 0 || (stageOrder === 0
+              && (initialGroupOrder.get(depGroup) ?? -1) >= (initialGroupOrder.get(initialCurrent) ?? -1));
+          });
+          if (!badDependency) continue;
+          const target = `${current}:chain-${++splitSerial}`;
+          const moved = source.filter(x => x.id === q.id);
+          if (!moved.length) continue;
+          stages.set(current, source.filter(x => x.id !== q.id));
+          stages.set(target, moved);
+          changed = true;
+        }
+        if (!changed) break;
+      }
+      for (const [key, batch] of [...stages]) if (!batch.length) stages.delete(key);
+      const content = el('div', { class: 'quest-timeline-stages' });
+      const groupEntries = [...stages.entries()];
+      const groupOf = new Map(groupEntries.flatMap(([key, batch]) => batch.map(q => [q.id, key])));
+      /* 拓樸拆批後重新標記：蒐集任務可先接／先收集，但實際狩獵仍對齊
+       * 該怪物最晚解鎖的討伐任務，避免玩家誤以為兩者是不同怪物流程。 */
+      fieldQuests.forEach(q => {
+        if ((q.hunt || []).length || !(q.collect || []).length) return;
+        const candidates = (q.collect || []).flatMap(x => collectSources(x.target)
+          .flatMap(m => huntByMonster.get(baseName(m.name)) || []));
+        const finalHunt = [...new Map(candidates.map(candidate => [candidate.id, candidate])).values()]
+          .sort((a, b) => Number(b.levelReq || 0) - Number(a.levelReq || 0) || routeDepth(b) - routeDepth(a))[0];
+        if (finalHunt && groupOf.get(q.id) !== groupOf.get(finalHunt.id)) executionAlignedTo.set(q.id, finalHunt);
+      });
+      const indegree = new Map(groupEntries.map(([key]) => [key, 0]));
+      const edges = new Map(groupEntries.map(([key]) => [key, new Set()]));
+      groupEntries.forEach(([key, batch]) => batch.forEach(q => depsOf(q).forEach(dep => {
+        const from = groupOf.get(dep.id);
+        if (from && from !== key && !edges.get(from).has(key)) {
+          edges.get(from).add(key); indegree.set(key, indegree.get(key) + 1);
+        }
+      })));
+      const originalOrder = new Map(groupEntries.map(([key], i) => [key, i]));
+      const groupStage = key => batchPriority(key);
+      const compareGroup = (a, b) => {
+        const aa = groupStage(a), bb = groupStage(b);
+        return compareTuple(aa, bb) || originalOrder.get(a) - originalOrder.get(b);
+      };
+      const ready = [...indegree].filter(([, n]) => !n).map(([key]) => key).sort(compareGroup);
+      const orderedKeys = [];
+      while (ready.length) {
+        const key = ready.shift(); orderedKeys.push(key);
+        edges.get(key).forEach(next => {
+          indegree.set(next, indegree.get(next) - 1);
+          if (!indegree.get(next)) { ready.push(next); ready.sort(compareGroup); }
+        });
+      }
+      /* 防止資料有循環前置時整個區域消失，循環節點仍按原階段追加。 */
+      groupEntries.forEach(([key]) => { if (!orderedKeys.includes(key)) orderedKeys.push(key); });
+      const orderedStages = orderedKeys.map(key => [key, stages.get(key)]);
       orderedStages.forEach(([stageKey, batch], index) => {
         const [levelBand, stage] = stageKey.split(':').map(Number);
         batch = batch.filter(q => !onlyOpen.checked || !done[q.id]);
