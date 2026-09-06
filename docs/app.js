@@ -1536,6 +1536,8 @@ V.questRoute = async () => {
     drops.get(d.id).push(m);
   }));
   const done = JSON.parse(localStorage.getItem('mof-quest-route-done') || '{}');
+  const collected = JSON.parse(localStorage.getItem('mof-quest-route-collected') || '{}');
+  const saveCollected = () => localStorage.setItem('mof-quest-route-collected', JSON.stringify(collected));
   const root = el('div', { class: 'quest-route' });
   const list = el('div', { class: 'quest-route-list' });
   const search = el('input', { type: 'search', placeholder: '篩選區域、NPC、怪物或任務' });
@@ -1647,19 +1649,49 @@ V.questRoute = async () => {
           objectiveTotals.set(key, { type: '蒐集', target: x.target, count: (objectiveTotals.get(key)?.count || 0) + (Number(x.count) || 0) });
         });
       });
-      const objectiveList = [...objectiveTotals.values()].map(o =>
-        el('li', {}, [el('span', { class: 'tag ' + (o.type === '討伐' ? 'r' : 'a'), text: o.type }), ' ',
-          itemCell(o.target, o.type === '討伐' ? 'monsters' : null), ` × ${num(o.count)}`]));
+      const objectiveList = [...objectiveTotals.values()].map(o => {
+        if (o.type === '討伐') {
+          return el('li', {}, [el('span', { class: 'tag r', text: '討伐' }), ' ',
+            itemCell(o.target, 'monsters'), ` × ${num(o.count)}`]);
+        }
+        const owned = Math.min(Math.max(Number(collected[o.target.id]) || 0, 0), o.count);
+        const remain = Math.max(0, o.count - owned);
+        const amount = el('input', { type: 'number', min: 0, max: o.count, value: owned,
+          class: 'quest-route-progress-input', 'aria-label': `${o.target.name} 已取得數量` });
+        amount.onchange = () => {
+          collected[o.target.id] = Math.min(Math.max(Number(amount.value) || 0, 0), o.count);
+          saveCollected(); draw();
+        };
+        const complete = el('input', { type: 'checkbox', checked: remain === 0,
+          'aria-label': `完成蒐集 ${o.target.name}` });
+        complete.onchange = () => {
+          collected[o.target.id] = complete.checked ? o.count : 0;
+          saveCollected(); draw();
+        };
+        return el('li', {}, [el('span', { class: 'tag a', text: '蒐集' }), ' ',
+          itemCell(o.target, 'items'), ` 共 ${num(o.count)}｜尚缺 ${num(remain)} `,
+          amount, ' ', el('label', { class: 'quest-route-progress-check' }, [complete, '完成'])]);
+      });
       const variants = [...g.monsters.values()];
       const maps = [...new Set(variants.flatMap(m => (m.maps || []).map(x => x.name)))];
       const variantText = variants.length > 1 ? `變體：${variants.map(m => m.name).join('、')}` : '';
+      const batches = [...qs.reduce((map, q) => {
+        const level = Number(q.levelReq) || 0;
+        if (!map.has(level)) map.set(level, []);
+        map.get(level).push(q);
+        return map;
+      }, new Map()).entries()];
       areaList.appendChild(el('details', { class: 'quest-route-monster', 'data-route-key': `monster:${area}:${g.monster.id}`, open: isOpen(`monster:${area}:${g.monster.id}`) }, [
         el('summary', { class: 'quest-route-monster-summary', text: `${g.monster.name}（Lv.${Math.min(...variants.map(m => m.level || 0))}）｜${maps.join('、') || '出沒地圖未記錄'}｜${qs.length} 個相關任務` }),
         variantText ? el('p', { class: 'quest-route-meta quest-route-variants', text: variantText }) : null,
         el('p', { class: 'quest-route-meta quest-route-hunt-guide', text: '建議：先接下方目前能接的任務；同一趟狩獵完成討伐，並順便累積所有已接的掉落物任務。未達等級的任務不會計算，等解鎖後再補狩獵。' }),
         el('details', { class: 'quest-route-objectives', open: true }, [el('summary', { text: '本群總需求（已合併）' }), el('ul', {}, objectiveList)]),
-        el('h3', { text: '相關任務（依可接等級排序）' }),
-        el('ol', { class: 'quest-route-tasks' }, qs.map(makeCheck)),
+        el('h3', { text: '任務時間軸（先接取，再依批次狩獵）' }),
+        frag(batches.map(([level, batch], batchIndex) => el('section', { class: 'quest-route-batch' }, [
+          el('h4', { text: `第 ${batchIndex + 1} 批｜Lv.${level} 可接任務` }),
+          el('p', { class: 'quest-route-meta', text: '先完成本批任務並回報；同一怪物的討伐與蒐集條件可在同一次狩獵中一起處理。' }),
+          el('ol', { class: 'quest-route-tasks' }, batch.sort((a, b) => depth(a) - depth(b) || a.name.localeCompare(b.name, 'zh-Hant')).map(makeCheck)),
+        ]))),
       ]));
       });
       if (!areaList.childNodes.length) return;
