@@ -1731,7 +1731,7 @@ V.questTimeline = async () => {
           return levels.length === 1 ? `Lv.${levels[0]}` : `Lv.${levels[0]}～${levels[levels.length - 1]}`;
         };
         const chainDepthText = tasks => {
-          const depths = [...new Set(tasks.map(routeDepth))].sort((a, b) => a - b);
+          const depths = [...new Set(tasks.map(q => routeDepth(q)))].sort((a, b) => a - b);
           if (!depths.length) return '任務鏈第 1 階';
           return depths.length === 1
             ? `任務鏈第 ${depths[0] + 1} 階`
@@ -2561,6 +2561,7 @@ async function route() {
     view().textContent = '';
     view().appendChild(node);
   } catch (err) {
+    console.error('Quest route render failed:', err);
     view().textContent = '';
     view().appendChild(el('p', { class: 'empty', text: '這個頁面不存在，或資料載入失敗。' }));
     view().appendChild(el('p', {}, [el('a', { href: '#/', text: '← 回首頁' })]));
