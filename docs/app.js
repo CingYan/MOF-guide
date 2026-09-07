@@ -1619,28 +1619,17 @@ V.questTimeline = async () => {
       const executionAlignedTo = new Map();
       const dungeonQuests = areaQuests.filter(q => (q.indun || []).length);
       const fieldQuests = areaQuests.filter(q => !(q.indun || []).length);
-      const stageKeyFor = q => `${Math.floor((Number(q.levelReq) || 0) / 10) * 10}:${routeDepth(q)}`;
+      // 主流程以「實際可接等級＋任務依賴階段」分批。
+      // 怪物只供下方狩獵對照使用，不能決定任務鏈的分組，否則同一流程會被錯切。
+      const stageKeyFor = q => `${Number(q.levelReq) || 0}:${routeDepth(q)}`;
       const huntByMonster = new Map();
-      const huntTaskGroupKey = new Map();
       fieldQuests.forEach(q => {
-        const groupKey = [...new Set((q.hunt || []).map(x => baseName(x.target?.name)))].sort().join('|');
-        if (groupKey) huntTaskGroupKey.set(q.id, groupKey);
         (q.hunt || []).forEach(x => {
           const key = baseName(x.target?.name);
           if (!huntByMonster.has(key)) huntByMonster.set(key, []);
           huntByMonster.get(key).push(q);
         });
       });
-      const executionMonsterKeys = q => {
-        const huntKeys = (q.hunt || []).length ? [huntTaskGroupKey.get(q.id)] : [];
-        const sourceKeys = (q.collect || []).flatMap(x => collectSources(x.target).map(m => baseName(m.name)));
-        const linked = [...new Map(sourceKeys.flatMap(key => (huntByMonster.get(key) || []).map(candidate => [candidate.id, candidate]))).values()];
-        if (!huntKeys.length && linked.length) {
-          linked.sort((a, b) => Number(b.levelReq || 0) - Number(a.levelReq || 0) || routeDepth(b) - routeDepth(a));
-          return [huntTaskGroupKey.get(linked[0].id) || [...new Set(sourceKeys)].sort().join('|')];
-        }
-        return [...new Set([...huntKeys, ...sourceKeys])].filter(Boolean).sort();
-      };
       const initialBatchFor = new Map();
       fieldQuests.forEach(q => {
         let stage = stageKeyFor(q);
@@ -1655,8 +1644,7 @@ V.questTimeline = async () => {
             executionAlignedTo.set(q.id, finalHunt);
           }
         }
-        const monsters = executionMonsterKeys(q);
-        const batchKey = `${stage}:${monsters.length ? `monster:${monsters.join('|')}` : 'other'}`;
+        const batchKey = stage;
         initialBatchFor.set(q.id, { key: batchKey, stage });
         if (!stages.has(batchKey)) stages.set(batchKey, []);
         stages.get(batchKey).push(q);
