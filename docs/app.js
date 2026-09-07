@@ -1558,11 +1558,6 @@ V.questTimeline = async () => {
   const collected = JSON.parse(localStorage.getItem('mof-quest-route-collected') || '{}');
   const saveCollected = () => localStorage.setItem('mof-quest-route-collected', JSON.stringify(collected));
   const baseName = name => String(name || '').replace(/^\[[^\]]+\]\s*/, '').trim();
-  // Lv.21 以上以「目前等級起算、向上含 5 等」切分；Lv.20 以下沿用原群組。
-  const levelWindow = level => {
-    const n = Number(level) || 0;
-    return n <= 20 ? null : Math.floor((n - 1) / 5) * 5 + 1;
-  };
   const collectSources = item => drops.get(item?.id) || [];
   const root = el('div', { class: 'quest-timeline' });
   const list = el('div', { class: 'quest-timeline-list' });
@@ -1704,11 +1699,40 @@ V.questTimeline = async () => {
         const level = Number(q.levelReq) || 0;
         baseGroupMinLevel.set(group, Math.min(baseGroupMinLevel.get(group) ?? Number.MAX_SAFE_INTEGER, level));
       });
+      // 同一怪物（或同一個可同場執行的怪物群）要依「這個怪物自己的任務等級」分群，
+      // 不能用全域固定的 Lv.1–5、Lv.6–10…切窗。
+      // 例如血紅布丁的 67、68、69 屬於同一群，75 則另開一群。
+      // Lv.20 以下不套用這個分割規則，保留 legacy 群組。
+      const clusterOfQuest = new Map();
+      const questsByBaseGroup = new Map();
+      fieldQuests.forEach(q => {
+        const group = baseGroupOf.get(q.id);
+        if (!questsByBaseGroup.has(group)) questsByBaseGroup.set(group, []);
+        questsByBaseGroup.get(group).push(q);
+      });
+      questsByBaseGroup.forEach((tasks, group) => {
+        tasks.sort((a, b) => Number(a.levelReq || 0) - Number(b.levelReq || 0)
+          || questOrder(a) - questOrder(b) || a.name.localeCompare(b.name, 'zh-Hant'));
+        let clusterNo = 0;
+        let clusterStart = null;
+        tasks.forEach(q => {
+          const level = Number(q.levelReq) || 0;
+          if (level <= 20) {
+            clusterOfQuest.set(q.id, 'legacy');
+            return;
+          }
+          if (clusterStart === null || level > clusterStart + 4) {
+            clusterNo += 1;
+            clusterStart = level;
+          }
+          clusterOfQuest.set(q.id, String(clusterNo));
+        });
+      });
       fieldQuests.forEach(q => {
         const monsterGroups = [...(questHuntGroups.get(q.id) || [])];
         const baseGroup = baseGroupOf.get(q.id);
         const batchKey = monsterGroups.length
-          ? `hunt:${baseGroup}:window:${levelWindow(q.levelReq) ?? 'legacy'}`
+          ? `hunt:${baseGroup}:cluster:${clusterOfQuest.get(q.id) || 'legacy'}`
           : `level:${Number(q.levelReq) || 0}:depth:${routeDepth(q)}`;
         if (!stages.has(batchKey)) stages.set(batchKey, []);
         stages.get(batchKey).push(q);
@@ -1753,8 +1777,35 @@ V.questTimeline = async () => {
         el('h3', { class: 'quest-timeline-hunt-title', text: '近 5 個等級內的狩獵籌備群' }),
         el('p', { class: 'quest-timeline-meta', text: '上方主流程才是接取／回報順序；這裡把同區域、等級窗口相鄰的怪物集中規劃，但不同怪物仍分開列出。' }),
       ]);
+      const splitMonsterTasks = tasks => {
+        const sorted = tasks.slice().sort((a, b) => Number(a.levelReq || 0) - Number(b.levelReq || 0)
+          || (taskBatchNo.get(a.id) || Number.MAX_SAFE_INTEGER) - (taskBatchNo.get(b.id) || Number.MAX_SAFE_INTEGER)
+          || a.name.localeCompare(b.name, 'zh-Hant'));
+        const chunks = [];
+        let current = null;
+        let start = null;
+        sorted.forEach(q => {
+          const level = Number(q.levelReq) || 0;
+          if (level <= 20) {
+            if (!current || current.mode !== 'legacy') {
+              current = { mode: 'legacy', tasks: [] };
+              chunks.push(current);
+            }
+            current.tasks.push(q);
+            return;
+          }
+          if (!current || current.mode === 'legacy' || start === null || level > start + 4) {
+            current = { mode: 'levels', tasks: [] };
+            chunks.push(current);
+            start = level;
+          }
+          current.tasks.push(q);
+        });
+        return chunks.map(x => x.tasks);
+      };
       const clusterEntries = [...huntGroupTasks.entries()]
-        .map(([name, tasks]) => [name, [...tasks.keys()].map(id => byQuest.get(id)).filter(Boolean)])
+        .flatMap(([name, tasks]) => splitMonsterTasks([...tasks.keys()].map(id => byQuest.get(id)).filter(Boolean))
+          .map(group => [name, group]))
         .sort((a, b) => {
           const la = Math.min(...a[1].map(q => Number(q.levelReq) || 0), Number.MAX_SAFE_INTEGER);
           const lb = Math.min(...b[1].map(q => Number(q.levelReq) || 0), Number.MAX_SAFE_INTEGER);
