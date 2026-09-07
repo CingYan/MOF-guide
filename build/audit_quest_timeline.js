@@ -90,6 +90,47 @@ for (const [id, parents] of deps) for (const parent of parents) {
   if (order.has(id) && order.has(parent) && order.get(parent) >= order.get(id)) errors.push(`拓樸倒置：${parent} -> ${id}`);
 }
 
+const depthMemo = new Map();
+const depthVisiting = new Set();
+const routeDepth = id => {
+  if (depthMemo.has(id)) return depthMemo.get(id);
+  if (depthVisiting.has(id)) return 0;
+  depthVisiting.add(id);
+  const value = Math.max(0, ...[...(deps.get(id) || [])].map(parent => byQuest.has(parent) ? routeDepth(parent) + 1 : 0));
+  depthVisiting.delete(id);
+  depthMemo.set(id, value);
+  return value;
+};
+const npcPrevious = new Map();
+for (const chain of npcChains.values()) chain.forEach((entry, index) => {
+  if (index) npcPrevious.set(entry.quest.id, chain[index - 1].quest);
+});
+const huntNamesByQuest = new Map(quests.map(q => [q.id, new Set()]));
+for (const row of huntRows) huntNamesByQuest.get(row.quest.id).add(baseName(row.objective.target?.name));
+for (const row of collectRows) for (const source of row.sources) huntNamesByQuest.get(row.quest.id).add(baseName(source.name));
+
+// This is the auditable, row-by-row source of truth used to review the UI.
+const taskAudit = quests.map(q => ({
+  id: q.id,
+  name: q.name,
+  level: q.levelReq || 0,
+  regions: q.regions || [],
+  npcs: (q.npcs || []).map(n => ({ id: n.id, name: n.name })),
+  explicitPrerequisites: (q.prereq || []).map(p => ({ id: p.id, name: p.name })),
+  npcPrevious: npcPrevious.has(q.id) ? { id: npcPrevious.get(q.id).id, name: npcPrevious.get(q.id).name } : null,
+  routeDepth: routeDepth(q.id),
+  topoOrder: order.has(q.id) ? order.get(q.id) : null,
+  hunt: (q.hunt || []).map(x => ({ target: x.target, count: x.count, monsterExists: byMonster.has(x.target?.id) })),
+  collect: (q.collect || []).map(x => ({
+    target: x.target,
+    count: x.count,
+    dropMonsters: (drops.get(x.target?.id) || []).map(m => ({ id: m.id, name: m.name })),
+  })),
+  delivery: q.delivery || [],
+  dungeon: q.indun || [],
+  monsterGroups: [...huntNamesByQuest.get(q.id)].filter(Boolean).sort(),
+}));
+
 const report = {
   counts: {
     quests: quests.length,
@@ -102,6 +143,25 @@ const report = {
   },
   errors,
   warnings,
+  taskAudit,
+  mappings: {
+    hunt: huntRows.map(row => ({
+      questId: row.quest.id,
+      questName: row.quest.name,
+      level: row.quest.levelReq || 0,
+      target: row.objective.target,
+      count: row.objective.count,
+      monster: byMonster.get(row.objective.target?.id) || null,
+    })),
+    collect: collectRows.map(row => ({
+      questId: row.quest.id,
+      questName: row.quest.name,
+      level: row.quest.levelReq || 0,
+      target: row.objective.target,
+      count: row.objective.count,
+      dropMonsters: row.sources.map(m => ({ id: m.id, name: m.name })),
+    })),
+  },
   monsterGroups: [...groups.entries()].map(([name, group]) => ({
     monster: name,
     levels: [...group.tasks.values()].map(kinds => [...kinds]).length ? [...group.tasks.keys()].map(id => byQuest.get(id).levelReq || 0).sort((a, b) => a - b) : [],
