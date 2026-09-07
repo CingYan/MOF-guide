@@ -1752,6 +1752,11 @@ V.questTimeline = async () => {
         .map(([key, batch]) => [key, batch]);
       const taskBatchNo = new Map();
       orderedStages.forEach(([, batch], index) => batch.forEach(q => taskBatchNo.set(q.id, index + 1)));
+      const firstHuntStage = new Map();
+      orderedStages.forEach(([, batch], index) => batch.forEach(q => (q.hunt || []).forEach(x => {
+        const key = baseName(x.target?.name);
+        if (key && !firstHuntStage.has(key)) firstHuntStage.set(key, { batch: index + 1, quest: q });
+      })));
       const clusterIndex = el('section', { class: 'quest-timeline-cluster-index' }, [
         el('h3', { class: 'quest-timeline-hunt-title', text: '近 5 個等級內的狩獵籌備群' }),
         el('p', { class: 'quest-timeline-meta', text: '上方主流程才是接取／回報順序；這裡把同區域、等級窗口相鄰的怪物集中規劃，但不同怪物仍分開列出。' }),
@@ -1858,7 +1863,12 @@ V.questTimeline = async () => {
           amount.onchange = () => { collected[o.target.id] = Math.min(Math.max((Number(amount.value) || 0) - autoCollected(o.target.id), 0), o.count); saveCollected(); draw(); };
           const check = el('input', { type: 'checkbox', checked: owned >= o.count, 'aria-label': `完成蒐集 ${o.target.name}` });
           check.onchange = () => { collected[o.target.id] = check.checked ? Math.max(0, o.count - autoCollected(o.target.id)) : 0; saveCollected(); draw(); };
-          const sources = o.sources.size ? `｜掉落怪物：${[...o.sources.values()].map(m => m.name).join('、')}` : '｜掉落來源未記錄';
+          const sources = o.sources.size ? `｜掉落怪物：${[...o.sources.values()].map(m => {
+            const first = firstHuntStage.get(baseName(m.name));
+            return first && first.batch < index + 1
+              ? `${m.name}（已於第 ${first.batch} 批狩獵，不需重複）`
+              : first ? `${m.name}（待第 ${first.batch} 批狩獵）` : m.name;
+          }).join('、')}` : '｜掉落來源未記錄';
           return el('li', {}, [el('span', { class: 'tag a', text: '蒐集' }), ' ', itemCell(o.target, 'items'), ` 共 ${num(o.count)}｜尚缺 ${num(Math.max(0, o.count - owned))} `, amount, el('label', { class: 'quest-route-progress-check' }, [check, '完成']), el('span', { class: 'dim', text: sources })]);
         });
         const report = [...new Set(batch.flatMap(q => (q.npcs || []).map(n => n.name)))];
@@ -1907,6 +1917,8 @@ V.questTimeline = async () => {
           const collects = tasks.filter(x => x.kinds.has('蒐集'));
           const latestHuntLevel = hunts.length ? Math.max(...hunts.map(x => Number(x.q.levelReq) || 0)) : 0;
           const earliestCollectionLevel = collects.length ? Math.min(...collects.map(x => Number(x.q.levelReq) || 0)) : latestHuntLevel;
+          const huntWindowMin = Math.min(earliestCollectionLevel, latestHuntLevel || earliestCollectionLevel);
+          const huntWindowMax = Math.max(earliestCollectionLevel, latestHuntLevel || earliestCollectionLevel);
           const huntRows = hunts.map(({ q, objectives }) => el('li', {}, [el('a', { href: '#/quests/' + q.id, text: q.name }), `（Lv.${q.levelReq || 0}｜${(q.npcs || []).map(n => n.name).join('、') || '無 NPC'}）`, ...objectives.filter(x => x.kind === '討伐').map(({ objective }) => `｜${objective.target.name} ×${num(objective.count)}`)]));
           const collectRows = collects.flatMap(({ q, objectives }) => objectives.filter(x => x.kind === '蒐集').map(({ objective }) => {
             const sources = collectSources(objective.target);
@@ -1916,7 +1928,7 @@ V.questTimeline = async () => {
           huntBatchList.appendChild(el('details', { class: 'quest-timeline-hunt-batch', 'data-timeline-key': `hunt:${area}:${name}`, open: isOpen(`hunt:${area}:${name}`) }, [
             el('summary', { class: 'quest-timeline-stage-summary', text: `${name}｜建議狩獵批次` }),
             el('section', { class: 'quest-timeline-stage' }, [
-              el('p', { class: 'quest-timeline-meta', text: `${group.maps.size ? [...group.maps].join('、') : '出沒地圖未記錄'}｜普通／稀有視為同一種怪物｜建議狩獵區間：Lv.${earliestCollectionLevel}～${latestHuntLevel || earliestCollectionLevel}` }),
+              el('p', { class: 'quest-timeline-meta', text: `${group.maps.size ? [...group.maps].join('、') : '出沒地圖未記錄'}｜普通／稀有視為同一種怪物｜建議狩獵區間：Lv.${huntWindowMin}～${huntWindowMax}` }),
               hunts.length ? el('div', {}, [el('strong', { class: 'quest-timeline-step', text: `討伐任務（最晚 Lv.${latestHuntLevel} 解鎖後執行）` }), el('ul', { class: 'quest-timeline-objectives' }, huntRows)]) : null,
               collects.length ? el('div', {}, [el('strong', { class: 'quest-timeline-step', text: '蒐集任務（可先取得，待相關任務解鎖後回報）' }), el('ul', { class: 'quest-timeline-objectives' }, collectRows)]) : null,
               el('p', { class: 'quest-timeline-meta quest-timeline-hunt-rule', text: hunts.length ? '建議：等同一怪物的討伐任務都已能接取，再集中完成本批討伐；蒐集品可提前準備。' : '本批只有蒐集任務，取得物品後依任務鏈回報。' }),
