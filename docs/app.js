@@ -1751,8 +1751,8 @@ V.questTimeline = async () => {
       const taskBatchNo = new Map();
       orderedStages.forEach(([, batch], index) => batch.forEach(q => taskBatchNo.set(q.id, index + 1)));
       const clusterIndex = el('section', { class: 'quest-timeline-cluster-index' }, [
-        el('h3', { class: 'quest-timeline-hunt-title', text: '同怪物狩獵群（主流程同步索引）' }),
-        el('p', { class: 'quest-timeline-meta', text: '同一怪物的討伐與蒐集任務集中列在這裡；主流程批次仍依各任務等級與前置顯示，不會因狩獵群而提前接取。' }),
+        el('h3', { class: 'quest-timeline-hunt-title', text: '近 5 個等級內可集中狩獵提示' }),
+        el('p', { class: 'quest-timeline-meta', text: '上方主流程才是接取／回報順序；這裡只提示同一怪物的任務能否在 5 個等級跨度內集中處理。' }),
       ]);
       [...huntGroupTasks.entries()]
         .map(([name, tasks]) => [name, [...tasks.keys()].map(id => byQuest.get(id)).filter(Boolean)])
@@ -1765,6 +1765,11 @@ V.questTimeline = async () => {
           tasks.sort((a, b) => (Number(a.levelReq) || 0) - (Number(b.levelReq) || 0)
             || (taskBatchNo.get(a.id) || Number.MAX_SAFE_INTEGER) - (taskBatchNo.get(b.id) || Number.MAX_SAFE_INTEGER)
             || a.name.localeCompare(b.name, 'zh-Hant'));
+          const levels = tasks.map(q => Number(q.levelReq) || 0);
+          const minLevel = Math.min(...levels);
+          const maxLevel = Math.max(...levels);
+          const span = maxLevel - minLevel + 1;
+          const spanText = span <= 5 ? `Lv.${minLevel}～${maxLevel}｜${span} 級內可集中` : `Lv.${minLevel}～${maxLevel}｜跨 ${span} 級`;
           const rows = tasks.map(q => {
             const kinds = [...(huntGroupTasks.get(name)?.get(q.id) || [])].join('＋');
             return el('li', {}, [
@@ -1773,11 +1778,10 @@ V.questTimeline = async () => {
             ]);
           });
           clusterIndex.appendChild(el('div', { class: 'quest-timeline-cluster-row' }, [
-            el('strong', { text: name }),
+            el('strong', { text: `${name}｜${spanText}` }),
             el('ul', { class: 'quest-timeline-objectives' }, rows),
           ]));
         });
-      if (clusterIndex.childNodes.length > 2) content.appendChild(clusterIndex);
       orderedStages.forEach(([stageKey, batch], index) => {
         const [levelBand] = stageKey.split(':').map(Number);
         batch = batch.filter(q => !onlyOpen.checked || !done[q.id]);
@@ -1814,6 +1818,7 @@ V.questTimeline = async () => {
           el('section', { class: 'quest-timeline-stage' }, [el('strong', { class: 'quest-timeline-step', text: '① 先接取並逐項查看條件' }), el('ol', { class: 'quest-route-tasks' }, taskRows), el('strong', { class: 'quest-timeline-step', text: '② 依各任務條件執行' }), el('p', { class: 'quest-timeline-meta', text: '每筆任務的條件已列在任務下方；同一怪物的完整狩獵批次只在下方對照顯示一次。' }), el('strong', { class: 'quest-timeline-step', text: '③ 回報並解鎖下一批' }), el('p', { class: 'quest-timeline-meta', text: report.length ? `完成後回報：${report.join('、')}。回報完成後才進入下一批。` : '本批沒有記錄回報 NPC。' }), nextEntry ? el('div', { class: 'quest-timeline-next' }, [el('strong', { text: `下一階段預告｜${levelText(nextEntry[1])}（不計入本階段）` }), el('p', { class: 'quest-timeline-meta' }, [`下一批任務：${nextEntry[1].map(q => `${q.name}（Lv.${q.levelReq || 0}）`).join('、')}`])]) : null]),
         ]));
       });
+      if (clusterIndex.childNodes.length > 2) content.appendChild(clusterIndex);
       const huntGroups = new Map();
       const addHuntGroup = (monster, q, kind, objective) => {
         if (!monster?.id || !objective?.target?.id) return;

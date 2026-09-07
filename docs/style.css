@@ -226,7 +226,7 @@ h4 { margin: 16px 0 6px; font-size: 1em }
 .quest-timeline-hunt-batches{display:grid;gap:8px}
 .quest-timeline-hunt-batch{border:1px solid var(--gold);border-radius:6px;background:var(--bg)}
 .quest-timeline-hunt-rule{color:var(--gold)}
-.quest-timeline-cluster-index{margin-top:10px;padding:10px 12px;border:1px solid var(--gold);border-radius:6px;background:var(--bg)}
+.quest-timeline-cluster-index{margin-top:14px;padding:10px 12px;border:1px solid var(--line);border-radius:6px;background:var(--bg)}
 .quest-timeline-cluster-index .quest-timeline-hunt-title{margin-top:0}
 .quest-timeline-cluster-row{margin:8px 0;padding:6px 8px;border-top:1px solid var(--line)}
 .quest-timeline-cluster-row strong{color:var(--gold)}
