@@ -1558,6 +1558,11 @@ V.questTimeline = async () => {
   const collected = JSON.parse(localStorage.getItem('mof-quest-route-collected') || '{}');
   const saveCollected = () => localStorage.setItem('mof-quest-route-collected', JSON.stringify(collected));
   const baseName = name => String(name || '').replace(/^\[[^\]]+\]\s*/, '').trim();
+  // Lv.21 以上以「目前等級起算、向上含 5 等」切分；Lv.20 以下沿用原群組。
+  const levelWindow = level => {
+    const n = Number(level) || 0;
+    return n <= 20 ? null : Math.floor((n - 1) / 5) * 5 + 1;
+  };
   const collectSources = item => drops.get(item?.id) || [];
   const root = el('div', { class: 'quest-timeline' });
   const list = el('div', { class: 'quest-timeline-list' });
@@ -1703,7 +1708,7 @@ V.questTimeline = async () => {
         const monsterGroups = [...(questHuntGroups.get(q.id) || [])];
         const baseGroup = baseGroupOf.get(q.id);
         const batchKey = monsterGroups.length
-          ? `hunt:${baseGroup}`
+          ? `hunt:${baseGroup}:window:${levelWindow(q.levelReq) ?? 'legacy'}`
           : `level:${Number(q.levelReq) || 0}:depth:${routeDepth(q)}`;
         if (!stages.has(batchKey)) stages.set(batchKey, []);
         stages.get(batchKey).push(q);
