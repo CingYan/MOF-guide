@@ -1748,6 +1748,36 @@ V.questTimeline = async () => {
         .slice()
         .sort(([a], [b]) => compareGroup(a, b))
         .map(([key, batch]) => [key, batch]);
+      const taskBatchNo = new Map();
+      orderedStages.forEach(([, batch], index) => batch.forEach(q => taskBatchNo.set(q.id, index + 1)));
+      const clusterIndex = el('section', { class: 'quest-timeline-cluster-index' }, [
+        el('h3', { class: 'quest-timeline-hunt-title', text: '同怪物狩獵群（主流程同步索引）' }),
+        el('p', { class: 'quest-timeline-meta', text: '同一怪物的討伐與蒐集任務集中列在這裡；主流程批次仍依各任務等級與前置顯示，不會因狩獵群而提前接取。' }),
+      ]);
+      [...huntGroupTasks.entries()]
+        .map(([name, tasks]) => [name, [...tasks.keys()].map(id => byQuest.get(id)).filter(Boolean)])
+        .sort((a, b) => {
+          const la = Math.min(...a[1].map(q => Number(q.levelReq) || 0), Number.MAX_SAFE_INTEGER);
+          const lb = Math.min(...b[1].map(q => Number(q.levelReq) || 0), Number.MAX_SAFE_INTEGER);
+          return la - lb || a[0].localeCompare(b[0], 'zh-Hant');
+        })
+        .forEach(([name, tasks]) => {
+          tasks.sort((a, b) => (Number(a.levelReq) || 0) - (Number(b.levelReq) || 0)
+            || (taskBatchNo.get(a.id) || Number.MAX_SAFE_INTEGER) - (taskBatchNo.get(b.id) || Number.MAX_SAFE_INTEGER)
+            || a.name.localeCompare(b.name, 'zh-Hant'));
+          const rows = tasks.map(q => {
+            const kinds = [...(huntGroupTasks.get(name)?.get(q.id) || [])].join('＋');
+            return el('li', {}, [
+              el('a', { href: '#/quests/' + q.id, text: q.name }),
+              `（Lv.${q.levelReq || 0}｜${kinds}｜主流程第 ${taskBatchNo.get(q.id) || '—'} 批）`,
+            ]);
+          });
+          clusterIndex.appendChild(el('div', { class: 'quest-timeline-cluster-row' }, [
+            el('strong', { text: name }),
+            el('ul', { class: 'quest-timeline-objectives' }, rows),
+          ]));
+        });
+      if (clusterIndex.childNodes.length > 2) content.appendChild(clusterIndex);
       orderedStages.forEach(([stageKey, batch], index) => {
         const [levelBand] = stageKey.split(':').map(Number);
         batch = batch.filter(q => !onlyOpen.checked || !done[q.id]);
