@@ -1699,25 +1699,12 @@ V.questTimeline = async () => {
         const level = Number(q.levelReq) || 0;
         baseGroupMinLevel.set(group, Math.min(baseGroupMinLevel.get(group) ?? Number.MAX_SAFE_INTEGER, level));
       });
-      /*
-       * 同怪物群內若有任務被「較晚才解鎖」的外部前置卡住，只有被卡住的
-       * 後段任務移到前置之後；沒有被卡住的早段任務仍留在原狩獵批次。
-       * 例：愛喝酒的豬／掃把留在惡魔山豬早段，神奇的藥材等可惡的布丁
-       * 完成後再出現；下方狩獵對照仍把三者列為同一怪物群。
-       */
-      const stageBarrier = q => {
-        const group = baseGroupOf.get(q.id);
-        const minLevel = baseGroupMinLevel.get(group) || 0;
-        const blocking = depsOf(q).filter(dep => baseGroupOf.get(dep.id) !== group
-          && (Number(dep.levelReq) || 0) >= minLevel);
-        return blocking.reduce((max, dep) => Math.max(max, questOrder(dep)), 0);
-      };
       fieldQuests.forEach(q => {
         const monsterGroups = [...(questHuntGroups.get(q.id) || [])];
         const baseGroup = baseGroupOf.get(q.id);
         const batchKey = monsterGroups.length
-          ? `hunt:${baseGroup}:barrier:${stageBarrier(q)}`
-          : `level:${Number(q.levelReq) || 0}:barrier:${stageBarrier(q)}`;
+          ? `hunt:${baseGroup}`
+          : `level:${Number(q.levelReq) || 0}:depth:${routeDepth(q)}`;
         if (!stages.has(batchKey)) stages.set(batchKey, []);
         stages.get(batchKey).push(q);
       });
@@ -1867,7 +1854,9 @@ V.questTimeline = async () => {
             const first = firstHuntStage.get(baseName(m.name));
             return first && first.batch < index + 1
               ? `${m.name}（已於第 ${first.batch} 批狩獵，不需重複）`
-              : first ? `${m.name}（待第 ${first.batch} 批狩獵）` : m.name;
+              : first && first.batch === index + 1
+                ? `${m.name}（同本批狩獵，不需重複）`
+                : first ? `${m.name}（待第 ${first.batch} 批狩獵）` : m.name;
           }).join('、')}` : '｜掉落來源未記錄';
           return el('li', {}, [el('span', { class: 'tag a', text: '蒐集' }), ' ', itemCell(o.target, 'items'), ` 共 ${num(o.count)}｜尚缺 ${num(Math.max(0, o.count - owned))} `, amount, el('label', { class: 'quest-route-progress-check' }, [check, '完成']), el('span', { class: 'dim', text: sources })]);
         });
