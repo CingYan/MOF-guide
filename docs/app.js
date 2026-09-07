@@ -1730,8 +1730,8 @@ V.questTimeline = async () => {
         const [levelBand] = stageKey.split(':').map(Number);
         batch = batch.filter(q => !onlyOpen.checked || !done[q.id]);
         if (!batch.length) return;
-        batch.sort((a, b) => questOrder(a) - questOrder(b)
-            || (a.levelReq || 0) - (b.levelReq || 0)
+        batch.sort((a, b) => (a.levelReq || 0) - (b.levelReq || 0)
+            || questOrder(a) - questOrder(b)
             || a.name.localeCompare(b.name, 'zh-Hant'));
         const levelText = tasks => {
           const levels = [...new Set(tasks.map(q => Number(q.levelReq) || 0))].sort((a, b) => a - b);
