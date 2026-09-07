@@ -1616,13 +1616,13 @@ V.questTimeline = async () => {
       const stages = new Map();
       const dungeonQuests = areaQuests.filter(q => (q.indun || []).length);
       const fieldQuests = areaQuests.filter(q => !(q.indun || []).length);
-      // 主流程以實際可接等級分批；同等級內再依完整前置拓樸排序。
-      // 怪物只供下方狩獵對照使用，不能決定任務鏈的分組。
-      const stageKeyFor = q => `${Number(q.levelReq) || 0}:0`;
-      // Build the canonical execution groups once.  The task timeline may be
-      // split by unlock level, but every related hunt/collection task points
-      // back to this same monster group instead of being re-aggregated per
-      // level batch.
+      // 主流程以可同場執行的怪物群分批；群內每筆任務仍保留自己的
+      // 等級、NPC 與前置條件，批次顯示按最低可接等級排序。
+      // Build the canonical execution groups once.  Tasks sharing a monster
+      // or one of its drop sources belong to the same executable batch even
+      // when their unlock levels differ.  The task row still keeps its own
+      // level/NPC/prerequisite, so grouping never makes a locked task appear
+      // immediately available.
       const questHuntGroups = new Map();
       const huntGroupTasks = new Map();
       const addQuestHuntGroup = (q, monsterName, kind) => {
@@ -1643,9 +1643,27 @@ V.questTimeline = async () => {
         const levels = tasks.map(x => Number(x.levelReq) || 0).sort((a, b) => a - b);
         return levels.length > 1 ? `${name}｜Lv.${levels[0]}～${levels[levels.length - 1]}` : `${name}｜Lv.${levels[0] || q.levelReq || 0}`;
       });
+      // Union tasks that can be completed in the same monster run.  A task
+      // with multiple monsters naturally bridges those monster groups.
+      const parent = new Map(fieldQuests.map(q => [q.id, q.id]));
+      const find = id => {
+        let root = id;
+        while (parent.get(root) !== root) root = parent.get(root);
+        while (parent.get(id) !== id) { const next = parent.get(id); parent.set(id, root); id = next; }
+        return root;
+      };
+      const union = (a, b) => {
+        const ra = find(a), rb = find(b);
+        if (ra !== rb) parent.set(rb, ra);
+      };
+      const groupOwner = new Map();
+      fieldQuests.forEach(q => (questHuntGroups.get(q.id) || []).forEach(monsterName => {
+        const owner = groupOwner.get(monsterName);
+        if (owner) union(owner, q.id); else groupOwner.set(monsterName, q.id);
+      }));
       fieldQuests.forEach(q => {
-        const stage = stageKeyFor(q);
-        const batchKey = stage;
+        const monsterGroups = [...(questHuntGroups.get(q.id) || [])];
+        const batchKey = monsterGroups.length ? `hunt:${find(q.id)}` : `level:${Number(q.levelReq) || 0}`;
         if (!stages.has(batchKey)) stages.set(batchKey, []);
         stages.get(batchKey).push(q);
       });
@@ -1653,15 +1671,17 @@ V.questTimeline = async () => {
       /*
        * 同一怪物的執行群不能凌駕於任務鏈前置：
        * 例如「侮辱」可與斧頭幽靈任務同場狩獵，但它的 NPC 前置
-       * 「魔力的力量」仍必須先完成。若兩者被分到不同執行群，
-       * 只拆出違反前置的那一筆，保留其他同怪物蒐集任務的集中性。
+       * 「魔力的力量」仍必須先完成；NPC 排隊資訊會保留在任務列，
+       * 但不再把整個共享怪物群拖到後面。
        */
-      const depsOf = q => [
+      const explicitDepsOf = q => [
         ...(q.prereq || []).map(p => byQuest.get(p.id)),
-        npcPrevious.get(q.id),
       ].filter(Boolean);
-      /* 任務鏈排序必須以依賴圖為準，不能讓怪物分組、名稱或等級覆蓋前置順序。
-       * 這個序號只用於任務鏈顯示；狩獵批次仍在下方獨立計算。 */
+      // NPC 排隊是任務列的提示與同 NPC 內部順序，不得把整個共享怪物
+      // 執行群當成一個不可分割的前置節點；否則較晚任務會把同怪物較早
+      // 任務一起拖到後面，造成 Lv.66 → Lv.67 的畫面錯位。
+      const depsOf = q => [...explicitDepsOf(q), npcPrevious.get(q.id)].filter(Boolean);
+      /* 任務列排序以依賴序號為準；批次顯示則以怪物群的最低等級排序。 */
       const topoOrder = new Map();
       let topoSerial = 0;
       const topoVisiting = new Set();
@@ -1691,33 +1711,21 @@ V.questTimeline = async () => {
       };
       const content = el('div', { class: 'quest-timeline-stages' });
       const groupEntries = [...stages.entries()];
-      const groupOf = new Map(groupEntries.flatMap(([key, batch]) => batch.map(q => [q.id, key])));
-      const indegree = new Map(groupEntries.map(([key]) => [key, 0]));
-      const edges = new Map(groupEntries.map(([key]) => [key, new Set()]));
-      groupEntries.forEach(([key, batch]) => batch.forEach(q => depsOf(q).forEach(dep => {
-        const from = groupOf.get(dep.id);
-        if (from && from !== key && !edges.get(from).has(key)) {
-          edges.get(from).add(key); indegree.set(key, indegree.get(key) + 1);
-        }
-      })));
-      const originalOrder = new Map(groupEntries.map(([key], i) => [key, i]));
       const groupStage = key => batchPriority(key);
       const compareGroup = (a, b) => {
         const aa = groupStage(a), bb = groupStage(b);
-        return compareTuple(aa, bb) || originalOrder.get(a) - originalOrder.get(b);
+        return compareTuple(aa, bb) || String(a).localeCompare(String(b));
       };
-      const ready = [...indegree].filter(([, n]) => !n).map(([key]) => key).sort(compareGroup);
-      const orderedKeys = [];
-      while (ready.length) {
-        const key = ready.shift(); orderedKeys.push(key);
-        edges.get(key).forEach(next => {
-          indegree.set(next, indegree.get(next) - 1);
-          if (!indegree.get(next)) { ready.push(next); ready.sort(compareGroup); }
-        });
-      }
-      /* 防止資料有循環前置時整個區域消失，循環節點仍按原階段追加。 */
-      groupEntries.forEach(([key]) => { if (!orderedKeys.includes(key)) orderedKeys.push(key); });
-      const orderedStages = orderedKeys.map(key => [key, stages.get(key)]);
+      /*
+       * 怪物群是「同場狩獵規劃」，不是依賴圖節點。若把整個群壓成一個
+       * 節點再做 Kahn 拓樸，群內較晚解鎖的任務會把同群較早任務一起拖後，
+       * 造成 Lv.66 → Lv.101 → Lv.77 的假性倒退。真正的前置仍逐任務顯示，
+       * 批次本身只按群內最早可接等級排序。
+       */
+      const orderedStages = groupEntries
+        .slice()
+        .sort(([a], [b]) => compareGroup(a, b))
+        .map(([key, batch]) => [key, batch]);
       orderedStages.forEach(([stageKey, batch], index) => {
         const [levelBand] = stageKey.split(':').map(Number);
         batch = batch.filter(q => !onlyOpen.checked || !done[q.id]);
