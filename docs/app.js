@@ -1730,6 +1730,13 @@ V.questTimeline = async () => {
           if (!levels.length) return `Lv.${levelBand}～${levelBand + 9}`;
           return levels.length === 1 ? `Lv.${levels[0]}` : `Lv.${levels[0]}～${levels[levels.length - 1]}`;
         };
+        const chainDepthText = tasks => {
+          const depths = [...new Set(tasks.map(routeDepth))].sort((a, b) => a - b);
+          if (!depths.length) return '任務鏈第 1 階';
+          return depths.length === 1
+            ? `任務鏈第 ${depths[0] + 1} 階`
+            : `任務鏈第 ${depths[0] + 1}～${depths[depths.length - 1] + 1} 階`;
+        };
         const taskRows = batch.map(q => {
           const c = el('input', { type: 'checkbox', checked: !!done[q.id], 'aria-label': `標記任務 ${q.name} 完成` });
           c.onchange = () => { done[q.id] = c.checked; localStorage.setItem('mof-quest-route-done', JSON.stringify(done)); draw(); };
@@ -1741,7 +1748,7 @@ V.questTimeline = async () => {
         });
         const report = [...new Set(batch.flatMap(q => (q.npcs || []).map(n => n.name)))];
         const nextEntry = orderedStages[index + 1];
-        const stageTitle = `第 ${index + 1} 批｜任務鏈第 ${index + 1} 階｜${levelText(batch)}`;
+        const stageTitle = `第 ${index + 1} 批｜${chainDepthText(batch)}｜${levelText(batch)}`;
         content.appendChild(el('details', { class: 'quest-timeline-stage-fold', 'data-timeline-key': `stage:${area}:${stageKey}`, open: isOpen(`stage:${area}:${stageKey}`) }, [
           el('summary', { class: 'quest-timeline-stage-summary', text: stageTitle }),
           el('section', { class: 'quest-timeline-stage' }, [el('strong', { class: 'quest-timeline-step', text: '① 先接取並逐項查看條件' }), el('ol', { class: 'quest-route-tasks' }, taskRows), el('strong', { class: 'quest-timeline-step', text: '② 依各任務條件執行' }), el('p', { class: 'quest-timeline-meta', text: '每筆任務的條件已列在任務下方；同一怪物的完整狩獵批次只在下方對照顯示一次。' }), el('strong', { class: 'quest-timeline-step', text: '③ 回報並解鎖下一批' }), el('p', { class: 'quest-timeline-meta', text: report.length ? `完成後回報：${report.join('、')}。回報完成後才進入下一批。` : '本批沒有記錄回報 NPC。' }), nextEntry ? el('div', { class: 'quest-timeline-next' }, [el('strong', { text: `下一階段預告｜${levelText(nextEntry[1])}（不計入本階段）` }), el('p', { class: 'quest-timeline-meta' }, [`下一批任務：${nextEntry[1].map(q => `${q.name}（Lv.${q.levelReq || 0}）`).join('、')}`])]) : null]),
