@@ -1753,25 +1753,41 @@ V.questTimeline = async () => {
       const taskBatchNo = new Map();
       orderedStages.forEach(([, batch], index) => batch.forEach(q => taskBatchNo.set(q.id, index + 1)));
       const clusterIndex = el('section', { class: 'quest-timeline-cluster-index' }, [
-        el('h3', { class: 'quest-timeline-hunt-title', text: '近 5 個等級內可集中狩獵提示' }),
-        el('p', { class: 'quest-timeline-meta', text: '上方主流程才是接取／回報順序；這裡只提示同一怪物的任務能否在 5 個等級跨度內集中處理。' }),
+        el('h3', { class: 'quest-timeline-hunt-title', text: '近 5 個等級內的狩獵籌備群' }),
+        el('p', { class: 'quest-timeline-meta', text: '上方主流程才是接取／回報順序；這裡把同區域、等級窗口相鄰的怪物集中規劃，但不同怪物仍分開列出。' }),
       ]);
-      [...huntGroupTasks.entries()]
+      const clusterEntries = [...huntGroupTasks.entries()]
         .map(([name, tasks]) => [name, [...tasks.keys()].map(id => byQuest.get(id)).filter(Boolean)])
         .sort((a, b) => {
           const la = Math.min(...a[1].map(q => Number(q.levelReq) || 0), Number.MAX_SAFE_INTEGER);
           const lb = Math.min(...b[1].map(q => Number(q.levelReq) || 0), Number.MAX_SAFE_INTEGER);
           return la - lb || a[0].localeCompare(b[0], 'zh-Hant');
-        })
-        .forEach(([name, tasks]) => {
+        });
+      const huntWindows = [];
+      clusterEntries.forEach(([name, tasks]) => {
           tasks.sort((a, b) => (Number(a.levelReq) || 0) - (Number(b.levelReq) || 0)
             || (taskBatchNo.get(a.id) || Number.MAX_SAFE_INTEGER) - (taskBatchNo.get(b.id) || Number.MAX_SAFE_INTEGER)
             || a.name.localeCompare(b.name, 'zh-Hant'));
           const levels = tasks.map(q => Number(q.levelReq) || 0);
           const minLevel = Math.min(...levels);
           const maxLevel = Math.max(...levels);
+          let window = huntWindows.find(x => minLevel - x.minLevel <= 4);
+          if (!window) {
+            window = { minLevel, maxLevel, items: [] };
+            huntWindows.push(window);
+          }
+          window.maxLevel = Math.max(window.maxLevel, maxLevel);
+          window.items.push({ name, tasks, minLevel, maxLevel });
+      });
+      huntWindows.forEach(window => {
+        const windowSpan = window.maxLevel - window.minLevel + 1;
+        const windowTitle = windowSpan <= 5
+          ? `Lv.${window.minLevel}～${window.maxLevel}｜同區域 5 級內可安排`
+          : `Lv.${window.minLevel}～${window.maxLevel}｜同區域分段安排（窗口重疊）`;
+        const windowNode = el('div', { class: 'quest-timeline-hunt-window' }, [el('strong', { text: windowTitle })]);
+        window.items.forEach(({ name, tasks, minLevel, maxLevel }) => {
           const span = maxLevel - minLevel + 1;
-          const spanText = span <= 5 ? `Lv.${minLevel}～${maxLevel}｜${span} 級內可集中` : `Lv.${minLevel}～${maxLevel}｜跨 ${span} 級`;
+          const spanText = span <= 5 ? `Lv.${minLevel}～${maxLevel}｜${span} 級內` : `Lv.${minLevel}～${maxLevel}｜跨 ${span} 級`;
           const rows = tasks.map(q => {
             const kinds = [...(huntGroupTasks.get(name)?.get(q.id) || [])].join('＋');
             return el('li', {}, [
@@ -1779,11 +1795,13 @@ V.questTimeline = async () => {
               `（Lv.${q.levelReq || 0}｜${kinds}｜主流程第 ${taskBatchNo.get(q.id) || '—'} 批）`,
             ]);
           });
-          clusterIndex.appendChild(el('div', { class: 'quest-timeline-cluster-row' }, [
+          windowNode.appendChild(el('div', { class: 'quest-timeline-cluster-row' }, [
             el('strong', { text: `${name}｜${spanText}` }),
             el('ul', { class: 'quest-timeline-objectives' }, rows),
           ]));
         });
+        clusterIndex.appendChild(windowNode);
+      });
       orderedStages.forEach(([stageKey, batch], index) => {
         const [levelBand] = stageKey.split(':').map(Number);
         batch = batch.filter(q => !onlyOpen.checked || !done[q.id]);

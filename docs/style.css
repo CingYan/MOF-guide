@@ -231,6 +231,8 @@ h4 { margin: 16px 0 6px; font-size: 1em }
 .quest-timeline-cluster-index .quest-timeline-hunt-title{margin-top:0}
 .quest-timeline-cluster-row{margin:8px 0;padding:6px 8px;border-top:1px solid var(--line)}
 .quest-timeline-cluster-row strong{color:var(--gold)}
+.quest-timeline-hunt-window{margin:10px 0;padding:8px;border:1px dashed var(--line);border-radius:5px}
+.quest-timeline-hunt-window>strong{color:var(--gold)}
 .quest-timeline-support-fold{margin-top:14px;border:1px dashed var(--line);border-radius:6px;background:transparent}
 .quest-timeline-support-summary{cursor:pointer;padding:8px 10px;color:var(--muted);font-size:12px;font-weight:600}
 .quest-timeline-support-body{padding:0 8px 8px}
