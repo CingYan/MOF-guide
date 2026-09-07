@@ -1619,9 +1619,9 @@ V.questTimeline = async () => {
       const executionAlignedTo = new Map();
       const dungeonQuests = areaQuests.filter(q => (q.indun || []).length);
       const fieldQuests = areaQuests.filter(q => !(q.indun || []).length);
-      // 主流程以「實際可接等級＋任務依賴階段」分批。
-      // 怪物只供下方狩獵對照使用，不能決定任務鏈的分組，否則同一流程會被錯切。
-      const stageKeyFor = q => `${Number(q.levelReq) || 0}:${routeDepth(q)}`;
+      // 主流程以實際可接等級分批；同等級內再依完整前置拓樸排序。
+      // 怪物只供下方狩獵對照使用，不能決定任務鏈的分組。
+      const stageKeyFor = q => `${Number(q.levelReq) || 0}:0`;
       const huntByMonster = new Map();
       fieldQuests.forEach(q => {
         (q.hunt || []).forEach(x => {
@@ -1632,17 +1632,13 @@ V.questTimeline = async () => {
       });
       const initialBatchFor = new Map();
       fieldQuests.forEach(q => {
-        let stage = stageKeyFor(q);
+        const stage = stageKeyFor(q);
         const candidates = (q.collect || []).flatMap(x => collectSources(x.target)
           .flatMap(m => huntByMonster.get(baseName(m.name)) || []));
         if (!(q.hunt || []).length && candidates.length) {
           const finalHunt = [...new Map(candidates.map(candidate => [candidate.id, candidate])).values()]
             .sort((a, b) => Number(b.levelReq || 0) - Number(a.levelReq || 0) || routeDepth(b) - routeDepth(a))[0];
-          const huntStage = stageKeyFor(finalHunt);
-          if (huntStage !== stage) {
-            stage = huntStage;
-            executionAlignedTo.set(q.id, finalHunt);
-          }
+          if (finalHunt && stageKeyFor(finalHunt) !== stage) executionAlignedTo.set(q.id, finalHunt);
         }
         const batchKey = stage;
         initialBatchFor.set(q.id, { key: batchKey, stage });
@@ -1797,7 +1793,8 @@ V.questTimeline = async () => {
       groupEntries.forEach(([key]) => { if (!orderedKeys.includes(key)) orderedKeys.push(key); });
       const orderedStages = orderedKeys.map(key => [key, stages.get(key)]);
       orderedStages.forEach(([stageKey, batch], index) => {
-        const [levelBand, stage] = stageKey.split(':').map(Number);
+        const [levelBand] = stageKey.split(':').map(Number);
+        const stage = Math.min(...batch.map(q => routeDepth(q)), 0);
         batch = batch.filter(q => !onlyOpen.checked || !done[q.id]);
         if (!batch.length) return;
         batch.sort((a, b) => questOrder(a) - questOrder(b)
