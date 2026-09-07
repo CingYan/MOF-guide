@@ -1661,13 +1661,6 @@ V.questTimeline = async () => {
         const owner = groupOwner.get(monsterName);
         if (owner) union(owner, q.id); else groupOwner.set(monsterName, q.id);
       }));
-      fieldQuests.forEach(q => {
-        const monsterGroups = [...(questHuntGroups.get(q.id) || [])];
-        const batchKey = monsterGroups.length ? `hunt:${find(q.id)}` : `level:${Number(q.levelReq) || 0}`;
-        if (!stages.has(batchKey)) stages.set(batchKey, []);
-        stages.get(batchKey).push(q);
-      });
-
       /*
        * 同一怪物的執行群不能凌駕於任務鏈前置：
        * 例如「侮辱」可與斧頭幽靈任務同場狩獵，但它的 NPC 前置
@@ -1697,6 +1690,35 @@ V.questTimeline = async () => {
       };
       quests.forEach(visitQuest);
       const questOrder = q => topoOrder.has(q.id) ? topoOrder.get(q.id) : Number.MAX_SAFE_INTEGER;
+      const baseGroupOf = new Map(fieldQuests.map(q => [q.id, find(q.id)]));
+      const baseGroupMinLevel = new Map();
+      fieldQuests.forEach(q => {
+        const group = baseGroupOf.get(q.id);
+        const level = Number(q.levelReq) || 0;
+        baseGroupMinLevel.set(group, Math.min(baseGroupMinLevel.get(group) ?? Number.MAX_SAFE_INTEGER, level));
+      });
+      /*
+       * 同怪物群內若有任務被「較晚才解鎖」的外部前置卡住，只有被卡住的
+       * 後段任務移到前置之後；沒有被卡住的早段任務仍留在原狩獵批次。
+       * 例：愛喝酒的豬／掃把留在惡魔山豬早段，神奇的藥材等可惡的布丁
+       * 完成後再出現；下方狩獵對照仍把三者列為同一怪物群。
+       */
+      const stageBarrier = q => {
+        const group = baseGroupOf.get(q.id);
+        const minLevel = baseGroupMinLevel.get(group) || 0;
+        const blocking = depsOf(q).filter(dep => baseGroupOf.get(dep.id) !== group
+          && (Number(dep.levelReq) || 0) >= minLevel);
+        return blocking.reduce((max, dep) => Math.max(max, questOrder(dep)), 0);
+      };
+      fieldQuests.forEach(q => {
+        const monsterGroups = [...(questHuntGroups.get(q.id) || [])];
+        const baseGroup = baseGroupOf.get(q.id);
+        const batchKey = monsterGroups.length
+          ? `hunt:${baseGroup}:barrier:${stageBarrier(q)}`
+          : `level:${Number(q.levelReq) || 0}:barrier:${stageBarrier(q)}`;
+        if (!stages.has(batchKey)) stages.set(batchKey, []);
+        stages.get(batchKey).push(q);
+      });
       const compareTuple = (a, b) => a[0] - b[0] || a[1] - b[1] || a[2] - b[2];
       const batchPriority = key => {
         const batch = stages.get(key) || [];
