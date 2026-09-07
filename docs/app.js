@@ -1807,7 +1807,7 @@ V.questTimeline = async () => {
           const conditions = conditionNodes(q);
           return el('li', { class: 'quest-timeline-task' }, [el('label', {}, [c, el('a', { href: '#/quests/' + q.id, text: q.name }), el('span', { class: 'dim', text: `（Lv.${q.levelReq || 0}｜${(q.npcs || []).map(n => n.name).join('、') || '無 NPC'}）` })]),
             conditions.length ? el('span', { class: 'quest-timeline-condition' }, ['條件：', ...conditions.flatMap((x, i) => [i ? '、' : '', x])]) : el('span', { class: 'quest-timeline-condition dim', text: '條件：劇情／對話或其他任務動作' }),
-            ...huntGroupLabel(q).map(label => el('span', { class: 'quest-timeline-meta', text: `同批狩獵：${label}（完整批次請見下方對照）` })),
+            ...huntGroupLabel(q).map(label => el('span', { class: 'quest-timeline-meta quest-timeline-hunt-hint', text: `狩獵群提示：${label}（不改變本任務主流程批次）` })),
             ...previousText(q).map(t => el('span', { class: 'quest-timeline-meta', text: t }))]);
         });
         const report = [...new Set(batch.flatMap(q => (q.npcs || []).map(n => n.name)))];
