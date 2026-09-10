@@ -1,1 +1,21 @@
-{"counts": {"monsters": 296, "maps": 461, "equips": 3681, "fashion": 2679, "items": 2470, "recipes": 517, "quests": 704, "npcs": 186}, "grind": 262, "searchIndex": 10994, "dataVersion": "a8546aa2", "generatedAt": "2026-08-19T16:28:46.694Z", "rates": {"exp": 3, "drop": 3, "money": 3}}
+{
+  "counts": {
+    "monsters": 318,
+    "maps": 462,
+    "equips": 3681,
+    "fashion": 2683,
+    "items": 2486,
+    "recipes": 517,
+    "quests": 704,
+    "npcs": 186
+  },
+  "grind": 262,
+  "searchIndex": 11037,
+  "dataVersion": "59b863b9",
+  "generatedAt": "2026-09-07T14:18:31.169Z",
+  "rates": {
+    "exp": 3,
+    "drop": 3,
+    "money": 3
+  }
+}
