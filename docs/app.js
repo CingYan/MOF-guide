@@ -126,7 +126,10 @@ function itemHref(id, name) {
 /* 名稱 + 圖示，能連就連 */
 function itemCell(o, kind) {
   const href = kind ? '#/' + kind + '/' + o.id : itemHref(o.id, o.name);
-  const inner = [o.icon ? el('img', { class: 'ic sm', src: o.icon, alt: '', loading: 'lazy' }) : null, o.name];
+  // 官方新版怪物資料使用 image，舊資料與其他資料類型多使用 icon。
+  // 關聯列表可能拿到任一種欄位，統一在這裡處理，避免地圖／練功頁漏圖示。
+  const image = o.icon || o.image;
+  const inner = [image ? el('img', { class: 'ic sm', src: image, alt: '', loading: 'lazy' }) : null, o.name];
   return href ? el('a', { class: 'nm', href }, inner) : el('span', { class: 'nm' }, inner);
 }
 
